@@ -4,8 +4,7 @@ struct ContentView: View {
     @State private var selectedTab = 2 // Главный экран — 'Цели'
 
     var body: some View {
-        print("ContentView body")
-        return TabView(selection: $selectedTab) {
+        TabView(selection: $selectedTab) {
             HistoryView()
                 .tabItem {
                     Image(systemName: "list.bullet.rectangle")
@@ -46,4 +45,5 @@ struct ContentView_Previews: PreviewProvider {
             .environmentObject(GoalsViewModel())
     }
 }
+
 

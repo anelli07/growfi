@@ -5,6 +5,7 @@ struct GoalsCarouselView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
     @State private var showAIChat = false
+    @State private var showCreateGoalSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +50,7 @@ struct GoalsCarouselView: View {
                     
                     // Кнопка "Создать цель"
                     Button(action: {
-                        viewModel.showCreateGoal = true
+                        showCreateGoalSheet = true
                     }) {
                         Text("Создать цель")
                             .font(.headline)
@@ -73,39 +74,93 @@ struct GoalsCarouselView: View {
                     }
                 }
                 .padding(.top, 20)
-                .sheet(isPresented: $viewModel.showCreateGoal) {
-                    // TODO: CreateGoalView
+                .sheet(isPresented: $showCreateGoalSheet) {
+                    CreateItemSheet(type: .goal) { name, sum in
+                        viewModel.addGoal(name: name, amount: sum)
+                        showCreateGoalSheet = false
+                    }
                 }
             } else {
+                if viewModel.goals.count == 1 {
+                    // Одна цель — отображаем без карусели
+                    if let goal = viewModel.goals.first {
+                        VStack(spacing: 10) {
+                            Image("plant_stage_\(goal.growthStage)")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 130, height: 130)
+                                .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
+
+                            Text(goal.name)
+                                .font(.subheadline)
+
+                            Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+
+                            ProgressView(value: goal.current_amount, total: goal.target_amount)
+                                .accentColor(Color.green)
+                                .frame(width: 180)
+                                .padding(.bottom, 4)
+
+                            Button(action: {
+                                // TODO: Sheet для пополнения цели
+                            }) {
+                                Text("Пополнить цель")
+                                    .font(.headline)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 24)
+                                    .background(Color.green)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 12)
+                    }
+                } else {
                     GeometryReader { geometry in
                         let width = geometry.size.width
-                        let itemWidth: CGFloat = width * 0.65
-                        let spacing: CGFloat = 0
+                        let itemWidth: CGFloat = width * 0.6
+                        let spacing: CGFloat = viewModel.goals.count <= 2 ? -itemWidth * 0.35 : -itemWidth * 0.3
                         let goalsCount = viewModel.goals.count
                         let centerX = width / 2
-                        let offset = -CGFloat(viewModel.selectedGoalIndex) * (itemWidth + spacing) + dragOffset
-
-                        // Показываем только текущую, левую и правую цель
+                        let itemSpacing = itemWidth + spacing
+                        let centerOffset = centerX - itemWidth / 2
+                        let offset = -CGFloat(viewModel.selectedGoalIndex) * itemSpacing + dragOffset + centerOffset
+                        
                         let visibleIndices: [Int] = {
                             guard goalsCount > 0 else { return [] }
                             let center = viewModel.selectedGoalIndex
-                            return [
-                                (center - 1 + goalsCount) % goalsCount,
-                                center,
-                                (center + 1) % goalsCount
-                            ]
+
+                            if goalsCount == 1 {
+                                return [center] // только центр
+                            } else if goalsCount == 2 {
+                                return [center, (center + 1) % 2] // центр + один сосед
+                            } else {
+                                return [
+                                    (center - 1 + goalsCount) % goalsCount,
+                                    center,
+                                    (center + 1) % goalsCount
+                                ]
+                            }
                         }()
 
                         HStack(spacing: spacing) {
                             ForEach(visibleIndices, id: \.self) { index in
                                 let goal = viewModel.goals[index]
                                 let isSelected = index == viewModel.selectedGoalIndex
+                                let position = index - viewModel.selectedGoalIndex
 
                                 GoalCardView(goal: goal, isSelected: isSelected)
-                                    .frame(width: isSelected ? itemWidth : itemWidth * 0.7,
-                                           height: isSelected ? 160 : 120)
-                                    .scaleEffect(isSelected ? 1.1 : 0.9)
-                                    .opacity(isSelected ? 1 : 0.5)
+                                    .frame(width: itemWidth)
+                                    .rotation3DEffect(
+                                        .degrees(Double(position) * 30),
+                                        axis: (x: 0, y: -1, z: 0),
+                                        perspective: 0.8
+                                    )
+                                    .scaleEffect(isSelected ? 1.0 : 0.85)
+                                    .opacity(isSelected ? 1.0 : 0.4)
                                     .zIndex(isSelected ? 1 : 0)
                                     .onTapGesture {
                                         withAnimation(.spring()) {
@@ -137,11 +192,13 @@ struct GoalsCarouselView: View {
                     }
                     .frame(height: 180)
                 }
+            }
 
             Spacer(minLength: 8)
 
             // Детали выбранной цели (только прогресс и кнопка, без названия)
-            if let goal = viewModel.goals[safe: viewModel.selectedGoalIndex] {
+            if viewModel.goals.count > 1,
+               let goal = viewModel.goals[safe: viewModel.selectedGoalIndex] {
                 VStack(spacing: 10) {
                     Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
                         .font(.subheadline)

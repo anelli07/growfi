@@ -1,8 +1,45 @@
 import SwiftUI
 
 struct HistoryView: View {
-    @StateObject private var viewModel = HistoryViewModel()
+    @EnvironmentObject var viewModel: GoalsViewModel
+    @State private var searchText: String = ""
+    @State private var selectedPeriod: PeriodType = .month
     @State private var showPeriodPicker = false
+
+    // Фильтрация по периоду
+    var filteredTransactions: [Transaction] {
+        let calendar = Calendar.current
+        let now = Date()
+        let periodFiltered = viewModel.transactions.filter { tx in
+            switch selectedPeriod {
+            case .month:
+                return calendar.isDate(tx.date, equalTo: now, toGranularity: .month)
+            case .week:
+                return calendar.isDate(tx.date, equalTo: now, toGranularity: .weekOfYear)
+            case .year:
+                return calendar.isDate(tx.date, equalTo: now, toGranularity: .year)
+            case .quarter, .halfYear, .all, .custom:
+                return true // MVP
+            }
+        }
+        if searchText.isEmpty { return periodFiltered }
+        return periodFiltered.filter {
+            $0.category.lowercased().contains(searchText.lowercased()) ||
+            ($0.note ?? "").lowercased().contains(searchText.lowercased())
+        }
+    }
+
+    // Группировка по дням
+    var groupedDays: [TransactionDay] {
+        let grouped = Dictionary(grouping: filteredTransactions) { tx in
+            Calendar.current.startOfDay(for: tx.date)
+        }
+        .map { (date, txs) in
+            TransactionDay(date: date, transactions: txs)
+        }
+        .sorted { $0.date > $1.date }
+        return grouped
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -26,11 +63,13 @@ struct HistoryView: View {
             SearchBar(placeholder: "Поиск по примечаниям", onTap: {})
                 .padding(.horizontal)
                 .padding(.top, 8)
+                .onChange(of: searchText) { _ in }
+//                .environment(\.searchText, $searchText)
 
             // Период и стрелки
             HStack {
                 Button(action: {
-                    viewModel.selectPreviousPeriod()
+                    selectPreviousPeriod()
                 }) {
                     Image(systemName: "chevron.left")
                 }
@@ -41,7 +80,7 @@ struct HistoryView: View {
                     showPeriodPicker = true
                 }) {
                     HStack(spacing: 4) {
-                        Text(viewModel.selectedPeriod.rawValue)
+                        Text(selectedPeriod.rawValue)
                         Image(systemName: "chevron.down")
                     }
                     .font(.subheadline)
@@ -51,7 +90,7 @@ struct HistoryView: View {
                 Spacer()
 
                 Button(action: {
-                    viewModel.selectNextPeriod()
+                    selectNextPeriod()
                 }) {
                     Image(systemName: "chevron.right")
                 }
@@ -61,9 +100,9 @@ struct HistoryView: View {
 
             // Блок баланса
             BalanceCard(
-                balance: viewModel.transactions.map { $0.amount }.reduce(0, +),
-                income: viewModel.transactions.filter { $0.type == .income }.map { $0.amount }.reduce(0, +),
-                expense: abs(viewModel.transactions.filter { $0.type == .expense }.map { $0.amount }.reduce(0, +)),
+                balance: filteredTransactions.map { $0.amount }.reduce(0, +),
+                income: filteredTransactions.filter { $0.type == .income }.map { $0.amount }.reduce(0, +),
+                expense: abs(filteredTransactions.filter { $0.type == .expense }.map { $0.amount }.reduce(0, +)),
                 currency: "₸"
             )
             .padding(.horizontal)
@@ -81,7 +120,7 @@ struct HistoryView: View {
             // Транзакции
             ScrollView {
                 VStack(spacing: 16) {
-                    ForEach(viewModel.filteredDays) { day in
+                    ForEach(groupedDays) { day in
                         TransactionDaySection(day: day)
                     }
                 }
@@ -92,13 +131,27 @@ struct HistoryView: View {
         }
         .background(Color.white.ignoresSafeArea())
         .sheet(isPresented: $showPeriodPicker) {
-            PeriodPicker(selected: $viewModel.selectedPeriod)
+            PeriodPicker(selected: $selectedPeriod)
         }
+    }
+
+    // Периоды
+    func selectPreviousPeriod() {
+        guard let currentIndex = PeriodType.allCases.firstIndex(of: selectedPeriod),
+              currentIndex > 0 else { return }
+        let newPeriod = PeriodType.allCases[currentIndex - 1]
+        selectedPeriod = newPeriod
+    }
+    func selectNextPeriod() {
+        guard let currentIndex = PeriodType.allCases.firstIndex(of: selectedPeriod),
+              currentIndex < PeriodType.allCases.count - 1 else { return }
+        let newPeriod = PeriodType.allCases[currentIndex + 1]
+        selectedPeriod = newPeriod
     }
 }
 
 struct HistoryView_Previews: PreviewProvider {
     static var previews: some View {
-        HistoryView()
+        HistoryView().environmentObject(GoalsViewModel())
     }
-} 
+}
