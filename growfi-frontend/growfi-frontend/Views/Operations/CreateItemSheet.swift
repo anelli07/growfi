@@ -10,7 +10,7 @@ struct CreateItemSheet: View {
     @State private var selectedColor: Color = .blue
     @State private var selectedCurrency: String = "₸"
     let availableIcons = [
-        "creditcard.fill", "banknote", "dollarsign.circle.fill", "wallet.pass.fill", "cart.fill", "gift.fill", "airplane", "car.fill", "cross.case.fill", "tshirt.fill", "scissors", "gamecontroller.fill", "cup.and.saucer.fill", "fork.knife", "phone.fill", "house.fill", "building.2.fill", "bag.fill", "star.fill", "questionmark.circle"
+        "creditcard.fill", "banknote", "dollarsign.circle.fill", "wallet.pass.fill", "cart.fill", "gift.fill", "airplane", "car.fill", "cross.case.fill", "tshirt.fill", "scissors", "gamecontroller.fill", "cup.and.saucer.fill", "fork.knife", "phone.fill", "house.fill", "building.2.fill", "bag.fill", "star.fill", "questionmark.circle", "lipstick", "paintbrush.fill"
     ]
     let availableColors: [Color] = [.blue, .green, .yellow, .orange, .red, .purple, .mint, .gray]
     let availableCurrencies = ["₸", "$", "€", "₽"]
@@ -43,6 +43,18 @@ struct CreateItemSheet: View {
                 )
             }
             .padding(.bottom, 8)
+            .onAppear {
+                switch type {
+                case .income:
+                    selectedIcon = "dollarsign.circle.fill"; selectedColor = .green
+                case .wallet:
+                    selectedIcon = "creditcard.fill"; selectedColor = .blue
+                case .goal:
+                    selectedIcon = "leaf.circle.fill"; selectedColor = .green
+                case .expense:
+                    selectedIcon = "cart.fill"; selectedColor = .red
+                }
+            }
             VStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Название")

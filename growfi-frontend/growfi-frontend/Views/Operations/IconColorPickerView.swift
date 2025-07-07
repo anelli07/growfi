@@ -26,8 +26,10 @@ struct IconColorPickerView: View {
             .onChange(of: name) { newName in
                 guard !wasManuallyPicked else { return }
                 let type = CategoryType.from(name: newName)
-                selectedIcon = type.icon
-                selectedColor = type.color
+                if type != .другое {
+                    selectedIcon = type.icon
+                    selectedColor = type.color
+                }
             }
             if showPicker {
                 ScrollView(.horizontal, showsIndicators: false) {

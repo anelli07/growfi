@@ -43,10 +43,15 @@ struct OperationsView: View {
     var expenseTotal: Double { viewModel.expenses.map { abs($0.amount) }.reduce(0, +) }
 
     let defaultExpenses: [(name: String, icon: String, color: Color)] = [
-        ("Развлечения", "gamecontroller.fill", .purple),
+        ("Развлечения", CategoryType.from(name: "Развлечения").icon, CategoryType.from(name: "Развлечения").color),
         ("Связь", "phone.fill", .teal),
-        ("Транспорт", "car.fill", .orange),
-        ("Еда", "fork.knife", .red)
+        ("Транспорт", CategoryType.from(name: "Транспорт").icon, CategoryType.from(name: "Транспорт").color),
+        ("Еда", CategoryType.from(name: "Еда").icon, CategoryType.from(name: "Еда").color),
+        ("Продукты", CategoryType.from(name: "Продукты").icon, CategoryType.from(name: "Продукты").color),
+        ("Здоровье", CategoryType.from(name: "Здоровье").icon, CategoryType.from(name: "Здоровье").color),
+        ("Путешествия", "airplane", .mint),
+        ("Одежда", "tshirt.fill", .gray),
+        ("Красота", "scissors", .pink)
     ]
 
     @State private var showIncome = true
