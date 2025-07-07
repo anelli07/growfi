@@ -10,14 +10,22 @@ class GoalsViewModel: ObservableObject {
     @Published var error: String? = nil
     @Published var showCreateGoal: Bool = false
     @Published var incomes: [Transaction] = [
-        Transaction(id: UUID(), date: Date(), category: "Зарплата", amount: 40000, type: .income, note: nil, wallet: "")
+        Transaction(id: UUID(), date: Date(), category: "Зарплата", amount: 0, type: .income, note: nil, wallet: "Карта")
     ]
     @Published var wallets: [Wallet] = [
-        Wallet(id: 1, name: "Карта", balance: 36950),
+        Wallet(id: 1, name: "Карта", balance: 0),
         Wallet(id: 2, name: "Наличные", balance: 0)
     ]
     @Published var expenses: [Transaction] = [
-        Transaction(id: UUID(), date: Date(), category: "Продукты", amount: -3050, type: .expense, note: nil, wallet: "")
+        Transaction(id: UUID(), date: Date(), category: "Развлечения", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Связь", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Транспорт", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Еда", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Продукты", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Здоровье", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Путешествия", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Одежда", amount: 0, type: .expense, note: nil, wallet: "Карта"),
+        Transaction(id: UUID(), date: Date(), category: "Красота", amount: 0, type: .expense, note: nil, wallet: "Карта")
     ]
 
     var token: String? {
@@ -26,8 +34,9 @@ class GoalsViewModel: ObservableObject {
 
     init() {
         loadUser()
-        fetchGoals()
-        loadTransactions()
+        // goals = []
+        // transactions = []
+        // incomes, wallets, expenses уже инициализированы выше
     }
 
     func loadUser() {
@@ -103,13 +112,8 @@ class GoalsViewModel: ObservableObject {
     }
 
     func loadTransactions() {
-        // Заглушка: потом заменить на API
-        let today = Date()
-        self.transactions = [
-            Transaction(id: UUID(), date: today, category: "Продукты", amount: -2000, type: .expense, note: "Магазин", wallet: "Карта"),
-            Transaction(id: UUID(), date: today, category: "Кофе", amount: -1200, type: .expense, note: nil, wallet: "Карта"),
-            Transaction(id: UUID(), date: today, category: "To Goal", amount: 5000, type: .income, note: "Пополнение цели", wallet: "Карта")
-        ]
+        // История по умолчанию пустая
+        self.transactions = []
     }
 
     var userName: String {
@@ -129,32 +133,10 @@ class GoalsViewModel: ObservableObject {
     func transferIncomeToWallet(incomeId: UUID, walletId: Int, amount: Double) {
         guard let incomeIdx = incomes.firstIndex(where: { $0.id == incomeId }),
               let walletIdx = wallets.firstIndex(where: { $0.id == walletId }) else { return }
-        // Просто увеличиваем сумму кошелька, доход не исчезает
         incomes[incomeIdx].amount += amount
         wallets[walletIdx].balance += amount
-    }
-    // Drag&Drop: Кошелек -> Цель
-    func transferIncomeToWallet(incomeId: UUID, walletId: Int) {
-        guard let incomeIdx = incomes.firstIndex(where: { $0.id == incomeId }),
-              let walletIdx = wallets.firstIndex(where: { $0.id == walletId }) else { return }
-        
-        guard incomes[incomeIdx].amount >= 0.01 else { return }
-        
-        incomes[incomeIdx].amount -= 0.01
-        wallets[walletIdx].balance += 0.01
-
-        if incomes[incomeIdx].amount <= 0.01 {
-            incomes.remove(at: incomeIdx)
-        }
-    }
-    // Drag&Drop: Кошелек -> Расход
-    func transferWalletToExpense(walletId: Int, expenseId: UUID, amount: Double) -> Bool {
-        guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }),
-              let expenseIdx = expenses.firstIndex(where: { $0.id == expenseId }) else { return false }
-        guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
-        wallets[walletIdx].balance -= amount
-        expenses[expenseIdx].amount -= amount
-        return true
+        let tx = Transaction(id: UUID(), date: Date(), category: "Перевод в кошелек", amount: amount, type: .income, note: nil, wallet: wallets[walletIdx].name)
+        transactions.append(tx)
     }
     // Drag&Drop: Кошелек -> Цель
     func transferWalletToGoal(walletId: Int, goalId: Int, amount: Double) -> Bool {
@@ -163,32 +145,54 @@ class GoalsViewModel: ObservableObject {
         guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
         wallets[walletIdx].balance -= amount
         goals[goalIdx].current_amount += amount
+        let tx = Transaction(id: UUID(), date: Date(), category: "Пополнение цели: \(goals[goalIdx].name)", amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
+        transactions.append(tx)
+        return true
+    }
+    // Drag&Drop: Кошелек -> Расход
+    func transferWalletToExpense(walletId: Int, expenseId: UUID, amount: Double) -> Bool {
+        guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }),
+              let expenseIdx = expenses.firstIndex(where: { $0.id == expenseId }) else { return false }
+        guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
+        wallets[walletIdx].balance -= amount
+        expenses[expenseIdx].amount -= amount
+        let tx = Transaction(id: UUID(), date: Date(), category: expenses[expenseIdx].category, amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
+        transactions.append(tx)
         return true
     }
 
     // Добавление новых элементов
     func addIncome(name: String, amount: Double) {
-        let newIncome = Transaction(id: UUID(), date: Date(), category: name, amount: amount, type: .income, note: nil, wallet: "")
+        let newIncome = Transaction(id: UUID(), date: Date(), category: name, amount: amount, type: .income, note: nil, wallet: "Карта")
         incomes.append(newIncome)
+        transactions.append(newIncome)
     }
     func addWallet(name: String, amount: Double) {
         let newWallet = Wallet(id: (wallets.last?.id ?? 0) + 1, name: name, balance: amount)
         wallets.append(newWallet)
+        // Можно добавить Transaction о пополнении кошелька, если нужно
+        if amount > 0 {
+            let tx = Transaction(id: UUID(), date: Date(), category: "Пополнение кошелька", amount: amount, type: .income, note: nil, wallet: name)
+            transactions.append(tx)
+        }
     }
     func addGoal(name: String, amount: Double) {
         let newGoal = Goal(id: (goals.last?.id ?? 0) + 1, name: name, target_amount: amount, current_amount: 0, user_id: nil)
         goals.append(newGoal)
         objectWillChange.send()
+        // Не добавляем транзакцию, пока не будет пополнения цели
     }
     func addExpense(name: String, amount: Double) {
-        let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: -abs(amount), type: .expense, note: nil, wallet: "")
+        let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: -abs(amount), type: .expense, note: nil, wallet: "Карта")
         expenses.append(newExpense)
+        transactions.append(newExpense)
     }
 
     // Добавление нового расхода и возврат созданного объекта
     func addExpenseAndReturn(name: String) -> Transaction {
-        let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: 0, type: .expense, note: nil, wallet: "")
+        let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: 0, type: .expense, note: nil, wallet: "Карта")
         expenses.append(newExpense)
+        transactions.append(newExpense)
         return newExpense
     }
 
