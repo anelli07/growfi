@@ -191,4 +191,50 @@ class GoalsViewModel: ObservableObject {
         expenses.append(newExpense)
         return newExpense
     }
+
+    // --- Локальное редактирование и удаление ---
+    func updateWallet(id: Int, name: String, amount: Double) {
+        if let idx = wallets.firstIndex(where: { $0.id == id }) {
+            wallets[idx].name = name
+            wallets[idx].balance = amount
+            objectWillChange.send()
+        }
+    }
+    func deleteWallet(id: Int) {
+        wallets.removeAll { $0.id == id }
+        objectWillChange.send()
+    }
+    func updateIncome(id: UUID, name: String, amount: Double) {
+        if let idx = incomes.firstIndex(where: { $0.id == id }) {
+            incomes[idx].category = name
+            incomes[idx].amount = amount
+            objectWillChange.send()
+        }
+    }
+    func deleteIncome(id: UUID) {
+        incomes.removeAll { $0.id == id }
+        objectWillChange.send()
+    }
+    func updateGoal(id: Int, name: String, amount: Double) {
+        if let idx = goals.firstIndex(where: { $0.id == id }) {
+            goals[idx].name = name
+            goals[idx].current_amount = amount
+            objectWillChange.send()
+        }
+    }
+    func deleteGoal(id: Int) {
+        goals.removeAll { $0.id == id }
+        objectWillChange.send()
+    }
+    func updateExpense(id: UUID, name: String, amount: Double) {
+        if let idx = expenses.firstIndex(where: { $0.id == id }) {
+            expenses[idx].category = name
+            expenses[idx].amount = -abs(amount)
+            objectWillChange.send()
+        }
+    }
+    func deleteExpense(id: UUID) {
+        expenses.removeAll { $0.id == id }
+        objectWillChange.send()
+    }
 } 

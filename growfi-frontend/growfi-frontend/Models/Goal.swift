@@ -2,7 +2,7 @@ import Foundation
 
 struct Goal: Identifiable, Codable {
     let id: Int
-    let name: String
+    var name: String
     let target_amount: Double
     var current_amount: Double
     let user_id: Int?

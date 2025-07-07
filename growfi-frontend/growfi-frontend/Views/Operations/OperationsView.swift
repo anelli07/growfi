@@ -20,8 +20,23 @@ struct OperationsView: View {
     @State private var createType: CreateType? = nil
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var editItem: EditableItem? = nil
 
     enum CreateType { case income, wallet, goal, expense }
+    enum EditableItem: Identifiable {
+        case wallet(Wallet)
+        case income(Transaction)
+        case goal(Goal)
+        case expense(Transaction)
+        var id: String {
+            switch self {
+            case .wallet(let w): return "wallet_\(w.id)"
+            case .income(let i): return "income_\(i.id)"
+            case .goal(let g): return "goal_\(g.id)"
+            case .expense(let e): return "expense_\(e.id)"
+            }
+        }
+    }
 
     var incomeTotal: Double { viewModel.incomes.map { $0.amount }.reduce(0, +) }
     var walletTotal: Double { viewModel.wallets.map { $0.balance }.reduce(0, +) }
@@ -50,6 +65,7 @@ struct OperationsView: View {
                 CategoryGrid(content: {
                     ForEach(viewModel.incomes) { income in
                         OperationCategoryCircle(icon: "dollarsign.circle.fill", color: .green, title: income.category, amount: "\(Int(income.amount)) ₸")
+                            .onTapGesture { editItem = .income(income) }
                             .onDrag {
                                 dragIncomeId = income.id
                                 dragAmount = income.amount
@@ -78,6 +94,7 @@ struct OperationsView: View {
                 CategoryGrid(content: {
                     ForEach(viewModel.wallets) { wallet in
                         OperationCategoryCircle(icon: "creditcard.fill", color: .blue, title: wallet.name, amount: "\(Int(wallet.balance)) ₸")
+                            .onTapGesture { editItem = .wallet(wallet) }
                             .onDrop(of: ["public.text"], isTargeted: nil) { providers in
                                 providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
                                     if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let incomeUUID = UUID(uuidString: idString), let income = viewModel.incomes.first(where: { $0.id == incomeUUID }) {
@@ -125,6 +142,7 @@ struct OperationsView: View {
                             title: goal.name,
                             amount: "\(Int(goal.current_amount))/\(Int(goal.target_amount)) ₸"
                         )
+                        .onTapGesture { editItem = .goal(goal) }
                         .onDrop(of: ["public.text"], isTargeted: nil) { providers in
                             providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
                                 if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let walletId = Int(idString), let wallet = viewModel.wallets.first(where: { $0.id == walletId }) {
@@ -160,6 +178,14 @@ struct OperationsView: View {
                             title: def.name,
                             amount: "\(Int(amount)) ₸"
                         )
+                        .onTapGesture {
+                            if let exp = expense {
+                                editItem = .expense(exp)
+                            } else {
+                                let newExp = viewModel.addExpenseAndReturn(name: def.name)
+                                editItem = .expense(newExp)
+                            }
+                        }
                         .onDrop(of: ["public.text"], isTargeted: nil) { providers in
                             providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
                                 if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let walletId = Int(idString), let wallet = viewModel.wallets.first(where: { $0.id == walletId }) {
@@ -183,6 +209,7 @@ struct OperationsView: View {
                             title: expense.category,
                             amount: "\(Int(abs(expense.amount))) ₸"
                         )
+                        .onTapGesture { editItem = .expense(expense) }
                         .onDrop(of: ["public.text"], isTargeted: nil) { providers in
                             providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
                                 if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let walletId = Int(idString), let wallet = viewModel.wallets.first(where: { $0.id == walletId }) {
@@ -250,6 +277,11 @@ struct OperationsView: View {
                     }
                     showCreateSheet = false
                 }
+            }
+        }
+        .sheet(item: $editItem) { item in
+            EditItemSheet(item: item, viewModel: viewModel) {
+                editItem = nil
             }
         }
     }
@@ -374,3 +406,4 @@ struct OperationsView_Previews: PreviewProvider {
     }
 }
 #endif
+ 
