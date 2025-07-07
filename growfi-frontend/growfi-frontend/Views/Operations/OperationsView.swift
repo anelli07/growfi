@@ -59,10 +59,70 @@ struct OperationsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                
-                // Доходы
-                SectionToggleHeader(title: "Доходы", total: "\(Int(incomeTotal)) ₸", isExpanded: .constant(true))
-                CategoryGrid(content: {
+                incomesSection
+                walletsSection
+                goalsSection
+                expensesSection
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+        }
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("Ошибка"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+        }
+        .sheet(isPresented: $showTransferSheet) {
+            if let type = transferType {
+                TransferSheet(type: type, amount: $transferAmount, date: $transferDate, comment: $transferComment) { amount, date, comment in
+                    switch type {
+                    case .incomeToWallet(let income, let wallet):
+                        viewModel.transferIncomeToWallet(incomeId: income.id, walletId: wallet.id, amount: amount)
+                    case .walletToGoal(let wallet, let goal):
+                        let ok = viewModel.transferWalletToGoal(walletId: wallet.id, goalId: goal.id, amount: amount)
+                        if !ok {
+                            alertMessage = "Недостаточно денег в кошельке"
+                            showAlert = true
+                        }
+                    case .walletToExpense(let wallet, let expense):
+                        let ok = viewModel.transferWalletToExpense(walletId: wallet.id, expenseId: expense.id, amount: amount)
+                        if !ok {
+                            alertMessage = "Недостаточно денег в кошельке"
+                            showAlert = true
+                        }
+                    }
+                    showTransferSheet = false
+                }
+            }
+        }
+        .sheet(isPresented: $showCreateSheet) {
+            if let type = createType {
+                CreateItemSheet(type: type) { name, sum, icon, color, currency in
+                    switch type {
+                    case .income:
+                        viewModel.addIncome(name: name, amount: sum)
+                    case .wallet:
+                        viewModel.addWallet(name: name, amount: sum)
+                    case .goal:
+                        viewModel.addGoal(name: name, amount: sum)
+                    case .expense:
+                        viewModel.addExpense(name: name, amount: sum)
+                    }
+                    showCreateSheet = false
+                }
+            }
+        }
+        .sheet(item: $editItem) { item in
+            EditItemSheet(item: item, viewModel: viewModel) {
+                editItem = nil
+            }
+        }
+    }
+
+    // --- СЕКЦИИ ---
+    private var incomesSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SectionToggleHeader(title: "Доходы", total: "\(Int(incomeTotal)) ₸", isExpanded: .constant(true))
+            CategoryGrid {
+                Group {
                     ForEach(viewModel.incomes) { income in
                         OperationCategoryCircle(icon: "dollarsign.circle.fill", color: .green, title: income.category, amount: "\(Int(income.amount)) ₸")
                             .onTapGesture { editItem = .income(income) }
@@ -72,9 +132,7 @@ struct OperationsView: View {
                                 return NSItemProvider(object: income.id.uuidString as NSString)
                             } preview: {
                                 ZStack {
-                                    Circle()
-                                        .fill(Color.green)
-                                        .frame(width: 48, height: 48)
+                                    Circle().fill(Color.green).frame(width: 48, height: 48)
                                     Image(systemName: "dollarsign.circle.fill")
                                         .foregroundColor(.white)
                                         .font(.system(size: 20, weight: .medium))
@@ -87,11 +145,16 @@ struct OperationsView: View {
                     }) {
                         PlusCategoryCircle()
                     }
-                }, isScrollable: true, verticalPadding: 8)
+                }
+            }
+        }
+    }
 
-                // Кошельки
-                SectionHeader(title: "Кошельки", total: "\(Int(walletTotal)) ₸")
-                CategoryGrid(content: {
+    private var walletsSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SectionHeader(title: "Кошельки", total: "\(Int(walletTotal)) ₸")
+            CategoryGrid {
+                Group {
                     ForEach(viewModel.wallets) { wallet in
                         OperationCategoryCircle(icon: "creditcard.fill", color: .blue, title: wallet.name, amount: "\(Int(wallet.balance)) ₸")
                             .onTapGesture { editItem = .wallet(wallet) }
@@ -115,9 +178,7 @@ struct OperationsView: View {
                                 return NSItemProvider(object: String(wallet.id) as NSString)
                             } preview: {
                                 ZStack {
-                                    Circle()
-                                        .fill(Color.blue)
-                                        .frame(width: 48, height: 48)
+                                    Circle().fill(Color.blue).frame(width: 48, height: 48)
                                     Image(systemName: "creditcard.fill")
                                         .foregroundColor(.white)
                                         .font(.system(size: 20, weight: .medium))
@@ -130,11 +191,16 @@ struct OperationsView: View {
                     }) {
                         PlusCategoryCircle()
                     }
-                }, isScrollable: true, verticalPadding: 8)
+                }
+            }
+        }
+    }
 
-                // Цели
-                SectionHeader(title: "Цели", total: "")
-                CategoryGrid(content: {
+    private var goalsSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SectionHeader(title: "Цели", total: "")
+            CategoryGrid {
+                Group {
                     ForEach(viewModel.goals) { goal in
                         OperationCategoryCircle(
                             icon: "leaf.circle.fill",
@@ -164,11 +230,16 @@ struct OperationsView: View {
                     }) {
                         PlusCategoryCircle()
                     }
-                }, isScrollable: true, verticalPadding: 8)
+                }
+            }
+        }
+    }
 
-                // Расходы
-                SectionHeader(title: "Расходы", total: "\(Int(expenseTotal)) ₸")
-                CategoryGrid(content: {
+    private var expensesSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SectionHeader(title: "Расходы", total: "\(Int(expenseTotal)) ₸")
+            CategoryGrid {
+                Group {
                     ForEach(defaultExpenses, id: \.name) { def in
                         let expense = viewModel.expenses.first(where: { $0.category == def.name })
                         let amount = expense.map { abs($0.amount) } ?? 0
@@ -231,94 +302,11 @@ struct OperationsView: View {
                     }) {
                         PlusCategoryCircle()
                     }
-                }, isScrollable: false, verticalPadding: 8)
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
-        }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Ошибка"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
-        .sheet(isPresented: $showTransferSheet) {
-            if let type = transferType {
-                TransferSheet(type: type, amount: $transferAmount, date: $transferDate, comment: $transferComment) { amount, date, comment in
-                    switch type {
-                    case .incomeToWallet(let income, let wallet):
-                        viewModel.transferIncomeToWallet(incomeId: income.id, walletId: wallet.id, amount: amount)
-                    case .walletToGoal(let wallet, let goal):
-                        let ok = viewModel.transferWalletToGoal(walletId: wallet.id, goalId: goal.id, amount: amount)
-                        if !ok {
-                            alertMessage = "Недостаточно денег в кошельке"
-                            showAlert = true
-                        }
-                    case .walletToExpense(let wallet, let expense):
-                        let ok = viewModel.transferWalletToExpense(walletId: wallet.id, expenseId: expense.id, amount: amount)
-                        if !ok {
-                            alertMessage = "Недостаточно денег в кошельке"
-                            showAlert = true
-                        }
-                    }
-                    showTransferSheet = false
                 }
             }
-        }
-        .sheet(isPresented: $showCreateSheet) {
-            if let type = createType {
-                CreateItemSheet(type: type) { name, sum in
-                    switch type {
-                    case .income:
-                        viewModel.addIncome(name: name, amount: sum)
-                    case .wallet:
-                        viewModel.addWallet(name: name, amount: sum)
-                    case .goal:
-                        viewModel.addGoal(name: name, amount: sum)
-                    case .expense:
-                        viewModel.addExpense(name: name, amount: sum)
-                    }
-                    showCreateSheet = false
-                }
-            }
-        }
-        .sheet(item: $editItem) { item in
-            EditItemSheet(item: item, viewModel: viewModel) {
-                editItem = nil
-            }
-        }
-    }
-
-    struct CategoryGrid<Content: View>: View {
-        @ViewBuilder let content: () -> Content
-        var isScrollable: Bool = false
-        var verticalPadding: CGFloat = 0
-
-        // ширина иконки + отступ = примерно 72 (56 иконка + 16 отступ)
-        private let itemWidth: CGFloat = 72
-
-        var body: some View {
-            VStack {
-                if isScrollable {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            content()
-                        }
-                        .padding(.horizontal, 8)
-                        .frame(minHeight: 100) // чтобы не прыгал по высоте
-                    }
-                } else {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 16) {
-                        content()
-                    }
-                }
-            }
-            .padding(.vertical, verticalPadding)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
         }
     }
 }
-
-
 
 // MARK: - Заголовок с кнопкой-стрелкой
 struct SectionToggleHeader: View {

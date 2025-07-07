@@ -8,6 +8,12 @@ struct EditItemSheet: View {
     @State private var name: String = ""
     @State private var sum: String = ""
     @State private var showDeleteAlert = false
+    @State private var selectedIcon: String = "creditcard.fill"
+    @State private var selectedColor: Color = .blue
+    let availableIcons = [
+        "creditcard.fill", "banknote", "dollarsign.circle.fill", "wallet.pass.fill", "cart.fill", "gift.fill", "airplane", "car.fill", "cross.case.fill", "tshirt.fill", "scissors", "gamecontroller.fill", "cup.and.saucer.fill", "fork.knife", "phone.fill", "house.fill", "building.2.fill", "bag.fill", "star.fill", "questionmark.circle"
+    ]
+    let availableColors: [Color] = [.blue, .green, .yellow, .orange, .red, .purple, .mint, .gray]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,12 +39,13 @@ struct EditItemSheet: View {
                 Text("Иконка")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.gray)
-                ZStack {
-                    Circle()
-                        .fill(iconColor)
-                        .frame(width: 80, height: 80)
-                    iconView
-                }
+                IconColorPickerView(
+                    selectedIcon: $selectedIcon,
+                    selectedColor: $selectedColor,
+                    name: name,
+                    availableIcons: availableIcons,
+                    availableColors: availableColors
+                )
                 .padding(.bottom, 8)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("название")
@@ -86,7 +93,7 @@ struct EditItemSheet: View {
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
-        .onAppear { fillFields() }
+        .onAppear { fillFields(); initIconColor() }
         .alert(isPresented: $showDeleteAlert) {
             Alert(
                 title: Text("Удалить?"),
@@ -109,20 +116,12 @@ struct EditItemSheet: View {
         case .expense: return "Расход"
         }
     }
-    private var iconView: some View {
+    private func initIconColor() {
         switch item {
-        case .wallet: Image(systemName: "creditcard.fill").foregroundColor(.white).font(.system(size: 40))
-        case .income: Image(systemName: "dollarsign.circle.fill").foregroundColor(.white).font(.system(size: 40))
-        case .goal: Image(systemName: "leaf.circle.fill").foregroundColor(.white).font(.system(size: 40))
-        case .expense: Image(systemName: "cart.fill").foregroundColor(.white).font(.system(size: 40))
-        }
-    }
-    private var iconColor: Color {
-        switch item {
-        case .wallet: return .blue
-        case .income: return .green
-        case .goal: return .green
-        case .expense: return .red
+        case .wallet: selectedIcon = "creditcard.fill"; selectedColor = .blue
+        case .income: selectedIcon = "dollarsign.circle.fill"; selectedColor = .green
+        case .goal: selectedIcon = "leaf.circle.fill"; selectedColor = .green
+        case .expense: selectedIcon = "cart.fill"; selectedColor = .red
         }
     }
     private func fillFields() {

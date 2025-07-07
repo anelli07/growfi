@@ -16,8 +16,8 @@ struct GoalsCarouselView: View {
             Spacer(minLength: 8)
 
             if viewModel.goals.isEmpty {
-                EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) {
-                    viewModel.addGoal(name: $0, amount: $1)
+                EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, _, _, _ in
+                    viewModel.addGoal(name: name, amount: sum)
                     showCreateGoalSheet = false
                 }
             } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
@@ -95,7 +95,7 @@ struct TodayExpenseView: View {
 
 struct EmptyGoalView: View {
     @Binding var showCreateGoalSheet: Bool
-    var onCreate: (String, Double) -> Void
+    var onCreate: (String, Double, String, String, String) -> Void
     var body: some View {
         VStack(spacing: 20) {
             Image("plant_stage_0")
@@ -125,8 +125,8 @@ struct EmptyGoalView: View {
         }
         .padding(.top, 20)
         .sheet(isPresented: $showCreateGoalSheet) {
-            CreateItemSheet(type: .goal) { name, sum in
-                onCreate(name, sum)
+            CreateItemSheet(type: .goal) { name, sum, icon, color, currency in
+                onCreate(name, sum, "", "", "")
             }
         }
     }
