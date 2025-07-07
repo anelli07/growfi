@@ -1,0 +1,509 @@
+app:
+  name: growfi
+  description: >
+    Full backend for personal finance app with AI assistant. Built using FastAPI, Python 3.11, PostgreSQL.
+  language: python
+  framework: fastapi
+  database: postgresql
+  docs:
+    type: openapi
+    path: /docs
+    swagger_ui: true
+  cors:
+    allow_origins: ["http://localhost:3000", "http://localhost:8000", "https://app.growfi.space"] # Frontend URLs
+    allow_credentials: true
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+
+models:
+  User:
+    fields:
+      email: str
+      hashed_password: str | null  # null for Google auth users
+      salt: str
+      is_email_verified: bool = false
+      email_verification_token: str | null
+      google_id: str | null
+      refresh_token: str | null
+      timezone: str = "UTC"
+      last_expense_date: date | null
+      last_reminder_sent: datetime | null
+      created_at: datetime = now
+      last_login: datetime = now
+
+  Category:
+    fields:
+      user_id: foreignkey -> User
+      name: str
+      type: enum = ["expense", "income"]
+      is_default: bool = false
+      icon: str | null
+      created_at: datetime = now
+
+  Expense:
+    fields:
+      user_id: foreignkey -> User
+      category_id: foreignkey -> Category
+      amount: float
+      note: str = ""
+      date: datetime  # UTC
+      created_at: datetime = now
+      updated_at: datetime = now
+
+  Income:
+    fields:
+      user_id: foreignkey -> User
+      category_id: foreignkey -> Category
+      amount: float
+      source: str
+      date: datetime  # UTC
+      created_at: datetime = now
+      updated_at: datetime = now
+
+  Goal:
+    fields:
+      user_id: foreignkey -> User
+      title: str
+      target_amount: float
+      current_amount: float = 0
+      deadline: date
+      status: enum = ["in_progress", "completed", "deleted"]
+      last_reminder_sent: datetime | null
+      created_at: datetime = now
+      updated_at: datetime = now
+
+  Vault:
+    fields:
+      user_id: foreignkey -> User
+      name: str
+      description: str = ""
+      total_saved: float = 0
+      target_amount: float
+      growth_stage: int = 0  # 0-20 representing 5% increments
+      last_deposit_date: datetime | null
+      last_reminder_sent: datetime | null
+      created_at: datetime = now
+      updated_at: datetime = now
+
+  VaultTransaction:
+    fields:
+      vault_id: foreignkey -> Vault
+      user_id: foreignkey -> User
+      amount: float
+      type: enum = ["deposit", "withdrawal"]
+      note: str = ""
+      ai_confirmation: bool = false  # Whether AI approved withdrawal
+      date: datetime  # UTC
+      created_at: datetime = now
+
+  AIMessage:
+    fields:
+      user_id: foreignkey -> User
+      content: str
+      role: enum = ["user", "assistant"]
+      context_type: enum = ["general", "expense", "income", "goal", "vault"]
+      context_id: int | null  # Reference to specific expense/income/goal/vault
+      created_at: datetime = now
+
+  NotificationSettings:
+    fields:
+      user_id: foreignkey -> User
+      daily_reminder: bool = true
+      daily_reminder_time: time = "20:00"
+      goal_updates: bool = true
+      vault_updates: bool = true
+      ai_insights: bool = true
+      created_at: datetime = now
+      updated_at: datetime = now
+
+  DefaultCategory:
+    fields:
+      name: str
+      type: enum = ["expense", "income"]
+      icon: str
+      created_at: datetime = now
+
+  Backup:
+    fields:
+      user_id: foreignkey -> User
+      file_path: str
+      size_bytes: int
+      created_at: datetime = now
+
+routes:
+  # Auth routes
+  - path: /auth/register
+    method: post
+    handler: auth.register
+
+  - path: /auth/login
+    method: post
+    handler: auth.login
+
+  - path: /auth/google
+    method: post
+    handler: auth.google_auth
+
+  - path: /auth/verify-email/{token}
+    method: get
+    handler: auth.verify_email
+
+  - path: /auth/refresh
+    method: post
+    handler: auth.refresh_token
+
+  - path: /auth/logout
+    method: post
+    handler: auth.logout
+
+  # Category routes
+  - path: /categories
+    method: get
+    handler: category.list
+
+  - path: /categories
+    method: post
+    handler: category.create
+
+  - path: /categories/{id}
+    method: put
+    handler: category.update
+
+  - path: /categories/{id}
+    method: delete
+    handler: category.delete
+
+  # Expense routes
+  - path: /expenses
+    method: post
+    handler: expense.create
+
+  - path: /expenses/{id}
+    method: put
+    handler: expense.update
+
+  - path: /expenses/{id}
+    method: delete
+    handler: expense.delete
+
+  - path: /expenses
+    method: get
+    handler: expense.list
+
+  # Income routes
+  - path: /incomes
+    method: post
+    handler: income.create
+
+  - path: /incomes/{id}
+    method: put
+    handler: income.update
+
+  - path: /incomes/{id}
+    method: delete
+    handler: income.delete
+
+  - path: /incomes
+    method: get
+    handler: income.list
+
+  # Goal routes
+  - path: /goals
+    method: post
+    handler: goal.create
+
+  - path: /goals/{id}
+    method: put
+    handler: goal.update
+
+  - path: /goals/{id}
+    method: delete
+    handler: goal.delete
+
+  - path: /goals
+    method: get
+    handler: goal.list
+
+  - path: /goals/{id}/complete
+    method: post
+    handler: goal.complete
+
+  # Vault routes
+  - path: /vaults
+    method: post
+    handler: vault.create
+
+  - path: /vaults/{id}
+    method: put
+    handler: vault.update
+
+  - path: /vaults/{id}
+    method: delete
+    handler: vault.delete
+
+  - path: /vaults
+    method: get
+    handler: vault.list
+
+  - path: /vaults/{id}/deposit
+    method: post
+    handler: vault.deposit
+
+  - path: /vaults/{id}/withdraw
+    method: post
+    handler: vault.withdraw
+
+  # AI routes
+  - path: /ai/message
+    method: post
+    handler: ai.message
+
+  - path: /ai/messages
+    method: get
+    handler: ai.list_messages
+
+  - path: /ai/withdraw-confirmation
+    method: post
+    handler: ai.confirm_withdrawal
+
+  # Analytics routes
+  - path: /analytics/daily
+    method: get
+    handler: analytics.daily
+
+  - path: /analytics/weekly
+    method: get
+    handler: analytics.weekly
+
+  - path: /analytics/monthly
+    method: get
+    handler: analytics.monthly
+
+  # Notification routes
+  - path: /notifications/settings
+    method: get
+    handler: notifications.get_settings
+
+  - path: /notifications/settings
+    method: put
+    handler: notifications.update_settings
+
+  - path: /notifications/token
+    method: post
+    handler: notifications.register_device
+
+# Settings and Configurations
+settings:
+  security:
+    password_policy:
+      min_length: 8
+      require_digit: true
+      require_letter: true
+      no_spaces: true
+      not_email_or_username: true
+    rate_limits:
+      - id: auth_register
+        path: /auth/register
+        method: post
+        limit: 5
+        period_hours: 1
+        key: ip_or_email
+      - id: auth_login
+        path: /auth/login
+        method: post
+        limit: 10
+        period_minutes: 10
+        key: ip_or_email
+      - id: ai_message
+        path: /ai/message
+        method: post
+        limit: 30
+        period_hours: 1
+        key: user_id
+      - id: vault_goal_creation
+        paths: [/vaults, /goals]
+        method: post
+        limit: 60
+        period_hours: 1
+        key: user_id
+
+  ai:
+    provider: openai
+    model: gpt-3.5-turbo
+    temperature: 0.7
+    max_tokens: 300
+    chat_context_messages: 10
+    forbidden_response: "Это не входит в мои задачи 😌"
+    prompts:
+      analyze_expenses: "Ты AI-помощник по бюджету. Проанализируй расходы пользователя за последние 7 дней и выдай краткий совет по оптимизации."
+      nlp_add_expense: "Пользователь пишет свои траты. Извлеки категорию, сумму и тип действия (доход/расход), верни как JSON."
+      savings_advice: "У пользователя цель накопить N₸ за X месяцев. Предложи стратегию, как это сделать с учётом его среднего дохода и трат."
+      motivation: "Поздравь пользователя, он достиг {percent}% цели. Используй дружелюбный стиль и эмодзи, без лишней воды."
+
+  notifications:
+    provider: firebase
+    credentials_file: firebase-credentials.json
+    default_time: "20:00"
+    recommend_time_range: ["19:00", "21:00"]
+    jobs:
+      expense_income_reminder:
+        time: "20:00"
+      vault_reminder:
+        interval_days: 3
+        condition: "no_deposit"
+      progress_reminder:
+        triggers_percent: [50, 75, 90]
+      ai_weekly_analysis:
+        enabled: true
+        day_of_week: "mon"
+        time: "18:00"
+        only_if_active: true
+    templates:
+      daily_reminders:
+        - "Хей, не забудь внести сегодняшние расходы — я жду 📒"
+        - "Давай не терять прогресс! Введи хотя бы 1 трату 💸"
+      goal_reminders:
+        - "Осталось всего {amount}₸ до цели! Ты почти у финиша 🏁"
+        - "В копилку не поступало денег {days} дня. Мечта грустит 😢"
+      ai_insights:
+        - "Ты стал тратить на {category} на {percent}% больше, чем в прошлом месяце"
+      motivation:
+        - "Мой хозяин такой богатый… копилка аж трещит 😎"
+        - "Скоро накопим на мечту. Я уже готовлю фейерверки 🎆"
+      analytics:
+        - "Ты стал тратить на {category} меньше на {percent}%! Прогресс! 🍽"
+
+  vault:
+    growth_stages:
+      - threshold: 0
+        description: "Маленький росток 🌱"
+      - threshold: 5
+        description: "Подрастающий росток 🌿"
+      - threshold: 10
+        description: "Молодое растение 🌲"
+      - threshold: 15
+        description: "Крепкое дерево 🌳"
+      - threshold: 20
+        description: "Цветущее дерево 🌸"
+
+  backup:
+    schedule: "0 0 * * *"  # Daily at midnight
+    retention_days: 30
+    manual_creation: false
+    storage:
+      type: s3
+      bucket: growfi-backups
+      region: us-east-1
+
+  monitoring:
+    logging:
+      level: INFO
+      handlers:
+        - type: file
+          filename: logs/app.log
+          max_bytes: 10485760  # 10MB
+          backup_count: 5
+    metrics_to_track:
+      - users
+      - goals
+      - vaults
+      - ai_requests
+      - ai_tokens
+      - expenses
+      - incomes
+      - errors_500
+      - server_crashes
+
+  cache:
+    enabled: true
+    ttl_seconds: 600
+    keys:
+      - categories
+      - default_categories
+      - metrics
+
+  default_categories:
+    expense:
+      - name: "Продукты"
+        icon: "🛒"
+      - name: "Еда вне дома"
+        icon: "🍽"
+      - name: "Транспорт"
+        icon: "🚌"
+      - name: "Покупки"
+        icon: "🛍"
+      - name: "Одежда"
+        icon: "👕"
+      - name: "Спорт"
+        icon: "🏃"
+      - name: "Авто"
+        icon: "🚗"
+      - name: "Дом"
+        icon: "🏠"
+      - name: "Развлечения"
+        icon: "🎮"
+      - name: "Услуги"
+        icon: "💇"
+    income:
+      - name: "Банковский счет"
+        icon: "🏦"
+      - name: "Кошелек"
+        icon: "👛"
+
+# Development & Deployment
+devops:
+  migrations:
+    tool: alembic
+    directory: alembic
+
+  testing:
+    framework: pytest
+    critical_features:
+      - auth:
+        - register_user
+        - login_user
+        - refresh_token
+        - google_auth
+      - crud:
+        - create_expense_income
+        - list_user_items
+        - delete_item
+      - ai:
+        - parse_expense_from_text
+      - vault:
+        - deposit_and_withdraw
+        - check_growth_stage
+
+  ci_cd:
+    provider: github_actions
+    workflow_file: .github/workflows/ci.yml
+    pre_commit_hooks:
+      - black
+      - flake8
+
+  documentation:
+    readme_file: README.md
+    deployment_guide:
+      env_variables:
+        - name: DATABASE_URL
+          description: "PostgreSQL connection string"
+          example: "postgresql://user:password@host:port/dbname"
+        - name: JWT_SECRET_KEY
+          description: "Secret key for signing JWT tokens"
+        - name: REFRESH_TOKEN_EXPIRE_DAYS
+          description: "Refresh token lifetime in days"
+        - name: OPENAI_API_KEY
+          description: "API key for OpenAI"
+        - name: GOOGLE_CLIENT_ID
+        - name: GOOGLE_CLIENT_SECRET
+        - name: FIREBASE_CREDENTIALS_FILE
+        - name: S3_BUCKET_NAME
+        - name: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+      run_commands:
+        - description: "Install dependencies"
+          command: "pip install -r requirements.txt"
+        - description: "Apply database migrations"
+          command: "alembic upgrade head"
+        - description: "Run the development server"
+          command: "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
