@@ -60,11 +60,9 @@ struct HistoryView: View {
             .padding(.top, 16)
 
             // Поиск
-            SearchBar(placeholder: "Поиск по примечаниям", onTap: {})
+            SearchBar(placeholder: "Поиск по примечаниям", text: $searchText)
                 .padding(.horizontal)
                 .padding(.top, 8)
-                .onChange(of: searchText) { _ in }
-//                .environment(\.searchText, $searchText)
 
             // Период и стрелки
             HStack {
