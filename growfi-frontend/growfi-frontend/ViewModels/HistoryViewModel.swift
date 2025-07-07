@@ -54,8 +54,10 @@ class HistoryViewModel: ObservableObject {
             ($0.category.lowercased().contains(searchText.lowercased()) ||
              ($0.note ?? "").lowercased().contains(searchText.lowercased()))
         }
+        // Убираем транзакции с amount == 0
+        let nonZero = searched.filter { $0.amount != 0 }
         // Группировка по дням
-        let grouped = Dictionary(grouping: searched) { tx in
+        let grouped = Dictionary(grouping: nonZero) { tx in
             Calendar.current.startOfDay(for: tx.date)
         }
         .map { (date, txs) in
@@ -64,7 +66,7 @@ class HistoryViewModel: ObservableObject {
         .sorted { $0.date > $1.date }
         DispatchQueue.main.async {
             self.filteredDays = grouped
-            self.transactions = searched
+            self.transactions = nonZero
         }
     }
 

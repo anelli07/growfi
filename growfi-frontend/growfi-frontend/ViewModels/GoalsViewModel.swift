@@ -165,7 +165,7 @@ class GoalsViewModel: ObservableObject {
     func addIncome(name: String, amount: Double) {
         let newIncome = Transaction(id: UUID(), date: Date(), category: name, amount: amount, type: .income, note: nil, wallet: "Карта")
         incomes.append(newIncome)
-        transactions.append(newIncome)
+        // Не добавляем в transactions, чтобы не было мусора в истории
     }
     func addWallet(name: String, amount: Double) {
         let newWallet = Wallet(id: (wallets.last?.id ?? 0) + 1, name: name, balance: amount)

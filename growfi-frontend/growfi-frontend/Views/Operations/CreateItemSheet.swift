@@ -63,24 +63,37 @@ struct CreateItemSheet: View {
                     TextField("Введите название", text: $name)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(type == .wallet || type == .goal ? "Сумма (опционально)" : "Сумма")
-                        .font(.system(size: 16))
-                        .foregroundColor(.gray)
-                    TextField("0", text: $sum)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-                HStack {
-                    Text("Валюта")
-                        .font(.system(size: 16))
-                    Spacer()
-                    Picker("Валюта", selection: $selectedCurrency) {
-                        ForEach(availableCurrencies, id: \.self) { currency in
-                            Text(currency)
-                        }
+                if type == .goal {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Желаемая сумма")
+                            .font(.system(size: 16))
+                            .foregroundColor(.gray)
+                        TextField("0", text: $sum)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
-                    .pickerStyle(.menu)
+                } else if type != .income {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(type == .wallet ? "Сумма (опционально)" : "Сумма")
+                            .font(.system(size: 16))
+                            .foregroundColor(.gray)
+                        TextField("0", text: $sum)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                }
+                if type != .income {
+                    HStack {
+                        Text("Валюта")
+                            .font(.system(size: 16))
+                        Spacer()
+                        Picker("Валюта", selection: $selectedCurrency) {
+                            ForEach(availableCurrencies, id: \.self) { currency in
+                                Text(currency)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
                 }
             }
             .padding(.horizontal, 16)
