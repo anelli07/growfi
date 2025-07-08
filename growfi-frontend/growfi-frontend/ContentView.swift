@@ -17,7 +17,7 @@ struct ContentView: View {
                     Text("Операции")
                 }
                 .tag(1)
-            GoalsCarouselView()
+            GoalsCarouselView(selectedTab: $selectedTab)
                 .tabItem {
                     Image(systemName: "leaf.circle.fill")
                     Text("Цели")

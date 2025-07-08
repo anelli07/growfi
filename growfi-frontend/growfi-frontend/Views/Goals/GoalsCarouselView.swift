@@ -2,59 +2,62 @@ import SwiftUI
 
 struct GoalsCarouselView: View {
     @EnvironmentObject var viewModel: GoalsViewModel
+    @Binding var selectedTab: Int
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
     @State private var showAIChat = false
     @State private var showCreateGoalSheet = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 6)
-            GreetingView(userName: viewModel.userName)
-            Spacer(minLength: 4)
-            TodayExpenseView(todayExpense: viewModel.todayExpense)
-            Spacer(minLength: 8)
-
-            if viewModel.goals.isEmpty {
-                EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, _, _, _ in
-                    viewModel.addGoal(name: name, amount: sum)
-                    showCreateGoalSheet = false
+        ScrollView {
+            VStack(spacing: 4) {
+                GreetingView(userName: viewModel.userName)
+                                .padding(.top, 12) // чёткий отступ сверху
+                                .padding(.bottom, 10) // ≈ 0.5 см
+                TodayExpenseView(todayExpense: viewModel.todayExpense)
+                    .padding(.top, 6) // немного воздуха между заголовками
+                
+                if viewModel.goals.isEmpty {
+                    EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, _, _, _ in
+                        viewModel.addGoal(name: name, amount: sum)
+                        showCreateGoalSheet = false
+                    }
+                } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
+                    SingleGoalView(goal: goal)
+                } else {
+                    GoalsCarousel(
+                        goals: viewModel.goals,
+                        selectedGoalIndex: $viewModel.selectedGoalIndex,
+                        dragOffset: $dragOffset,
+                        isDragging: $isDragging
+                    )
                 }
-            } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
-                SingleGoalView(goal: goal)
-            } else {
-                GoalsCarousel(
-                    goals: viewModel.goals,
-                    selectedGoalIndex: $viewModel.selectedGoalIndex,
-                    dragOffset: $dragOffset,
-                    isDragging: $isDragging
+                
+                Spacer(minLength: 4)
+                
+                if viewModel.goals.count > 1,
+                   let goal = viewModel.goals[safe: viewModel.selectedGoalIndex] {
+                    GoalDetailsView(goal: goal)
+                }
+                
+                LastTransactionsView(
+                    transactions: viewModel.todayTransactions,
+                    onShowHistory: { selectedTab = 0 }
                 )
-            }
-
-            Spacer(minLength: 8)
-
-            if viewModel.goals.count > 1,
-               let goal = viewModel.goals[safe: viewModel.selectedGoalIndex] {
-                GoalDetailsView(goal: goal)
-            }
-
-            Spacer(minLength: 12)
-
-            LastTransactionsView(transactions: viewModel.todayTransactions)
-
-            Spacer(minLength: 16)
-
-            // Поисковик ИИ — внизу, с отступом для tabbar
-            SearchBar(
-                placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
-                text: .constant("")
-            )
-            .onTapGesture { showAIChat = true }
-            .padding(.horizontal)
-            .padding(.bottom, 36)
-            .frame(height: 44)
-            .sheet(isPresented: $showAIChat) {
-                AIChatView()
+                .padding(.top, 24)      // ⬆️ расстояние от "цели"
+                .padding(.bottom, 16)   // ⬇️ расстояние до поисковика
+                
+                SearchBar(
+                    placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
+                    text: .constant("")
+                )
+                .onTapGesture { showAIChat = true }
+                .padding(.horizontal)
+                .padding(.bottom, 32)
+                .frame(height: 44)
+                .sheet(isPresented: $showAIChat) {
+                    AIChatView()
+                }
             }
         }
     }
@@ -64,32 +67,32 @@ struct GoalsCarouselView: View {
 struct GreetingView: View {
     let userName: String
     var body: some View {
-        HStack {
+            HStack {
             Text("Привет, \(userName)👋")
-                .font(.title2).bold()
-            Spacer()
-        }
-        .padding(.horizontal)
+                    .font(.title2).bold()
+                Spacer()
+            }
+            .padding(.horizontal)
     }
 }
 
 struct TodayExpenseView: View {
     let todayExpense: Double
     var body: some View {
-        HStack {
-            Image(systemName: "calendar")
-                .foregroundColor(.red)
-            Text("Расходы за сегодня:")
-                .font(.subheadline)
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundColor(.red)
+                Text("Расходы за сегодня:")
+                    .font(.subheadline)
             Text("\(Int(todayExpense)) т")
-                .foregroundColor(.red)
-                .font(.subheadline).bold()
-            Spacer()
-        }
+                    .foregroundColor(.red)
+                    .font(.subheadline).bold()
+                Spacer()
+            }
         .padding(8)
-        .background(Color(.systemGray6))
-        .cornerRadius(14)
-        .padding(.horizontal)
+            .background(Color(.systemGray6))
+            .cornerRadius(14)
+            .padding(.horizontal)
     }
 }
 
@@ -101,7 +104,7 @@ struct EmptyGoalView: View {
             Image("plant_stage_0")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 130, height: 130)
+                .frame(width: 180, height: 180)
                 .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
             Button(action: { showCreateGoalSheet = true }) {
                 Text("Создать цель")
@@ -123,7 +126,7 @@ struct EmptyGoalView: View {
                     .frame(width: 180)
             }
         }
-        .padding(.top, 20)
+        .padding(.top, 8)
         .sheet(isPresented: $showCreateGoalSheet) {
             CreateItemSheet(type: .goal) { name, sum, icon, color, currency in
                 onCreate(name, sum, "", "", "")
@@ -136,13 +139,13 @@ struct SingleGoalView: View {
     let goal: Goal
     var body: some View {
         VStack(spacing: 10) {
-            Image("plant_stage_\(goal.growthStage)")
-                .resizable()
+                                Image("plant_stage_\(goal.growthStage)")
+                                    .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 130, height: 130)
+                .frame(width: 180, height: 180)
                 .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
-            Text(goal.name)
-                .font(.subheadline)
+                            Text(goal.name)
+                                .font(.subheadline)
             Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
                 .font(.subheadline)
                 .foregroundColor(.gray)
@@ -163,7 +166,7 @@ struct SingleGoalView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 12)
+        .padding(.top, 8)
     }
 }
 
@@ -215,29 +218,29 @@ struct GoalsCarousel: View {
                                 selectedGoalIndex = index
                             }
                         }
-                }
-            }
-            .offset(x: offset + centerX - itemWidth / 2)
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        dragOffset = value.translation.width
-                        isDragging = true
                     }
-                    .onEnded { value in
-                        let threshold: CGFloat = 50
+                }
+            .offset(x: offset + centerX - itemWidth / 2)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            dragOffset = value.translation.width
+                            isDragging = true
+                        }
+                        .onEnded { value in
+                            let threshold: CGFloat = 50
                         withAnimation(.spring()) {
                             if value.translation.width < -threshold {
                                 selectedGoalIndex = (selectedGoalIndex + 1) % goalsCount
                             } else if value.translation.width > threshold {
                                 selectedGoalIndex = (selectedGoalIndex - 1 + goalsCount) % goalsCount
                             }
+                            }
+                            dragOffset = 0
+                            isDragging = false
                         }
-                        dragOffset = 0
-                        isDragging = false
-                    }
-            )
-        }
+                )
+            }
         .frame(height: 180)
     }
 }
@@ -245,77 +248,76 @@ struct GoalsCarousel: View {
 struct GoalDetailsView: View {
     let goal: Goal
     var body: some View {
-        VStack(spacing: 10) {
+                VStack(spacing: 10) {
             Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
-                .font(.subheadline)
-                .foregroundColor(.gray)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
             ProgressView(value: goal.current_amount, total: goal.target_amount)
-                .accentColor(Color.green)
+                        .accentColor(Color.green)
                 .frame(height: 4)
-                .padding(.horizontal, 24)
-            Button(action: {
-                // TODO: Sheet для пополнения цели
-            }) {
-                Text("Пополнить цель")
-                    .font(.headline)
+                        .padding(.horizontal, 24)
+                    Button(action: {
+                        // TODO: Sheet для пополнения цели
+                    }) {
+                        Text("Пополнить цель")
+                            .font(.headline)
                     .padding(.vertical, 8)
-                    .padding(.horizontal, 24)
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                            .padding(.horizontal, 24)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
             }
             .frame(height: 44)
-        }
-    }
-}
+                    }
+                }
+            }
 
 struct LastTransactionsView: View {
     let transactions: [Transaction]
+    let onShowHistory: () -> Void
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("Последние транзакции")
-                    .font(.headline)
-                Spacer()
-                Button(action: {
-                    // TODO: переход в историю
-                }) {
-                    HStack(spacing: 4) {
-                        Text("Подробнее")
-                            .font(.subheadline)
-                        Image(systemName: "chevron.right")
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.green)
-                    .cornerRadius(8)
-                }
-            }
-            .padding(.bottom, 2)
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 6) {
-                    ForEach(transactions.prefix(3)) { tx in
-                        HStack {
-                            Text(tx.category)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("Последние транзакции")
+                        .font(.headline)
+                    Spacer()
+                Button(action: { onShowHistory() }) {
+                        HStack(spacing: 4) {
+                            Text("Подробнее")
                                 .font(.subheadline)
-                            Spacer()
-                            Text("\(tx.type == .income ? "+" : "-")\(Int(abs(tx.amount))) \(tx.wallet)")
-                                .foregroundColor(tx.type == .income ? .green : .red)
-                                .font(.subheadline)
+                            Image(systemName: "chevron.right")
                         }
-                        .padding(6)
-                        .background(Color(.systemGray6))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.green)
                         .cornerRadius(8)
                     }
                 }
+                .padding(.bottom, 2)
+            ScrollView(.vertical, showsIndicators: true) {
+                    VStack(spacing: 6) {
+                    ForEach(transactions.sorted(by: { $0.date > $1.date }).prefix(3)) { tx in
+                            HStack {
+                                    Text(tx.category)
+                                        .font(.subheadline)
+                                Spacer()
+                            Text("\(tx.type == .income ? "+" : "-")\(Int(abs(tx.amount))) \(tx.wallet)")
+                                .foregroundColor(tx.type == .income ? .green : .red)
+                                    .font(.subheadline)
+                            }
+                            .padding(6)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+            .frame(height: transactions.isEmpty ? 44 : 3 * 56)
             }
-            .frame(height: min(CGFloat(transactions.count), 3) * 44)
-        }
-        .padding(8)
-        .background(Color(.systemGray5))
-        .cornerRadius(14)
-        .padding(.horizontal)
+            .padding(8)
+            .background(Color(.systemGray5))
+            .cornerRadius(14)
+            .padding(.horizontal)
         .padding(.top, 8)
     }
 }

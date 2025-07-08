@@ -22,8 +22,9 @@ struct HistoryView: View {
                 return true // MVP
             }
         }
-        if searchText.isEmpty { return periodFiltered }
-        return periodFiltered.filter {
+        let sorted = periodFiltered.sorted { $0.date > $1.date }
+        if searchText.isEmpty { return sorted }
+        return sorted.filter {
             $0.category.lowercased().contains(searchText.lowercased()) ||
             ($0.note ?? "").lowercased().contains(searchText.lowercased())
         }
