@@ -8,8 +8,11 @@ from sqlmodel import SQLModel
 class TransactionBase(SQLModel):
     transaction_date: date
     amount: float
-    description: Optional[str] = None
+    description: Optional[str] = None  # note
     category_id: int
+    wallet_id: Optional[int] = None
+    type: Optional[str] = None
+    category_name: Optional[str] = None
 
 
 # Properties to receive on item creation
@@ -27,6 +30,9 @@ class TransactionUpdate(SQLModel):
     amount: Optional[float] = None
     description: Optional[str] = None
     category_id: Optional[int] = None
+    wallet_id: Optional[int] = None
+    type: Optional[str] = None
+    category_name: Optional[str] = None
 
 
 class IncomeUpdate(TransactionUpdate):

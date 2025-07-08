@@ -1,6 +1,7 @@
 from .user import User, UserCreate, UserUpdate
 from .token import Token, TokenPayload, GoogleToken
 from .category import Category, CategoryCreate, CategoryUpdate
+from .wallet import Wallet, WalletCreate, WalletUpdate
 from .transaction import (
     Income,
     IncomeCreate,
@@ -36,4 +37,7 @@ __all__ = [
     "Goal",
     "GoalCreate",
     "GoalUpdate",
+    "Wallet",
+    "WalletCreate",
+    "WalletUpdate",
 ]

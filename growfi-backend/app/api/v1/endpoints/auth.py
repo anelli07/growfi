@@ -5,6 +5,7 @@ from sqlmodel import Session
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from pydantic import BaseModel, EmailStr
+from datetime import date
 
 from app import crud, schemas
 from app.api import deps
@@ -12,6 +13,10 @@ from app.core import security
 from app.core.config import settings
 from app.schemas.token import GoogleToken
 from app.services.email_service import send_verification_code_email
+from app.models.category import CategoryType
+from app.schemas.wallet import WalletCreate
+from app.schemas.category import CategoryCreate
+from app.schemas.transaction import IncomeCreate, ExpenseCreate
 
 router = APIRouter()
 
@@ -32,6 +37,38 @@ async def register_user(
             detail="The user with this username already exists in the system.",
         )
     user = crud.user.create(db, obj_in=user_in)
+
+    # ДЕФОЛТНЫЕ КОШЕЛЬКИ
+    wallet1 = crud.crud_wallet.create_with_user(db, WalletCreate(name="Карта", balance=0, icon_name="card", color_hex="#4F8A8B", currency="KZT"), user.id)
+    wallet2 = crud.crud_wallet.create_with_user(db, WalletCreate(name="Наличные", balance=0, icon_name="cash", color_hex="#F9B208", currency="KZT"), user.id)
+
+    # ДЕФОЛТНЫЕ КАТЕГОРИИ
+    cat_income1 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Зарплата", type=CategoryType.INCOME), user=user)
+    cat_expense1 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Еда", type=CategoryType.EXPENSE), user=user)
+    cat_expense2 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Транспорт", type=CategoryType.EXPENSE), user=user)
+    cat_expense3 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Продукты", type=CategoryType.EXPENSE), user=user)
+    cat_expense4 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Развлечения", type=CategoryType.EXPENSE), user=user)
+    cat_expense5 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Здоровье", type=CategoryType.EXPENSE), user=user)
+    cat_expense6 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Связь", type=CategoryType.EXPENSE), user=user)
+    cat_expense7 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Путешествия", type=CategoryType.EXPENSE), user=user)
+    cat_expense8 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Одежда", type=CategoryType.EXPENSE), user=user)
+    cat_expense9 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Красота", type=CategoryType.EXPENSE), user=user)
+
+
+    # ДЕФОЛТНЫЕ ДОХОДЫ
+    crud.income.create_with_user(db, obj_in=IncomeCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_income1.id, wallet_id=wallet1.id), user=user)
+
+    # ДЕФОЛТНЫЕ РАСХОДЫ
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense1.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense2.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense3.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense4.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense5.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense6.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense7.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense8.id, wallet_id=wallet1.id), user=user)
+    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense9.id, wallet_id=wallet1.id), user=user)
+
     await send_verification_code_email(
         email_to=user.email,
         full_name=user.full_name or user.email,

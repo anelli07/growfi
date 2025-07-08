@@ -50,6 +50,12 @@ def upgrade() -> None:
     op.drop_column("user", "created_at")
     op.drop_column("user", "last_expense_date")
     op.drop_column("user", "last_login")
+    op.add_column('income', sa.Column('wallet_id', sa.Integer, sa.ForeignKey('wallet.id'), nullable=True))
+    op.add_column('income', sa.Column('type', sa.String(length=16), nullable=True, server_default='income'))
+    op.add_column('income', sa.Column('category_name', sa.String(length=128), nullable=True))
+    op.add_column('expense', sa.Column('wallet_id', sa.Integer, sa.ForeignKey('wallet.id'), nullable=True))
+    op.add_column('expense', sa.Column('type', sa.String(length=16), nullable=True, server_default='expense'))
+    op.add_column('expense', sa.Column('category_name', sa.String(length=128), nullable=True))
     # ### end Alembic commands ###
 
 
@@ -126,4 +132,10 @@ def downgrade() -> None:
     )
     op.drop_column("expense", "description")
     op.drop_column("expense", "transaction_date")
+    op.drop_column('income', 'wallet_id')
+    op.drop_column('income', 'type')
+    op.drop_column('income', 'category_name')
+    op.drop_column('expense', 'wallet_id')
+    op.drop_column('expense', 'type')
+    op.drop_column('expense', 'category_name')
     # ### end Alembic commands ###
