@@ -25,12 +25,24 @@ struct GoalsCarouselView: View {
                 } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
                     SingleGoalView(goal: goal)
                 } else {
-                    GoalsCarousel(
-                        goals: viewModel.goals,
-                        selectedGoalIndex: $viewModel.selectedGoalIndex,
-                        dragOffset: $dragOffset,
-                        isDragging: $isDragging
-                    )
+
+                    CarouselView(items: viewModel.goals, selectedIndex: $viewModel.selectedGoalIndex) { goal, isActive in
+                        VStack(spacing: 8) {
+                            Image("plant_stage_\(goal.growthStage)")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: isActive ? 180 : 120, height: isActive ? 180 : 120)
+                                .shadow(color: .black.opacity(isActive ? 0.15 : 0), radius: 8, x: 0, y: 4)
+                            Text(goal.name)
+                                .font(isActive ? .headline : .subheadline)
+                                .foregroundColor(isActive ? .primary : .gray)
+                                .lineLimit(1)
+                                .frame(width: isActive ? 120 : 80)
+                        }
+                    }
+                    .frame(height: 260)
+                    .padding(.top, 12)
+
                 }
                 
                 Spacer(minLength: 4)
@@ -319,5 +331,79 @@ struct LastTransactionsView: View {
             .cornerRadius(14)
             .padding(.horizontal)
         .padding(.top, 8)
+    }
+}
+
+// --- Новый CarouselView ---
+struct CarouselView<Content: View, T: Identifiable>: View {
+    let items: [T]
+    @Binding var selectedIndex: Int
+    let content: (T, Bool) -> Content
+
+    @State private var dragOffset: CGFloat = 0
+
+    private let spacingFactor: CGFloat = 0.28
+    private let minScale: CGFloat = 0.7
+    private let minOpacity: CGFloat = 0.4
+    private let maxBlur: CGFloat = 4.0
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(items.indices, id: \ .self) { idx in
+                    let delta = circularDelta(idx, selectedIndex, items.count)
+                    let isActive = idx == selectedIndex
+
+                    let baseX = CGFloat(delta) * geo.size.width * spacingFactor
+                    let xOffset = isActive ? baseX + dragOffset : baseX
+                    let scale = isActive ? 1.0 : minScale
+                    let opacity = isActive ? 1.0 : minOpacity
+                    let z = isActive ? 10.0 : Double(10 - abs(delta))
+                    let blur = abs(delta) > 1 ? maxBlur : 0
+
+                    content(items[idx], isActive)
+                        .scaleEffect(scale)
+                        .opacity(opacity)
+                        .blur(radius: blur)
+                        .offset(x: xOffset)
+                        .zIndex(z)
+                        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: selectedIndex)
+                        .onTapGesture {
+                            withAnimation { selectedIndex = idx }
+                        }
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        dragOffset = value.translation.width
+                    }
+                    .onEnded { value in
+                        let threshold = geo.size.width * 0.15
+                        if dragOffset < -threshold {
+                            selectedIndex = (selectedIndex + 1) % items.count
+                        } else if dragOffset > threshold {
+                            selectedIndex = (selectedIndex - 1 + items.count) % items.count
+                        }
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            dragOffset = 0
+                        }
+                    }
+            )
+        }
+    }
+
+    private func circularDelta(_ idx: Int, _ selected: Int, _ count: Int) -> Int {
+        let direct = idx - selected
+        if direct > count / 2 {
+            return direct - count
+        } else if direct < -count / 2 {
+            return direct + count
+        } else {
+            return direct
+        }
     }
 }
