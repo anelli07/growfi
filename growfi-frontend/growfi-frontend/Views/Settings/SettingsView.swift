@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject var goalsVM: GoalsViewModel
     @State private var showProfile = false
     @State private var isLoggedOut = false
+    @StateObject private var loginVM = LoginViewModel()
 
     var body: some View {
         VStack(spacing: 24) {
@@ -40,8 +41,9 @@ struct SettingsView: View {
                 .padding()
             }
             Button(action: {
-                UserDefaults.standard.removeObject(forKey: "access_token")
-                isLoggedOut = true
+                loginVM.logout {
+                    isLoggedOut = true
+                }
             }) {
                 Text("Выйти")
                     .foregroundColor(.red)

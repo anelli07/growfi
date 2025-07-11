@@ -1,8 +1,14 @@
 import SwiftUI
 
 struct AuthView: View {
-    @StateObject private var vm = AuthViewModel()
+    @StateObject private var vm: AuthViewModel
     var onLogin: (() -> Void)? = nil
+
+    init(onLogin: (() -> Void)? = nil, goalsViewModel: GoalsViewModel) {
+        _vm = StateObject(wrappedValue: AuthViewModel())
+        vm.goalsViewModel = goalsViewModel
+        self.onLogin = onLogin
+    }
     var body: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 48)
@@ -114,6 +120,6 @@ struct AuthView: View {
 
 struct AuthView_Previews: PreviewProvider {
     static var previews: some View {
-        AuthView()
+        AuthView(goalsViewModel: GoalsViewModel())
     }
 } 

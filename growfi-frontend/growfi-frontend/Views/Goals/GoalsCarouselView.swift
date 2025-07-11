@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GoalsCarouselView: View {
     @EnvironmentObject var viewModel: GoalsViewModel
+    @EnvironmentObject var walletsVM: WalletsViewModel
     @Binding var selectedTab: Int
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false

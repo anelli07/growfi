@@ -18,8 +18,9 @@ class LoginViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success(let token):
-                    UserDefaults.standard.set(token, forKey: "access_token")
+                case .success(let (access, refresh)):
+                    UserDefaults.standard.set(access, forKey: "access_token")
+                    UserDefaults.standard.set(refresh, forKey: "refresh_token")
                     self?.isLoggedIn = true
                     onSuccess()
                 case .failure(let err):
@@ -77,6 +78,33 @@ class LoginViewModel: ObservableObject {
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
+            }
+        }
+    }
+
+    func refreshToken(completion: @escaping (Bool) -> Void) {
+        guard let refresh = UserDefaults.standard.string(forKey: "refresh_token") else { completion(false); return }
+        ApiService.shared.refreshToken(refreshToken: refresh) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let access):
+                    UserDefaults.standard.set(access, forKey: "access_token")
+                    completion(true)
+                case .failure:
+                    completion(false)
+                }
+            }
+        }
+    }
+
+    func logout(onComplete: (() -> Void)? = nil) {
+        guard let refresh = UserDefaults.standard.string(forKey: "refresh_token") else { onComplete?(); return }
+        ApiService.shared.logout(refreshToken: refresh) { _ in
+            UserDefaults.standard.removeObject(forKey: "access_token")
+            UserDefaults.standard.removeObject(forKey: "refresh_token")
+            DispatchQueue.main.async {
+                self.isLoggedIn = false
+                onComplete?()
             }
         }
     }

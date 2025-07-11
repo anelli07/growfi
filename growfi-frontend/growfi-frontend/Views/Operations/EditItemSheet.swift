@@ -5,6 +5,8 @@ struct EditItemSheet: View {
     @ObservedObject var viewModel: GoalsViewModel
     var onClose: () -> Void
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var walletsVM: WalletsViewModel
+    @EnvironmentObject var expensesVM: ExpensesViewModel
     @State private var name: String = ""
     @State private var sum: String = ""
     @State private var showDeleteAlert = false
@@ -135,18 +137,18 @@ struct EditItemSheet: View {
     private func saveChanges() {
         let amount = Double(sum) ?? 0
         switch item {
-        case .wallet(let w): viewModel.updateWallet(id: w.id, name: name, amount: amount)
+        case .wallet(let w): viewModel.updateWallet(id: w.id, name: name, amount: amount, wallets: &walletsVM.wallets)
         case .income(let i): viewModel.updateIncome(id: i.id, name: name, amount: amount)
         case .goal(let g): viewModel.updateGoal(id: g.id, name: name, amount: amount)
-        case .expense(let e): viewModel.updateExpense(id: e.id, name: name, amount: amount)
+        case .expense(let e): viewModel.updateExpense(id: e.id, name: name, amount: amount, expenses: &expensesVM.expenses)
         }
     }
     private func deleteItem() {
         switch item {
-        case .wallet(let w): viewModel.deleteWallet(id: w.id)
+        case .wallet(let w): viewModel.deleteWallet(id: w.id, wallets: &walletsVM.wallets)
         case .income(let i): viewModel.deleteIncome(id: i.id)
         case .goal(let g): viewModel.deleteGoal(id: g.id)
-        case .expense(let e): viewModel.deleteExpense(id: e.id)
+        case .expense(let e): viewModel.deleteExpense(id: e.id, expenses: &expensesVM.expenses)
         }
     }
 } 

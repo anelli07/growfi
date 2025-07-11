@@ -19,6 +19,7 @@ class AuthViewModel: ObservableObject {
     // Валидация
     var isEmailValid: Bool { email.contains("@") && email.contains(".") }
     var isPasswordValid: Bool { password.count >= 6 }
+    var goalsViewModel: GoalsViewModel? = nil // Пробрасывай из вьюхи при инициализации, если нужно
     // MARK: - Auth
     func login(completion: @escaping (Bool) -> Void) {
         error = nil; isLoading = true
@@ -26,8 +27,11 @@ class AuthViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success:
+                case .success(let (access, refresh)):
+                    UserDefaults.standard.set(access, forKey: "access_token")
+                    UserDefaults.standard.set(refresh, forKey: "refresh_token")
                     self?.clearFields()
+                    self?.goalsViewModel?.fetchUser()
                     completion(true)
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -61,7 +65,13 @@ class AuthViewModel: ObservableObject {
                 case .success:
                     self?.showVerifyScreen = false
                     self?.isLogin = true
-                    completion(true)
+                    // Автоматический логин после подтверждения
+                    self?.login { loginSuccess in
+                        if loginSuccess {
+                            self?.goalsViewModel?.fetchUser()
+                        }
+                        completion(loginSuccess)
+                    }
                 case .failure(let err):
                     self?.error = err.localizedDescription
                     completion(false)
@@ -97,6 +107,32 @@ class AuthViewModel: ObservableObject {
                     self?.error = err.localizedDescription
                 }
                 completion?()
+            }
+        }
+    }
+
+    func refreshToken(completion: @escaping (Bool) -> Void) {
+        guard let refresh = UserDefaults.standard.string(forKey: "refresh_token") else { completion(false); return }
+        ApiService.shared.refreshToken(refreshToken: refresh) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let access):
+                    UserDefaults.standard.set(access, forKey: "access_token")
+                    completion(true)
+                case .failure:
+                    completion(false)
+                }
+            }
+        }
+    }
+
+    func logout(onComplete: (() -> Void)? = nil) {
+        guard let refresh = UserDefaults.standard.string(forKey: "refresh_token") else { onComplete?(); return }
+        ApiService.shared.logout(refreshToken: refresh) { _ in
+            UserDefaults.standard.removeObject(forKey: "access_token")
+            UserDefaults.standard.removeObject(forKey: "refresh_token")
+            DispatchQueue.main.async {
+                onComplete?()
             }
         }
     }

@@ -12,21 +12,7 @@ class GoalsViewModel: ObservableObject {
     @Published var incomes: [Transaction] = [
         Transaction(id: UUID(), date: Date(), category: "Зарплата", amount: 0, type: .income, note: nil, wallet: "Карта")
     ]
-    @Published var wallets: [Wallet] = [
-        Wallet(id: 1, name: "Карта", balance: 0),
-        Wallet(id: 2, name: "Наличные", balance: 0)
-    ]
-    @Published var expenses: [Transaction] = [
-        Transaction(id: UUID(), date: Date(), category: "Развлечения", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Связь", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Транспорт", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Еда", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Продукты", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Здоровье", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Путешествия", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Одежда", amount: 0, type: .expense, note: nil, wallet: "Карта"),
-        Transaction(id: UUID(), date: Date(), category: "Красота", amount: 0, type: .expense, note: nil, wallet: "Карта")
-    ]
+    // Удаляю expenses и все методы, связанные с расходами
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -34,14 +20,25 @@ class GoalsViewModel: ObservableObject {
 
     init() {
         loadUser()
-        // goals = []
-        // transactions = []
-        // incomes, wallets, expenses уже инициализированы выше
     }
 
     func loadUser() {
         // Заглушка: потом заменить на API
         self.user = User(id: "1", name: "Аня", email: "anya@email.com")
+    }
+
+    func fetchUser() {
+        guard let token = UserDefaults.standard.string(forKey: "access_token") else { return }
+        ApiService.shared.fetchCurrentUser(token: token) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let user):
+                    self?.user = user
+                case .failure(let err):
+                    self?.error = err.localizedDescription
+                }
+            }
+        }
     }
 
     func fetchGoals() {
@@ -130,7 +127,7 @@ class GoalsViewModel: ObservableObject {
     }
 
     // Drag&Drop: Доход -> Кошелек
-    func transferIncomeToWallet(incomeId: UUID, walletId: Int, amount: Double) {
+    func transferIncomeToWallet(incomeId: UUID, walletId: Int, amount: Double, wallets: inout [Wallet]) {
         guard let incomeIdx = incomes.firstIndex(where: { $0.id == incomeId }),
               let walletIdx = wallets.firstIndex(where: { $0.id == walletId }) else { return }
         incomes[incomeIdx].amount += amount
@@ -139,7 +136,7 @@ class GoalsViewModel: ObservableObject {
         transactions.append(tx)
     }
     // Drag&Drop: Кошелек -> Цель
-    func transferWalletToGoal(walletId: Int, goalId: Int, amount: Double) -> Bool {
+    func transferWalletToGoal(walletId: Int, goalId: Int, amount: Double, wallets: inout [Wallet]) -> Bool {
         guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }),
               let goalIdx = goals.firstIndex(where: { $0.id == goalId }) else { return false }
         guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
@@ -150,7 +147,7 @@ class GoalsViewModel: ObservableObject {
         return true
     }
     // Drag&Drop: Кошелек -> Расход
-    func transferWalletToExpense(walletId: Int, expenseId: UUID, amount: Double) -> Bool {
+    func transferWalletToExpense(walletId: Int, expenseId: UUID, amount: Double, wallets: inout [Wallet], expenses: inout [Transaction]) -> Bool {
         guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }),
               let expenseIdx = expenses.firstIndex(where: { $0.id == expenseId }) else { return false }
         guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
@@ -167,7 +164,7 @@ class GoalsViewModel: ObservableObject {
         incomes.append(newIncome)
         // Не добавляем в transactions, чтобы не было мусора в истории
     }
-    func addWallet(name: String, amount: Double) {
+    func addWallet(name: String, amount: Double, wallets: inout [Wallet]) {
         let newWallet = Wallet(id: (wallets.last?.id ?? 0) + 1, name: name, balance: amount)
         wallets.append(newWallet)
         // Можно добавить Transaction о пополнении кошелька, если нужно
@@ -182,14 +179,14 @@ class GoalsViewModel: ObservableObject {
         objectWillChange.send()
         // Не добавляем транзакцию, пока не будет пополнения цели
     }
-    func addExpense(name: String, amount: Double) {
+    func addExpense(name: String, amount: Double, expenses: inout [Transaction]) {
         let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: -abs(amount), type: .expense, note: nil, wallet: "Карта")
         expenses.append(newExpense)
         transactions.append(newExpense)
     }
 
     // Добавление нового расхода и возврат созданного объекта
-    func addExpenseAndReturn(name: String) -> Transaction {
+    func addExpenseAndReturn(name: String, expenses: inout [Transaction]) -> Transaction {
         let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: 0, type: .expense, note: nil, wallet: "Карта")
         expenses.append(newExpense)
         transactions.append(newExpense)
@@ -197,14 +194,14 @@ class GoalsViewModel: ObservableObject {
     }
 
     // --- Локальное редактирование и удаление ---
-    func updateWallet(id: Int, name: String, amount: Double) {
+    func updateWallet(id: Int, name: String, amount: Double, wallets: inout [Wallet]) {
         if let idx = wallets.firstIndex(where: { $0.id == id }) {
             wallets[idx].name = name
             wallets[idx].balance = amount
             objectWillChange.send()
         }
     }
-    func deleteWallet(id: Int) {
+    func deleteWallet(id: Int, wallets: inout [Wallet]) {
         wallets.removeAll { $0.id == id }
         objectWillChange.send()
     }
@@ -230,14 +227,14 @@ class GoalsViewModel: ObservableObject {
         goals.removeAll { $0.id == id }
         objectWillChange.send()
     }
-    func updateExpense(id: UUID, name: String, amount: Double) {
+    func updateExpense(id: UUID, name: String, amount: Double, expenses: inout [Transaction]) {
         if let idx = expenses.firstIndex(where: { $0.id == id }) {
             expenses[idx].category = name
             expenses[idx].amount = -abs(amount)
             objectWillChange.send()
         }
     }
-    func deleteExpense(id: UUID) {
+    func deleteExpense(id: UUID, expenses: inout [Transaction]) {
         expenses.removeAll { $0.id == id }
         objectWillChange.send()
     }

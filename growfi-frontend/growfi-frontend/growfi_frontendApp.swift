@@ -9,12 +9,9 @@ import SwiftUI
 
 @main
 struct growfi_frontendApp: App {
-    @StateObject private var goalsViewModel = GoalsViewModel()
-
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(goalsViewModel)
+            AppEntry()
         }
     }
 }

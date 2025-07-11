@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var goalsViewModel: GoalsViewModel
+    @EnvironmentObject var walletsVM: WalletsViewModel
+    @EnvironmentObject var expensesVM: ExpensesViewModel
+
     @State private var selectedTab = 2 // Главный экран — 'Цели'
 
     var body: some View {
