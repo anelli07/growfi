@@ -20,7 +20,7 @@ class Income(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     user: "User" = Relationship(back_populates="incomes")
 
-    category_id: int = Field(foreign_key="category.id")
+    category_id: Optional[int] = Field(default=None, foreign_key="category.id")
     category: "Category" = Relationship(back_populates="incomes")
 
 

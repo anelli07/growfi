@@ -4,6 +4,7 @@ from typing import List
 from app import crud, models, schemas
 from app.models.wallet import Wallet
 from app.api import deps
+from app.schemas.wallet import WalletAssignGoal, WalletAssignExpense
 
 router = APIRouter()
 
@@ -27,4 +28,32 @@ def delete_wallet(id: int, db: Session = Depends(deps.get_db), current_user: mod
     db_obj = db.get(Wallet, id)
     if not db_obj or db_obj.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Wallet not found")
-    return crud.crud_wallet.remove(db=db, id=id) 
+    return crud.crud_wallet.remove(db=db, id=id)
+
+@router.patch("/{id}/assign-goal", response_model=schemas.Wallet)
+def assign_goal(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    assign_in: WalletAssignGoal,
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    wallet = db.get(Wallet, id)
+    if not wallet or wallet.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    # Реализовать crud.crud_wallet.assign_goal(...)
+    return wallet
+
+@router.patch("/{id}/assign-expense", response_model=schemas.Wallet)
+def assign_expense(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    assign_in: WalletAssignExpense,
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    wallet = db.get(Wallet, id)
+    if not wallet or wallet.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    # Реализовать crud.crud_wallet.assign_expense(...)
+    return wallet 

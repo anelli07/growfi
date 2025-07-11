@@ -1,6 +1,7 @@
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 from sqlmodel import Session
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -175,3 +176,47 @@ async def resend_code(
         code=code,
     )
     return {"message": "Код отправлен повторно"}
+
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
+
+@router.post("/refresh", response_model=schemas.Token)
+def refresh_token(
+    *,
+    db: Session = Depends(deps.get_db),
+    data: TokenRefreshRequest
+) -> Any:
+    """
+    Обновить access_token по refresh_token
+    """
+    user = db.query(crud.user.model).filter_by(refresh_token=data.refresh_token).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return {
+        "access_token": security.create_access_token(user.id),
+        "refresh_token": user.refresh_token,
+        "token_type": "bearer",
+    }
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
+
+@router.post("/logout")
+def logout(
+    *,
+    db: Session = Depends(deps.get_db),
+    data: LogoutRequest
+) -> Any:
+    """
+    Logout пользователя (инвалидировать refresh_token)
+    """
+    user = db.query(crud.user.model).filter_by(refresh_token=data.refresh_token).first()
+    if not user:
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Already logged out"})
+    user.refresh_token = None
+    db.add(user)
+    db.commit()
+    return {"message": "Logged out"}

@@ -16,7 +16,18 @@ class WalletUpdate(BaseModel):
     balance: Optional[float] = None
     icon_name: Optional[str] = None
     color_hex: Optional[str] = None
-    currency: Optional[str] = None
+
+class WalletAssignGoal(BaseModel):
+    goal_id: int
+    amount: float
+    date: str
+    comment: Optional[str] = None
+
+class WalletAssignExpense(BaseModel):
+    expense_id: int
+    amount: float
+    date: str
+    comment: Optional[str] = None
 
 class Wallet(WalletBase):
     id: int

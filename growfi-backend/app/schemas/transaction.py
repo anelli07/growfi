@@ -6,13 +6,10 @@ from sqlmodel import SQLModel
 
 # Shared properties
 class TransactionBase(SQLModel):
-    transaction_date: date
-    amount: float
+    name: str
+    icon: str
+    color: str
     description: Optional[str] = None  # note
-    category_id: int
-    wallet_id: Optional[int] = None
-    type: Optional[str] = None
-    category_name: Optional[str] = None
 
 
 # Properties to receive on item creation
@@ -25,23 +22,21 @@ class ExpenseCreate(TransactionBase):
 
 
 # Properties to receive on item update
-class TransactionUpdate(SQLModel):
-    transaction_date: Optional[date] = None
-    amount: Optional[float] = None
-    description: Optional[str] = None
+class IncomeUpdate(TransactionBase):
+    pass
+
+
+class ExpenseUpdate(TransactionBase):
+    pass
+
+
+# Assign schemas
+class IncomeAssign(SQLModel):
+    wallet_id: int
+    amount: float
+    date: date
+    comment: Optional[str] = None
     category_id: Optional[int] = None
-    wallet_id: Optional[int] = None
-    type: Optional[str] = None
-    category_name: Optional[str] = None
-
-
-class IncomeUpdate(TransactionUpdate):
-    pass
-
-
-class ExpenseUpdate(TransactionUpdate):
-    pass
-
 
 # Properties to return to client
 class Income(TransactionBase):

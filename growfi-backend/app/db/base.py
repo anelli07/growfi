@@ -10,3 +10,4 @@ Base = SQLModel
 from app.models.user import User  # noqa
 from app.models.category import Category  # noqa
 from app.models.transaction import Income, Expense  # noqa
+from app.models.wallet import Wallet  # noqa

@@ -1,5 +1,5 @@
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlmodel import Session
 from datetime import date
 import math
@@ -7,6 +7,8 @@ import math
 from app import crud, models, schemas
 from app.api import deps
 from app.schemas.page import Page
+from app.schemas.transaction import IncomeCreate, IncomeUpdate, IncomeAssign
+from app.crud.crud_income import income as crud_income
 
 router = APIRouter()
 
@@ -23,7 +25,7 @@ def read_incomes(
     """
     Retrieve incomes for the current user with pagination and filtering.
     """
-    items, total = crud.income.get_multi_by_user(
+    items, total = crud_income.get_multi_by_user(
         db=db,
         user=current_user,
         page=page,
@@ -44,13 +46,13 @@ def read_incomes(
 def create_income(
     *,
     db: Session = Depends(deps.get_db),
-    income_in: schemas.IncomeCreate,
+    income_in: IncomeCreate,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Create new income for the current user.
     """
-    income = crud.income.create_with_user(db=db, obj_in=income_in, user=current_user)
+    income = crud_income.create_with_user(db=db, obj_in=income_in, user=current_user)
     return income
 
 
@@ -59,18 +61,18 @@ def update_income(
     *,
     db: Session = Depends(deps.get_db),
     id: int,
-    income_in: schemas.IncomeUpdate,
+    income_in: IncomeUpdate,
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Update an income.
     """
-    income = crud.income.get(db=db, id=id)
+    income = crud_income.get(db=db, id=id)
     if not income:
         raise HTTPException(status_code=404, detail="Income not found")
     if income.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    income = crud.income.update(db=db, db_obj=income, obj_in=income_in)
+    income = crud_income.update(db=db, db_obj=income, obj_in=income_in)
     return income
 
 
@@ -84,10 +86,30 @@ def delete_income(
     """
     Delete an income.
     """
-    income = crud.income.get(db=db, id=id)
+    income = crud_income.get(db=db, id=id)
     if not income:
         raise HTTPException(status_code=404, detail="Income not found")
     if income.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    income = crud.income.remove(db=db, id=id)
+    income = crud_income.remove(db=db, id=id)
+    return income
+
+
+@router.patch("/{id}/assign", response_model=schemas.Income)
+def assign_income(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    assign_in: IncomeAssign,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Assign income to wallet (and optionally category).
+    """
+    income = crud_income.get(db=db, id=id)
+    if not income:
+        raise HTTPException(status_code=404, detail="Income not found")
+    if income.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    income = crud_income.assign_income_to_wallet(db=db, income_id=id, wallet_id=assign_in.wallet_id, amount=assign_in.amount, category_id=assign_in.category_id)
     return income
