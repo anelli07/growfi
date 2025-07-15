@@ -52,7 +52,7 @@ struct CreateItemSheet: View {
                 case .goal:
                     selectedIcon = "leaf.circle.fill"; selectedColor = .green
                 case .expense:
-                    selectedIcon = "cart.fill"; selectedColor = .red
+                    selectedIcon = "wallet.pass.fill"; selectedColor = .red
                 }
             }
             VStack(spacing: 16) {
@@ -72,9 +72,9 @@ struct CreateItemSheet: View {
                             .keyboardType(.decimalPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
-                } else if type != .income {
+                } else if type == .wallet {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(type == .wallet ? "Сумма (опционально)" : "Сумма")
+                        Text("Сумма (опционально)")
                             .font(.system(size: 16))
                             .foregroundColor(.gray)
                         TextField("0", text: $sum)
@@ -82,7 +82,7 @@ struct CreateItemSheet: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
                 }
-                if type != .income {
+                if type == .goal || type == .wallet {
                     HStack {
                         Text("Валюта")
                             .font(.system(size: 16))
@@ -100,7 +100,7 @@ struct CreateItemSheet: View {
             .padding(.top, 8)
             Spacer()
             Button(action: {
-                let amount = Double(sum) ?? 0
+                let amount: Double = (type == .goal || type == .wallet) ? (Double(sum) ?? 0) : 0
                 onCreate(name, amount, selectedIcon, selectedColor.toHex, selectedCurrency)
                 presentationMode.wrappedValue.dismiss()
             }) {

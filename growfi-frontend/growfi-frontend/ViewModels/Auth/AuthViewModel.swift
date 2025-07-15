@@ -19,7 +19,11 @@ class AuthViewModel: ObservableObject {
     // Валидация
     var isEmailValid: Bool { email.contains("@") && email.contains(".") }
     var isPasswordValid: Bool { password.count >= 6 }
-    var goalsViewModel: GoalsViewModel? = nil // Пробрасывай из вьюхи при инициализации, если нужно
+    let goalsViewModel: GoalsViewModel // теперь только через init
+
+    init(goalsViewModel: GoalsViewModel) {
+        self.goalsViewModel = goalsViewModel
+    }
     // MARK: - Auth
     func login(completion: @escaping (Bool) -> Void) {
         error = nil; isLoading = true
@@ -31,7 +35,7 @@ class AuthViewModel: ObservableObject {
                     UserDefaults.standard.set(access, forKey: "access_token")
                     UserDefaults.standard.set(refresh, forKey: "refresh_token")
                     self?.clearFields()
-                    self?.goalsViewModel?.fetchUser()
+                    self?.goalsViewModel.fetchUser()
                     completion(true)
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -68,9 +72,9 @@ class AuthViewModel: ObservableObject {
                     // Автоматический логин после подтверждения
                     self?.login { loginSuccess in
                         if loginSuccess {
-                            self?.goalsViewModel?.fetchUser()
+                            self?.goalsViewModel.fetchUser()
                         }
-                        completion(loginSuccess)
+                        completion(loginSuccess) // <--- onSuccess вызовется только если loginSuccess
                     }
                 case .failure(let err):
                     self?.error = err.localizedDescription

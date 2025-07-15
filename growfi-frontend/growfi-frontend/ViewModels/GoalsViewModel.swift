@@ -10,7 +10,7 @@ class GoalsViewModel: ObservableObject {
     @Published var error: String? = nil
     @Published var showCreateGoal: Bool = false
     @Published var incomes: [Transaction] = [
-        Transaction(id: UUID(), date: Date(), category: "Зарплата", amount: 0, type: .income, note: nil, wallet: "Карта")
+        Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Зарплата", amount: 0, type: .income, note: nil, wallet: "Карта")
     ]
     // Удаляю expenses и все методы, связанные с расходами
 
@@ -19,22 +19,19 @@ class GoalsViewModel: ObservableObject {
     }
 
     init() {
-        loadUser()
-    }
-
-    func loadUser() {
-        // Заглушка: потом заменить на API
-        self.user = User(id: "1", name: "Аня", email: "anya@email.com")
     }
 
     func fetchUser() {
-        guard let token = UserDefaults.standard.string(forKey: "access_token") else { return }
+        guard let token = UserDefaults.standard.string(forKey: "access_token") else { print("[fetchUser] Нет access_token"); return }
+        print("[fetchUser] access_token:", token)
         ApiService.shared.fetchCurrentUser(token: token) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let user):
+                    print("[fetchUser] User from API:", user)
                     self?.user = user
                 case .failure(let err):
+                    print("[fetchUser] Ошибка:", err.localizedDescription)
                     self?.error = err.localizedDescription
                 }
             }
@@ -49,7 +46,7 @@ class GoalsViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let goals):
-                    self?.goals = goals
+                    self?.goals = goals.sorted { $0.id < $1.id }
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -57,11 +54,10 @@ class GoalsViewModel: ObservableObject {
         }
     }
 
-    func createGoal(name: String, targetAmount: Double) {
+    func createGoal(name: String, targetAmount: Double, currency: String = "₸", icon: String = "leaf.circle.fill", color: String = "#00FF00") {
         guard let token = token else { return }
         isLoading = true
-        let newGoal = Goal(id: 0, name: name, target_amount: targetAmount, current_amount: 0, user_id: nil)
-        ApiService.shared.createGoal(goal: newGoal, token: token) { [weak self] result in
+        ApiService.shared.createGoal(name: name, targetAmount: targetAmount, currency: currency, icon: icon, color: color, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
@@ -74,10 +70,10 @@ class GoalsViewModel: ObservableObject {
         }
     }
 
-    func updateGoal(goal: Goal) {
+    func updateGoal(goal: Goal, currency: String = "₸", icon: String = "leaf.circle.fill", color: String = "#00FF00") {
         guard let token = token else { return }
         isLoading = true
-        ApiService.shared.updateGoal(goal: goal, token: token) { [weak self] result in
+        ApiService.shared.updateGoal(goal: goal, currency: currency, icon: icon, color: color, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
@@ -114,7 +110,7 @@ class GoalsViewModel: ObservableObject {
     }
 
     var userName: String {
-        user?.name ?? "Гость"
+        user?.full_name ?? "Гость"
     }
 
     var todayTransactions: [Transaction] {
@@ -127,12 +123,12 @@ class GoalsViewModel: ObservableObject {
     }
 
     // Drag&Drop: Доход -> Кошелек
-    func transferIncomeToWallet(incomeId: UUID, walletId: Int, amount: Double, wallets: inout [Wallet]) {
+    func transferIncomeToWallet(incomeId: Int, walletId: Int, amount: Double, wallets: inout [Wallet]) {
         guard let incomeIdx = incomes.firstIndex(where: { $0.id == incomeId }),
               let walletIdx = wallets.firstIndex(where: { $0.id == walletId }) else { return }
         incomes[incomeIdx].amount += amount
         wallets[walletIdx].balance += amount
-        let tx = Transaction(id: UUID(), date: Date(), category: "Перевод в кошелек", amount: amount, type: .income, note: nil, wallet: wallets[walletIdx].name)
+        let tx = Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Перевод в кошелек", amount: amount, type: .income, note: nil, wallet: wallets[walletIdx].name)
         transactions.append(tx)
     }
     // Drag&Drop: Кошелек -> Цель
@@ -142,100 +138,64 @@ class GoalsViewModel: ObservableObject {
         guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
         wallets[walletIdx].balance -= amount
         goals[goalIdx].current_amount += amount
-        let tx = Transaction(id: UUID(), date: Date(), category: "Пополнение цели: \(goals[goalIdx].name)", amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
+        let tx = Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Пополнение цели: \(goals[goalIdx].name)", amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
         transactions.append(tx)
         return true
     }
     // Drag&Drop: Кошелек -> Расход
-    func transferWalletToExpense(walletId: Int, expenseId: UUID, amount: Double, wallets: inout [Wallet], expenses: inout [Transaction]) -> Bool {
-        guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }),
-              let expenseIdx = expenses.firstIndex(where: { $0.id == expenseId }) else { return false }
+    func transferWalletToExpense(walletId: Int, expenseId: Int, amount: Double, wallets: inout [Wallet]) -> Bool {
+        // Здесь можно реализовать нужную логику, например, просто уменьшать баланс кошелька и создавать транзакцию
+        guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }) else { return false }
         guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
         wallets[walletIdx].balance -= amount
-        expenses[expenseIdx].amount -= amount
-        let tx = Transaction(id: UUID(), date: Date(), category: expenses[expenseIdx].category, amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
+        let tx = Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Расход", amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
         transactions.append(tx)
         return true
-    }
-
-    // Добавление новых элементов
-    func addIncome(name: String, amount: Double) {
-        let newIncome = Transaction(id: UUID(), date: Date(), category: name, amount: amount, type: .income, note: nil, wallet: "Карта")
-        incomes.append(newIncome)
-        // Не добавляем в transactions, чтобы не было мусора в истории
-    }
-    func addWallet(name: String, amount: Double, wallets: inout [Wallet]) {
-        let newWallet = Wallet(id: (wallets.last?.id ?? 0) + 1, name: name, balance: amount)
-        wallets.append(newWallet)
-        // Можно добавить Transaction о пополнении кошелька, если нужно
-        if amount > 0 {
-            let tx = Transaction(id: UUID(), date: Date(), category: "Пополнение кошелька", amount: amount, type: .income, note: nil, wallet: name)
-            transactions.append(tx)
-        }
-    }
-    func addGoal(name: String, amount: Double) {
-        let newGoal = Goal(id: (goals.last?.id ?? 0) + 1, name: name, target_amount: amount, current_amount: 0, user_id: nil)
-        goals.append(newGoal)
-        objectWillChange.send()
-        // Не добавляем транзакцию, пока не будет пополнения цели
-    }
-    func addExpense(name: String, amount: Double, expenses: inout [Transaction]) {
-        let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: -abs(amount), type: .expense, note: nil, wallet: "Карта")
-        expenses.append(newExpense)
-        transactions.append(newExpense)
-    }
-
-    // Добавление нового расхода и возврат созданного объекта
-    func addExpenseAndReturn(name: String, expenses: inout [Transaction]) -> Transaction {
-        let newExpense = Transaction(id: UUID(), date: Date(), category: name, amount: 0, type: .expense, note: nil, wallet: "Карта")
-        expenses.append(newExpense)
-        transactions.append(newExpense)
-        return newExpense
     }
 
     // --- Локальное редактирование и удаление ---
     func updateWallet(id: Int, name: String, amount: Double, wallets: inout [Wallet]) {
         if let idx = wallets.firstIndex(where: { $0.id == id }) {
-            wallets[idx].name = name
-            wallets[idx].balance = amount
-            objectWillChange.send()
+            var wallet = wallets[idx]
+            wallet.name = name
+            wallet.balance = amount
+            wallets[idx] = wallet
         }
     }
     func deleteWallet(id: Int, wallets: inout [Wallet]) {
         wallets.removeAll { $0.id == id }
-        objectWillChange.send()
     }
-    func updateIncome(id: UUID, name: String, amount: Double) {
+    func updateIncome(id: Int, name: String, amount: Double) {
         if let idx = incomes.firstIndex(where: { $0.id == id }) {
-            incomes[idx].category = name
-            incomes[idx].amount = amount
-            objectWillChange.send()
+            var income = incomes[idx]
+            income.category = name
+            income.amount = amount
+            incomes[idx] = income
         }
     }
-    func deleteIncome(id: UUID) {
+    func deleteIncome(id: Int) {
         incomes.removeAll { $0.id == id }
-        objectWillChange.send()
     }
     func updateGoal(id: Int, name: String, amount: Double) {
         if let idx = goals.firstIndex(where: { $0.id == id }) {
-            goals[idx].name = name
-            goals[idx].current_amount = amount
-            objectWillChange.send()
+            var goal = goals[idx]
+            goal.name = name
+            goal.current_amount = amount
+            goals[idx] = goal
         }
     }
     func deleteGoal(id: Int) {
         goals.removeAll { $0.id == id }
-        objectWillChange.send()
     }
-    func updateExpense(id: UUID, name: String, amount: Double, expenses: inout [Transaction]) {
-        if let idx = expenses.firstIndex(where: { $0.id == id }) {
-            expenses[idx].category = name
-            expenses[idx].amount = -abs(amount)
-            objectWillChange.send()
+    func updateExpense(id: Int, name: String, amount: Double) {
+        if let idx = transactions.firstIndex(where: { $0.id == id }) {
+            var tx = transactions[idx]
+            tx.category = name
+            tx.amount = -abs(amount)
+            transactions[idx] = tx
         }
     }
-    func deleteExpense(id: UUID, expenses: inout [Transaction]) {
-        expenses.removeAll { $0.id == id }
-        objectWillChange.send()
+    func deleteExpense(id: Int) {
+        transactions.removeAll { $0.id == id }
     }
 } 

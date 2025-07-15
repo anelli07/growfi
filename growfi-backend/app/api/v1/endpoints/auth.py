@@ -54,21 +54,41 @@ async def register_user(
     cat_expense7 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Путешествия", type=CategoryType.EXPENSE), user=user)
     cat_expense8 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Одежда", type=CategoryType.EXPENSE), user=user)
     cat_expense9 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Красота", type=CategoryType.EXPENSE), user=user)
+    
 
 
     # ДЕФОЛТНЫЕ ДОХОДЫ
-    crud.income.create_with_user(db, obj_in=IncomeCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_income1.id, wallet_id=wallet1.id), user=user)
+    crud.income.create_with_user(db, obj_in=IncomeCreate(
+        name="Зарплата",
+        icon="dollarsign.circle.fill",
+        color="#00FF00",
+        amount=0,
+        transaction_date=date.today(),
+        category_id=cat_income1.id
+    ), user=user)
 
     # ДЕФОЛТНЫЕ РАСХОДЫ
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense1.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense2.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense3.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense4.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense5.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense6.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense7.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense8.id, wallet_id=wallet1.id), user=user)
-    crud.expense.create_with_user(db, obj_in=ExpenseCreate(transaction_date=date.today(), amount=0, description="", category_id=cat_expense9.id, wallet_id=wallet1.id), user=user)
+    expense_templates = [
+        ("Еда", "cart.fill", "#FF0000", cat_expense1.id),
+        ("Транспорт", "car.fill", "#00FF00", cat_expense2.id),
+        ("Продукты", "cart.fill", "#00FF00", cat_expense3.id),
+        ("Развлечения", "gamecontroller.fill", "#00FF00", cat_expense4.id),
+        ("Здоровье", "cross.case.fill", "#00FF00", cat_expense5.id),
+        ("Связь", "phone.fill", "#00FF00", cat_expense6.id),
+        ("Путешествия", "airplane", "#00FF00", cat_expense7.id),
+        ("Одежда", "tshirt.fill", "#00FF00", cat_expense8.id),
+        ("Красота", "scissors", "#00FF00", cat_expense9.id),
+    ]
+    for name, icon, color, category_id in expense_templates:
+        crud.expense.create_with_user(db, obj_in=ExpenseCreate(
+            name=name,
+            icon=icon,
+            color=color,
+            amount=0,
+            transaction_date=date.today(),
+            category_id=category_id,
+            wallet_id=wallet1.id
+        ), user=user)
 
     await send_verification_code_email(
         email_to=user.email,
@@ -92,6 +112,8 @@ def login(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    elif not user.is_email_verified:
+        raise HTTPException(status_code=400, detail="Email не подтверждён")
 
     return {
         "access_token": security.create_access_token(user.id),

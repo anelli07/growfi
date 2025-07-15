@@ -6,11 +6,11 @@ enum TransactionType: String, Codable {
 }
 
 struct Transaction: Identifiable, Codable {
-    let id: UUID
+    let id: Int
     let date: Date
-    var category: String
+    var category: String?
     var amount: Double
     let type: TransactionType
     let note: String?
-    let wallet: String
+    let wallet: String?
 } 

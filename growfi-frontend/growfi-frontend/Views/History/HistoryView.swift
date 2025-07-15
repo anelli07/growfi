@@ -25,7 +25,7 @@ struct HistoryView: View {
         let sorted = periodFiltered.sorted { $0.date > $1.date }
         if searchText.isEmpty { return sorted }
         return sorted.filter {
-            $0.category.lowercased().contains(searchText.lowercased()) ||
+            ($0.category ?? "").lowercased().contains(searchText.lowercased()) ||
             ($0.note ?? "").lowercased().contains(searchText.lowercased())
         }
     }
@@ -36,7 +36,7 @@ struct HistoryView: View {
             Calendar.current.startOfDay(for: tx.date)
         }
         .map { (date, txs) in
-            TransactionDay(date: date, transactions: txs)
+            TransactionDay(id: Int(date.timeIntervalSince1970), date: date, transactions: txs)
         }
         .sorted { $0.date > $1.date }
         return grouped

@@ -6,6 +6,9 @@ class WalletsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
 
+    weak var goalsVM: GoalsViewModel?
+    weak var expensesVM: ExpensesViewModel?
+
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
     }
@@ -22,7 +25,7 @@ class WalletsViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let wallets):
-                    self?.wallets = wallets
+                    self?.wallets = wallets.sorted { $0.id < $1.id }
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -54,7 +57,7 @@ class WalletsViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let wallet):
-                    if let idx = self?.wallets.firstIndex(where: { $0.id == wallet.id }) {
+                    if let idx = self?.wallets.firstIndex(where: { $0.id == id }) {
                         self?.wallets[idx] = wallet
                     }
                 case .failure(let err):
@@ -71,9 +74,14 @@ class WalletsViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success(let wallet):
-                    if let idx = self?.wallets.firstIndex(where: { $0.id == wallet.id }) {
-                        self?.wallets[idx] = wallet
+                case .success(let resp):
+                    // Обновляем wallet
+                    if let idx = self?.wallets.firstIndex(where: { $0.id == resp.wallet.id }) {
+                        self?.wallets[idx] = resp.wallet
+                    }
+                    // Обновляем goal
+                    if let goalIdx = self?.goalsVM?.goals.firstIndex(where: { $0.id == resp.goal.id }) {
+                        self?.goalsVM?.goals[goalIdx] = resp.goal
                     }
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -82,16 +90,21 @@ class WalletsViewModel: ObservableObject {
         }
     }
 
-    func assignWalletToExpense(walletId: Int, expenseId: Int, amount: Double, date: String, comment: String?) {
+    func assignWalletToExpense(walletId: Int, expenseId: Int, amount: Double, date: String, comment: String? = nil) {
         guard let token = token else { return }
         isLoading = true
         ApiService.shared.assignWalletToExpense(walletId: walletId, expenseId: expenseId, amount: amount, date: date, comment: comment, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success(let wallet):
-                    if let idx = self?.wallets.firstIndex(where: { $0.id == wallet.id }) {
-                        self?.wallets[idx] = wallet
+                case .success(let resp):
+                    // Обновляем wallet
+                    if let idx = self?.wallets.firstIndex(where: { $0.id == resp.wallet.id }) {
+                        self?.wallets[idx] = resp.wallet
+                    }
+                    // Обновляем expense
+                    if let expenseIdx = self?.expensesVM?.expenses.firstIndex(where: { $0.id == resp.expense.id }) {
+                        self?.expensesVM?.expenses[expenseIdx] = resp.expense
                     }
                 case .failure(let err):
                     self?.error = err.localizedDescription

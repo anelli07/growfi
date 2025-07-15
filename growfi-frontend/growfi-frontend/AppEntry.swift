@@ -6,6 +6,12 @@ struct AppEntry: View {
     @StateObject private var goalsViewModel = GoalsViewModel()
     @StateObject private var walletsVM = WalletsViewModel()
     @StateObject private var expensesVM = ExpensesViewModel()
+    @StateObject private var incomesVM = IncomesViewModel()
+    @StateObject private var categoriesVM = CategoriesViewModel()
+
+    init() {
+        // incomesVM.walletsVM = walletsVM // This line is moved to onAppear
+    }
 
     var body: some View {
         Group {
@@ -14,6 +20,21 @@ struct AppEntry: View {
                     .environmentObject(goalsViewModel)
                     .environmentObject(walletsVM)
                     .environmentObject(expensesVM)
+                    .environmentObject(incomesVM)
+                    .environmentObject(categoriesVM)
+                    .onAppear {
+                        incomesVM.walletsVM = walletsVM
+                        walletsVM.expensesVM = expensesVM
+                        walletsVM.goalsVM = goalsViewModel
+                        let token = UserDefaults.standard.string(forKey: "access_token") ?? "nil"
+                        print("[AppEntry] access_token при старте:", token)
+                        goalsViewModel.fetchUser()
+                        goalsViewModel.fetchGoals()
+                        categoriesVM.fetchCategories()
+                        walletsVM.fetchWallets()
+                        expensesVM.fetchExpenses()
+                        incomesVM.fetchIncomes()
+                    }
             } else if !triedRefresh, let refresh = UserDefaults.standard.string(forKey: "refresh_token") {
                 ProgressView().onAppear {
                     ApiService.shared.refreshToken(refreshToken: refresh) { result in
@@ -21,6 +42,7 @@ struct AppEntry: View {
                             switch result {
                             case .success(let access):
                                 UserDefaults.standard.set(access, forKey: "access_token")
+                                print("[AppEntry] Новый access_token после refresh:", access)
                                 isLoggedIn = true
                             case .failure:
                                 UserDefaults.standard.removeObject(forKey: "access_token")
@@ -33,6 +55,13 @@ struct AppEntry: View {
                 }
             } else {
                 AuthView(onLogin: { isLoggedIn = true }, goalsViewModel: goalsViewModel)
+            }
+        }
+        .onAppear {
+            NotificationCenter.default.addObserver(forName: NSNotification.Name("LogoutDueTo401"), object: nil, queue: .main) { _ in
+                UserDefaults.standard.removeObject(forKey: "access_token")
+                UserDefaults.standard.removeObject(forKey: "refresh_token")
+                isLoggedIn = false
             }
         }
     }

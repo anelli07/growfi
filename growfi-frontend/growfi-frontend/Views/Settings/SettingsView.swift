@@ -16,7 +16,7 @@ struct SettingsView: View {
                         .font(.system(size: 32))
                         .foregroundColor(.green)
                     VStack(alignment: .leading) {
-                        Text(goalsVM.user?.name ?? "Имя не указано")
+                        Text(goalsVM.user?.full_name ?? "Имя не указано")
                             .font(.headline)
                         Text(goalsVM.user?.email ?? "Логин не указан")
                             .font(.subheadline)
@@ -34,7 +34,7 @@ struct SettingsView: View {
                 VStack(spacing: 16) {
                     Text("Профиль")
                         .font(.title2).bold()
-                    Text("Имя: \(goalsVM.user?.name ?? "-")")
+                    Text("Имя: \(goalsVM.user?.full_name ?? "-")")
                     Text("Логин: \(goalsVM.user?.email ?? "-")")
                     Spacer()
                 }
@@ -56,8 +56,7 @@ struct SettingsView: View {
         }
         .padding()
         .fullScreenCover(isPresented: $isLoggedOut) {
-            AuthView(onLogin: { isLoggedOut = false })
-                .environmentObject(AuthViewModel())
+            AuthView(onLogin: { isLoggedOut = false }, goalsViewModel: goalsVM)
         }       
     }
 } 

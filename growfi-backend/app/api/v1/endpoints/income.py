@@ -9,8 +9,15 @@ from app.api import deps
 from app.schemas.page import Page
 from app.schemas.transaction import IncomeCreate, IncomeUpdate, IncomeAssign
 from app.crud.crud_income import income as crud_income
+from app.schemas.wallet import Wallet
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+class IncomeAssignResponse(BaseModel):
+    income: schemas.Income
+    wallet: Wallet
 
 
 @router.get("/", response_model=Page[schemas.Income])
@@ -95,7 +102,7 @@ def delete_income(
     return income
 
 
-@router.patch("/{id}/assign", response_model=schemas.Income)
+@router.patch("/{id}/assign", response_model=IncomeAssignResponse)
 def assign_income(
     *,
     db: Session = Depends(deps.get_db),
@@ -112,4 +119,9 @@ def assign_income(
     if income.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     income = crud_income.assign_income_to_wallet(db=db, income_id=id, wallet_id=assign_in.wallet_id, amount=assign_in.amount, category_id=assign_in.category_id)
-    return income
+    wallet = db.get(models.Wallet, assign_in.wallet_id)
+    db.refresh(wallet)
+    return IncomeAssignResponse(
+        income=schemas.Income.model_validate(income),
+        wallet=schemas.Wallet.model_validate(wallet)
+    )

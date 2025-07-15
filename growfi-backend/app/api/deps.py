@@ -19,7 +19,7 @@ class TokenData(BaseModel):
 
 
 def get_db() -> Generator:
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=True) as session:
         yield session
 
 

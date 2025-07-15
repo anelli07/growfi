@@ -19,8 +19,8 @@ struct GoalsCarouselView: View {
                     .padding(.top, 6) // немного воздуха между заголовками
                 
                 if viewModel.goals.isEmpty {
-                    EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, _, _, _ in
-                        viewModel.addGoal(name: name, amount: sum)
+                    EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency in
+                        viewModel.createGoal(name: name, targetAmount: sum, currency: currency.isEmpty ? "₸" : currency, icon: icon.isEmpty ? "leaf.circle.fill" : icon, color: color.isEmpty ? "#00FF00" : color)
                         showCreateGoalSheet = false
                     }
                 } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
@@ -312,10 +312,10 @@ struct LastTransactionsView: View {
                     VStack(spacing: 6) {
                     ForEach(transactions.sorted(by: { $0.date > $1.date }).prefix(3)) { tx in
                             HStack {
-                                    Text(tx.category)
+                                Text(tx.category ?? "")
                                         .font(.subheadline)
                                 Spacer()
-                            Text("\(tx.type == .income ? "+" : "-")\(Int(abs(tx.amount))) \(tx.wallet)")
+                            Text("\(tx.type == .income ? "+" : "-")\(Int(abs(tx.amount))) \(tx.wallet ?? "")")
                                 .foregroundColor(tx.type == .income ? .green : .red)
                                     .font(.subheadline)
                             }

@@ -5,6 +5,9 @@ from app import crud, models, schemas
 from app.models.wallet import Wallet
 from app.api import deps
 from app.schemas.wallet import WalletAssignGoal, WalletAssignExpense
+from app.models.goal import Goal
+from app.models.transaction import Expense
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -30,7 +33,11 @@ def delete_wallet(id: int, db: Session = Depends(deps.get_db), current_user: mod
         raise HTTPException(status_code=404, detail="Wallet not found")
     return crud.crud_wallet.remove(db=db, id=id)
 
-@router.patch("/{id}/assign-goal", response_model=schemas.Wallet)
+class WalletAssignGoalResponse(BaseModel):
+    goal: Goal
+    wallet: schemas.Wallet
+
+@router.patch("/{id}/assign-goal", response_model=WalletAssignGoalResponse)
 def assign_goal(
     *,
     db: Session = Depends(deps.get_db),
@@ -41,10 +48,26 @@ def assign_goal(
     wallet = db.get(Wallet, id)
     if not wallet or wallet.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Wallet not found")
-    # Реализовать crud.crud_wallet.assign_goal(...)
-    return wallet
+    wallet = crud.crud_wallet.assign_goal(
+        db=db,
+        wallet_id=id,
+        goal_id=assign_in.goal_id,
+        amount=assign_in.amount,
+        date=assign_in.date,
+        comment=assign_in.comment,
+    )
+    goal = db.get(Goal, assign_in.goal_id)
+    db.refresh(goal)
+    return WalletAssignGoalResponse(
+        goal=schemas.Goal.model_validate(goal),
+        wallet=schemas.Wallet.model_validate(wallet)
+    )
 
-@router.patch("/{id}/assign-expense", response_model=schemas.Wallet)
+class WalletAssignExpenseResponse(BaseModel):
+    expense: Expense
+    wallet: schemas.Wallet
+
+@router.patch("/{id}/assign-expense", response_model=WalletAssignExpenseResponse)
 def assign_expense(
     *,
     db: Session = Depends(deps.get_db),
@@ -55,5 +78,17 @@ def assign_expense(
     wallet = db.get(Wallet, id)
     if not wallet or wallet.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Wallet not found")
-    # Реализовать crud.crud_wallet.assign_expense(...)
-    return wallet 
+    wallet = crud.crud_wallet.assign_expense(
+        db=db,
+        wallet_id=id,
+        expense_id=assign_in.expense_id,
+        amount=assign_in.amount,
+        date=assign_in.date,
+        comment=assign_in.comment,
+    )
+    expense = db.get(Expense, assign_in.expense_id)
+    db.refresh(expense)
+    return WalletAssignExpenseResponse(
+        expense=schemas.Expense.model_validate(expense),
+        wallet=schemas.Wallet.model_validate(wallet)
+    ) 

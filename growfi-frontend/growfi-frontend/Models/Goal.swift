@@ -5,7 +5,10 @@ struct Goal: Identifiable, Codable {
     var name: String
     let target_amount: Double
     var current_amount: Double
-    let user_id: Int?
+    let user_id: Int
+    let icon: String
+    let color: String
+    let currency: String
 
     // Стадия роста (0-9)
     var growthStage: Int {

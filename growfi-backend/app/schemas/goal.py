@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class GoalBase(BaseModel):
@@ -22,5 +22,4 @@ class Goal(GoalBase):
     current_amount: float
     user_id: int
 
-    class Config:
-        orm_mode = True 
+    model_config = ConfigDict(from_attributes=True) 

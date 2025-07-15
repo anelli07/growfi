@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject var goalsViewModel: GoalsViewModel
     @EnvironmentObject var walletsVM: WalletsViewModel
     @EnvironmentObject var expensesVM: ExpensesViewModel
+    @EnvironmentObject var incomesVM: IncomesViewModel
 
     @State private var selectedTab = 2 // Главный экран — 'Цели'
 
@@ -47,6 +48,9 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
             .environmentObject(GoalsViewModel())
+            .environmentObject(WalletsViewModel())
+            .environmentObject(ExpensesViewModel())
+            .environmentObject(IncomesViewModel())
     }
 }
 

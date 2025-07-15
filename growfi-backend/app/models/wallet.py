@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field
 class Wallet(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    balance: float = 0
+    balance: float = Field(default=0)
     icon_name: Optional[str] = None
     color_hex: Optional[str] = None
     currency: str = "KZT"

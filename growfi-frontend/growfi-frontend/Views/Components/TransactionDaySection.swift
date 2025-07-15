@@ -33,10 +33,10 @@ struct TransactionDaySection_Previews: PreviewProvider {
     static var previews: some View {
         let date = Date()
         let txs = [
-            Transaction(id: UUID(), date: date, category: "Продукты", amount: -2000, type: .expense, note: "Магазин", wallet: "Карта"),
-            Transaction(id: UUID(), date: date, category: "Зарплата", amount: 40000, type: .income, note: nil, wallet: "Карта")
+            Transaction(id: 1, date: date, category: "Продукты", amount: -2000, type: .expense, note: "Магазин", wallet: "Карта"),
+            Transaction(id: 2, date: date, category: "Зарплата", amount: 40000, type: .income, note: nil, wallet: "Карта")
         ]
-        let day = TransactionDay(date: date, transactions: txs)
+        let day = TransactionDay(id: 1, date: date, transactions: txs)
         return TransactionDaySection(day: day)
             .padding()
             .previewLayout(.sizeThatFits)

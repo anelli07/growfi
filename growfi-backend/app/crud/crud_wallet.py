@@ -4,6 +4,9 @@ from app.models.wallet import Wallet
 from app.schemas.wallet import WalletCreate, WalletUpdate
 from app.models.goal import Goal
 from app.models.transaction import Expense
+from app.crud.crud_transaction import transaction
+from app.schemas.transaction import TransactionCreate
+from datetime import date
 
 class CRUDWallet:
     def get_multi_by_user(self, db: Session, user_id: int) -> List[Wallet]:
@@ -46,8 +49,24 @@ class CRUDWallet:
         db.add(wallet)
         db.add(goal)
         db.commit()
+        db.expire_all()
         db.refresh(wallet)
         db.refresh(goal)
+        # Создаём Transaction
+        transaction_obj = TransactionCreate(
+            user_id=wallet.user_id,
+            from_wallet_id=wallet_id,
+            to_wallet_id=None,
+            from_goal_id=None,
+            to_goal_id=goal_id,
+            from_category_id=None,
+            to_category_id=None,
+            amount=amount,
+            transaction_date=date,
+            type="goal_transfer",
+            comment=comment
+        )
+        transaction.create(db, obj_in=transaction_obj)
         return wallet
 
     def assign_expense(self, db: Session, *, wallet_id: int, expense_id: int, amount: float, date: str, comment: str = None):
@@ -64,8 +83,24 @@ class CRUDWallet:
         db.add(wallet)
         db.add(expense)
         db.commit()
+        db.expire_all()
         db.refresh(wallet)
         db.refresh(expense)
+        # Создаём Transaction
+        transaction_obj = TransactionCreate(
+            user_id=wallet.user_id,
+            from_wallet_id=wallet_id,
+            to_wallet_id=None,
+            from_goal_id=None,
+            to_goal_id=None,
+            from_category_id=None,
+            to_category_id=expense.category_id,
+            amount=amount,
+            transaction_date=date,
+            type="expense",
+            comment=comment
+        )
+        transaction.create(db, obj_in=transaction_obj)
         return wallet
 
 crud_wallet = CRUDWallet() 

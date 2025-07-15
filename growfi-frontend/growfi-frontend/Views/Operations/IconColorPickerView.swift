@@ -23,9 +23,9 @@ struct IconColorPickerView: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            .onChange(of: name) { newName in
-                guard !wasManuallyPicked else { return }
-                let type = CategoryType.from(name: newName)
+            .onChange(of: name) {
+                guard wasManuallyPicked else { return }
+                let type = CategoryType.from(name: name)
                 if type != .другое {
                     selectedIcon = type.icon
                     selectedColor = type.color

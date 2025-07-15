@@ -7,8 +7,10 @@ import math
 from app import crud, models, schemas
 from app.api import deps
 from app.schemas.page import Page
-from app.schemas.transaction import ExpenseCreate, ExpenseUpdate
+from app.schemas.transaction import ExpenseCreate, ExpenseUpdate, ExpenseAssign
 from app.crud.crud_expense import expense as crud_expense
+from app.crud.crud_transaction import transaction
+from app.schemas.transaction import TransactionRead
 
 router = APIRouter()
 
@@ -33,6 +35,7 @@ def read_expenses(
         start_date=start_date,
         end_date=end_date,
     )
+    print("DEBUG: items", [(e.id, e.amount) for e in items])
     return Page(
         items=items,
         total=total,
@@ -93,3 +96,11 @@ def delete_expense(
         raise HTTPException(status_code=403, detail="Not enough permissions")
     expense = crud_expense.remove(db=db, id=id)
     return expense
+
+
+@router.get("/transactions", response_model=list[TransactionRead])
+def get_transactions(
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    return transaction.get_multi_by_user(db, user_id=current_user.id)

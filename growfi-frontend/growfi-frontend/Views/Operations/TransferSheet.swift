@@ -13,21 +13,21 @@ struct TransferSheet: View {
     // Универсальные вычисления для левой и правой части
     var leftTitle: String {
         switch type {
-        case .incomeToWallet(let income, _): return income.category
+        case .incomeToWallet(_, _): return "Доход"
         case .walletToGoal(let wallet, _): return wallet.name
         case .walletToExpense(let wallet, _): return wallet.name
         }
     }
     var leftSubtitle: String {
         switch type {
-        case .incomeToWallet(let income, _): return "Доход"
+        case .incomeToWallet(_, _): return "Доход"
         case .walletToGoal: return "Кошелек"
         case .walletToExpense: return "Кошелек"
         }
     }
     var leftAmount: String {
         switch type {
-        case .incomeToWallet(let income, _): return "\(Int(income.amount)) ₸"
+        case .incomeToWallet(_ /* income */, _): return "0 ₸"
         case .walletToGoal(let wallet, _): return "\(Int(wallet.balance)) ₸"
         case .walletToExpense(let wallet, _): return "\(Int(wallet.balance)) ₸"
         }
@@ -48,7 +48,7 @@ struct TransferSheet: View {
         switch type {
         case .incomeToWallet(_, let wallet): return wallet.name
         case .walletToGoal(_, let goal): return goal.name
-        case .walletToExpense(_, let expense): return expense.category
+        case .walletToExpense(_, let expense): return expense.name
         }
     }
     var rightSubtitle: String {
@@ -282,5 +282,13 @@ struct TransferSheet: View {
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
+    }
+}
+
+extension Date {
+    func toBackendString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: self)
     }
 } 

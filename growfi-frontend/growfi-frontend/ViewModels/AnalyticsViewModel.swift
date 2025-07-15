@@ -34,12 +34,12 @@ class AnalyticsViewModel: ObservableObject {
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
         let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: today)!
         allTransactions = [
-            Transaction(id: UUID(), date: today, category: "Продукты", amount: -2000, type: .expense, note: "Магазин", wallet: "Карта"),
-            Transaction(id: UUID(), date: today, category: "Зарплата", amount: 40000, type: .income, note: nil, wallet: "Карта"),
-            Transaction(id: UUID(), date: today, category: "Кофе", amount: -800, type: .expense, note: "", wallet: "Карта"),
-            Transaction(id: UUID(), date: yesterday, category: "Транспорт", amount: -500, type: .expense, note: "Метро", wallet: "Карта"),
-            Transaction(id: UUID(), date: yesterday, category: "Подарок", amount: -1000, type: .expense, note: "Друзья", wallet: "Наличные"),
-            Transaction(id: UUID(), date: twoDaysAgo, category: "Еда", amount: -1200, type: .expense, note: nil, wallet: "Карта")
+            Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: today, category: "Продукты", amount: -2000, type: .expense, note: "Магазин", wallet: "Карта"),
+            Transaction(id: Int(Date().timeIntervalSince1970 * 1001), date: today, category: "Зарплата", amount: 40000, type: .income, note: nil, wallet: "Карта"),
+            Transaction(id: Int(Date().timeIntervalSince1970 * 1002), date: today, category: "Кофе", amount: -800, type: .expense, note: "", wallet: "Карта"),
+            Transaction(id: Int(Date().timeIntervalSince1970 * 1003), date: yesterday, category: "Транспорт", amount: -500, type: .expense, note: "Метро", wallet: "Карта"),
+            Transaction(id: Int(Date().timeIntervalSince1970 * 1004), date: yesterday, category: "Подарок", amount: -1000, type: .expense, note: "Друзья", wallet: "Наличные"),
+            Transaction(id: Int(Date().timeIntervalSince1970 * 1005), date: twoDaysAgo, category: "Еда", amount: -1200, type: .expense, note: nil, wallet: "Карта")
         ]
     }
 
@@ -71,8 +71,8 @@ class AnalyticsViewModel: ObservableObject {
         let groupedCat = Dictionary(grouping: filtered) { $0.category }
         groupedByCategory = groupedCat.map { (cat, txs) in
             let total = txs.map { abs($0.amount) }.reduce(0, +)
-            let type = CategoryType.from(name: cat)
-            return CategoryStat(category: cat, total: total, color: type.color)
+            let type = CategoryType.from(name: cat ?? "")
+            return CategoryStat(category: cat ?? "", total: total, color: type.color)
         }.sorted { $0.total > $1.total }
         // Итоги
         incomeTotal = filtered.filter { $0.type == .income }.map { $0.amount }.reduce(0, +)

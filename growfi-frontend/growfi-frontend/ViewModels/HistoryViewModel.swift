@@ -51,17 +51,17 @@ class HistoryViewModel: ObservableObject {
         }
         // Поиск по заметке и категории
         let searched = searchText.isEmpty ? filtered : filtered.filter {
-            ($0.category.lowercased().contains(searchText.lowercased()) ||
-             ($0.note ?? "").lowercased().contains(searchText.lowercased()))
+            ($0.category ?? "").lowercased().contains(searchText.lowercased()) ||
+            ($0.note ?? "").lowercased().contains(searchText.lowercased())
         }
-        // Убираем транзакции с amount == 0
+        // Убираем транзакции с amount == 0 (шаблоны)
         let nonZero = searched.filter { $0.amount != 0 }
         // Группировка по дням
         let grouped = Dictionary(grouping: nonZero) { tx in
             Calendar.current.startOfDay(for: tx.date)
         }
         .map { (date, txs) in
-            TransactionDay(date: date, transactions: txs)
+            TransactionDay(id: Int(date.timeIntervalSince1970), date: date, transactions: txs)
         }
         .sorted { $0.date > $1.date }
         DispatchQueue.main.async {

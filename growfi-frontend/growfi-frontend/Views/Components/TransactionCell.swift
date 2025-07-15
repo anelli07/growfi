@@ -4,7 +4,7 @@ struct TransactionCell: View {
     let transaction: Transaction
 
     var body: some View {
-        let type = CategoryType.from(name: transaction.category)
+        let type = CategoryType.from(name: transaction.category ?? "")
         HStack(spacing: 12) {
             ZStack {
                 Circle()
@@ -16,9 +16,9 @@ struct TransactionCell: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(transaction.category)
+                Text(transaction.category ?? "")
                     .font(.subheadline)
-                Text(transaction.wallet)
+                Text(transaction.wallet ?? "")
                     .font(.caption2)
                     .foregroundColor(.gray)
             }
@@ -38,7 +38,7 @@ struct TransactionCell_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 0) {
             TransactionCell(transaction: Transaction(
-                id: UUID(),
+                id: 1,
                 date: Date(),
                 category: "Продукты",
                 amount: -2000,
@@ -47,7 +47,7 @@ struct TransactionCell_Previews: PreviewProvider {
                 wallet: "Карта"
             ))
             TransactionCell(transaction: Transaction(
-                id: UUID(),
+                id: 2,
                 date: Date(),
                 category: "Зарплата",
                 amount: 40000,

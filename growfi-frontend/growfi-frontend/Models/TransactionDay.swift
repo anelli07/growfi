@@ -1,7 +1,7 @@
 import Foundation
 
 struct TransactionDay: Identifiable {
-    let id = UUID()
+    let id: Int
     let date: Date
     let transactions: [Transaction]
     var total: Double {

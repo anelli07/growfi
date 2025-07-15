@@ -9,6 +9,8 @@ from .transaction import (
     Expense,
     ExpenseCreate,
     ExpenseUpdate,
+    TransactionCreate,
+    TransactionRead,
 )
 from .dashboard import DashboardData, CategoryExpense
 from .page import Page
@@ -40,4 +42,6 @@ __all__ = [
     "Wallet",
     "WalletCreate",
     "WalletUpdate",
+    "TransactionCreate",
+    "TransactionRead",
 ]

@@ -23,6 +23,7 @@ class User(UserBase, table=True):
     refresh_token: Optional[str] = Field(default=None, index=True)
     email_verification_code: Optional[str] = Field(default=None, index=True)
     email_verification_code_sent_at: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
     categories: List["Category"] = Relationship(back_populates="user")

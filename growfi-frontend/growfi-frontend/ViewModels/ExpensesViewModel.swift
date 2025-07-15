@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 class ExpensesViewModel: ObservableObject {
-    @Published var expenses: [Transaction] = []
+    @Published var expenses: [Expense] = []
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
 
@@ -11,6 +11,7 @@ class ExpensesViewModel: ObservableObject {
     }
 
     init() {
+        print("[ExpensesViewModel] init", self)
         fetchExpenses()
     }
 
@@ -22,7 +23,8 @@ class ExpensesViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let expenses):
-                    self?.expenses = expenses
+                    print("[fetchExpenses] expenses после assign:", expenses.map { "\($0.id): \($0.amount)" })
+                    self?.expenses = expenses.sorted { $0.id < $1.id }
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -30,16 +32,17 @@ class ExpensesViewModel: ObservableObject {
         }
     }
 
-    func createExpense(name: String, icon: String, color: String, description: String?) {
+    func createExpense(name: String, icon: String, color: String, categoryId: Int?, walletId: Int?) {
         guard let token = token else { return }
         isLoading = true
-        ApiService.shared.createExpense(name: name, icon: icon, color: color, description: description, token: token) { [weak self] result in
+        ApiService.shared.createExpense(name: name, icon: icon, color: color, categoryId: categoryId, walletId: walletId, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
                 case .success(let expense):
                     self?.expenses.append(expense)
                 case .failure(let err):
+                    print("createExpense error:", err.localizedDescription)
                     self?.error = err.localizedDescription
                 }
             }
@@ -53,9 +56,9 @@ class ExpensesViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success(let expense):
-                    if let idx = self?.expenses.firstIndex(where: { $0.id == expense.id }) {
-                        self?.expenses[idx] = expense
+                case .success(let tx):
+                    if let idx = self?.expenses.firstIndex(where: { $0.id == id }) {
+                        self?.expenses[idx] = tx
                     }
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -64,7 +67,7 @@ class ExpensesViewModel: ObservableObject {
         }
     }
 
-    func deleteExpense(id: UUID) {
+    func deleteExpense(id: Int) {
         guard let token = token else { return }
         isLoading = true
         ApiService.shared.deleteExpense(expenseId: id, token: token) { [weak self] result in

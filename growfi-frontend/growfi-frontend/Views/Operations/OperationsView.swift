@@ -1,16 +1,18 @@
 import SwiftUI
 
 enum TransferType {
-    case incomeToWallet(Transaction, Wallet)
+    case incomeToWallet(Income, Wallet)
     case walletToGoal(Wallet, Goal)
-    case walletToExpense(Wallet, Transaction)
+    case walletToExpense(Wallet, Expense)
 }
 
 struct OperationsView: View {
     @EnvironmentObject var viewModel: GoalsViewModel
     @EnvironmentObject var walletsVM: WalletsViewModel
     @EnvironmentObject var expensesVM: ExpensesViewModel
-    @State private var dragIncomeId: UUID? = nil
+    @EnvironmentObject var incomesVM: IncomesViewModel
+    @EnvironmentObject var categoriesVM: CategoriesViewModel
+    @State private var dragIncomeId: Int? = nil
     @State private var dragWalletId: Int? = nil
     @State private var dragAmount: Double = 0
     @State private var showTransferSheet = false
@@ -27,9 +29,9 @@ struct OperationsView: View {
     enum CreateType { case income, wallet, goal, expense }
     enum EditableItem: Identifiable {
         case wallet(Wallet)
-        case income(Transaction)
+        case income(Income)
         case goal(Goal)
-        case expense(Transaction)
+        case expense(Expense)
         var id: String {
             switch self {
             case .wallet(let w): return "wallet_\(w.id)"
@@ -42,7 +44,7 @@ struct OperationsView: View {
 
     var incomeTotal: Double { viewModel.incomes.map { $0.amount }.reduce(0, +) }
     var walletTotal: Double { walletsVM.wallets.map { $0.balance }.reduce(0, +) }
-    var expenseTotal: Double { expensesVM.expenses.map { abs($0.amount) }.reduce(0, +) }
+    var expenseTotal: Double { Double(expensesVM.expenses.count) } // или 0, если не нужно
 
     let defaultExpenses: [(name: String, icon: String, color: Color)] = [
         ("Развлечения", CategoryType.from(name: "Развлечения").icon, CategoryType.from(name: "Развлечения").color),
@@ -64,7 +66,8 @@ struct OperationsView: View {
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
 
     var body: some View {
-        ScrollView {
+        print("[OperationsView.body] expensesVM.expenses:", expensesVM.expenses.map { "\($0.id): \($0.amount)" })
+        return ScrollView {
             VStack(spacing: 12) {
                 incomesSection
                 walletsSection
@@ -74,6 +77,9 @@ struct OperationsView: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
         }
+        .onAppear {
+            print("[OperationsView] expensesVM.expenses:", expensesVM.expenses)
+        }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Ошибка"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
@@ -82,19 +88,37 @@ struct OperationsView: View {
                 TransferSheet(type: type, amount: $transferAmount, date: $transferDate, comment: $transferComment) { amount, date, comment in
                     switch type {
                     case .incomeToWallet(let income, let wallet):
-                        viewModel.transferIncomeToWallet(incomeId: income.id, walletId: wallet.id, amount: amount, wallets: &walletsVM.wallets)
+                        print("[DEBUG] amount перед отправкой:", amount)
+                        guard amount > 0 else {
+                            alertMessage = "Введите сумму больше 0"
+                            showAlert = true
+                            return
+                        }
+                        incomesVM.assignIncomeToWallet(
+                            incomeId: income.id,
+                            walletId: wallet.id,
+                            amount: amount,
+                            date: date.toBackendString(),
+                            comment: comment,
+                            categoryId: income.category_id
+                        )
                     case .walletToGoal(let wallet, let goal):
-                        let ok = viewModel.transferWalletToGoal(walletId: wallet.id, goalId: goal.id, amount: amount, wallets: &walletsVM.wallets)
-                        if !ok {
-                            alertMessage = "Недостаточно денег в кошельке"
-                            showAlert = true
-                        }
+                        walletsVM.assignWalletToGoal(
+                            walletId: wallet.id,
+                            goalId: goal.id,
+                            amount: amount,
+                            date: date.toBackendString(),
+                            comment: comment
+                        )
                     case .walletToExpense(let wallet, let expense):
-                        let ok = viewModel.transferWalletToExpense(walletId: wallet.id, expenseId: expense.id, amount: amount, wallets: &walletsVM.wallets, expenses: &expensesVM.expenses)
-                        if !ok {
-                            alertMessage = "Недостаточно денег в кошельке"
-                            showAlert = true
-                        }
+                        print("[DEBUG] assignWalletToExpense: walletId=\(wallet.id), expenseId=\(expense.id), amount=\(amount)")
+                        walletsVM.assignWalletToExpense(
+                            walletId: wallet.id,
+                            expenseId: expense.id,
+                            amount: amount,
+                            date: date.toBackendString(),
+                            comment: comment,
+                        )
                     }
                     showTransferSheet = false
                 }
@@ -105,13 +129,18 @@ struct OperationsView: View {
                 CreateItemSheet(type: type) { name, sum, icon, color, currency in
                     switch type {
                     case .income:
-                        viewModel.addIncome(name: name, amount: sum)
+                        let catId: Int? = categoriesVM.incomeCategories.first?.id
+                        print("[CreateIncome] categoryId:", catId as Any)
+                        incomesVM.createIncome(name: name, icon: icon ?? "dollarsign.circle.fill", color: color ?? "#00FF00", categoryId: catId)
                     case .wallet:
-                        viewModel.addWallet(name: name, amount: sum, wallets: &walletsVM.wallets)
+                        walletsVM.createWallet(name: name, balance: sum, currency: currency, icon: icon ?? "creditcard.fill", color: color ?? "#0000FF")
                     case .goal:
-                        viewModel.addGoal(name: name, amount: sum)
+                        viewModel.createGoal(name: name, targetAmount: sum, currency: currency, icon: icon ?? "leaf.circle.fill", color: color ?? "#00FF00")
                     case .expense:
-                        viewModel.addExpense(name: name, amount: sum, expenses: &expensesVM.expenses)
+                        let catId: Int? = categoriesVM.expenseCategories.first?.id
+                        let walletId: Int? = walletsVM.wallets.first?.id
+                        print("[CreateExpense] categoryId:", catId as Any, "walletId:", walletId as Any)
+                        expensesVM.createExpense(name: name, icon: icon ?? "cart.fill", color: color ?? "#FF0000", categoryId: catId, walletId: walletId)
                     }
                     showCreateSheet = false
                 }
@@ -130,20 +159,13 @@ struct OperationsView: View {
             SectionToggleHeader(title: "Доходы", total: "\(Int(incomeTotal)) ₸", isExpanded: .constant(true))
             CategoryGrid {
                 Group {
-                    ForEach(viewModel.incomes) { income in
-                        OperationCategoryCircle(icon: "dollarsign.circle.fill", color: .green, title: income.category, amount: "\(Int(income.amount)) ₸")
+                    ForEach(incomesVM.incomes) { income in
+                        OperationCategoryCircle(icon: income.icon, color: .green, title: income.name, amount: "\(Int(income.amount ?? 0)) ₸")
                             .onTapGesture { editItem = .income(income) }
                             .onDrag {
                                 dragIncomeId = income.id
-                                dragAmount = income.amount
-                                return NSItemProvider(object: income.id.uuidString as NSString)
-                            } preview: {
-                                ZStack {
-                                    Circle().fill(Color.green).frame(width: 48, height: 48)
-                                    Image(systemName: "dollarsign.circle.fill")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 20, weight: .medium))
-                                }
+                                dragAmount = 0
+                                return NSItemProvider(object: String(income.id) as NSString)
                             }
                     }
                     Button(action: {
@@ -157,41 +179,95 @@ struct OperationsView: View {
         }
     }
 
+    private var walletGrid: some View {
+        ForEach(walletsVM.wallets) { wallet in
+            OperationCategoryCircle(icon: wallet.iconName ?? "creditcard.fill", color: .blue, title: wallet.name, amount: "\(Int(wallet.balance)) ₸")
+                .onTapGesture { editItem = .wallet(wallet) }
+                .onDrop(of: ["public.text"], isTargeted: nil) { providers in
+                    providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
+                        if let data = data as? Data,
+                           let idString = String(data: data, encoding: .utf8),
+                           let incomeId = Int(idString),
+                           let income = incomesVM.incomes.first(where: { $0.id == incomeId }) {
+                            DispatchQueue.main.async {
+                                transferType = .incomeToWallet(income, wallet)
+                                transferAmount = 0
+                                transferDate = Date()
+                                transferComment = ""
+                                showTransferSheet = true
+                            }
+                        }
+                    }
+                    return true
+                }
+                .onDrag {
+                    dragWalletId = wallet.id
+                    dragAmount = 0
+                    return NSItemProvider(object: String(wallet.id) as NSString)
+                }
+        }
+    }
+
+    private var expenseGrid: some View {
+        ForEach(expensesVM.expenses, id: \.id) { expense in
+            OperationCategoryCircle(icon: expense.icon, color: .red, title: expense.name, amount: "\(Int(expense.amount)) ₸")
+                .onAppear { print("ForEach: \(expense.id): \(expense.amount)") }
+                .onTapGesture { editItem = .expense(expense) }
+                .onDrop(of: ["public.text"], isTargeted: nil) { providers in
+                    providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
+                        if let data = data as? Data,
+                           let idString = String(data: data, encoding: .utf8),
+                           let walletId = Int(idString),
+                           let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
+                            DispatchQueue.main.async {
+                                transferType = .walletToExpense(wallet, expense)
+                                transferAmount = 0
+                                transferDate = Date()
+                                transferComment = ""
+                                showTransferSheet = true
+                            }
+                        }
+                    }
+                    return true
+                }
+        }
+    }
+
+    private var goalGrid: some View {
+        ForEach(viewModel.goals) { goal in
+            OperationCategoryCircle(
+                icon: "leaf.circle.fill",
+                color: .green,
+                title: goal.name,
+                amount: "\(Int(goal.current_amount))/\(Int(goal.target_amount)) ₸"
+            )
+            .onTapGesture { editItem = .goal(goal) }
+            .onDrop(of: ["public.text"], isTargeted: nil) { providers in
+                providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
+                    if let data = data as? Data,
+                       let idString = String(data: data, encoding: .utf8),
+                       let walletId = Int(idString),
+                       let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
+                        DispatchQueue.main.async {
+                            transferType = .walletToGoal(wallet, goal)
+                            transferAmount = 0
+                            transferDate = Date()
+                            transferComment = ""
+                            showTransferSheet = true
+                        }
+                    }
+                }
+                return true
+            }
+        }
+    }
+
     private var walletsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             SectionHeader(title: "Кошельки", total: "\(Int(walletTotal)) ₸")
             CategoryGrid {
                 Group {
-                    ForEach(walletsVM.wallets) { wallet in
-                        OperationCategoryCircle(icon: "creditcard.fill", color: .blue, title: wallet.name, amount: "\(Int(wallet.balance)) ₸")
-                            .onTapGesture { editItem = .wallet(wallet) }
-                            .onDrop(of: ["public.text"], isTargeted: nil) { providers in
-                                providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
-                                    if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let incomeUUID = UUID(uuidString: idString), let income = viewModel.incomes.first(where: { $0.id == incomeUUID }) {
-                                        DispatchQueue.main.async {
-                                            transferType = .incomeToWallet(income, wallet)
-                                            transferAmount = 0
-                                            transferDate = Date()
-                                            transferComment = ""
-                                            showTransferSheet = true
-                                        }
-                                    }
-                                }
-                                return true
-                            }
-                            .onDrag {
-                                dragWalletId = wallet.id
-                                dragAmount = 0
-                                return NSItemProvider(object: String(wallet.id) as NSString)
-                            } preview: {
-                                ZStack {
-                                    Circle().fill(Color.blue).frame(width: 48, height: 48)
-                                    Image(systemName: "creditcard.fill")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 20, weight: .medium))
-                                }
-                            }
-                    }
+                    walletGrid
                     Button(action: {
                         createType = .wallet
                         showCreateSheet = true
@@ -208,29 +284,7 @@ struct OperationsView: View {
             SectionHeader(title: "Цели", total: "")
             CategoryGrid {
                 Group {
-                    ForEach(viewModel.goals) { goal in
-                        OperationCategoryCircle(
-                            icon: "leaf.circle.fill",
-                            color: .green,
-                            title: goal.name,
-                            amount: "\(Int(goal.current_amount))/\(Int(goal.target_amount)) ₸"
-                        )
-                        .onTapGesture { editItem = .goal(goal) }
-                        .onDrop(of: ["public.text"], isTargeted: nil) { providers in
-                            providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
-                                if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let walletId = Int(idString), let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
-                                    DispatchQueue.main.async {
-                                        transferType = .walletToGoal(wallet, goal)
-                                        transferAmount = 0
-                                        transferDate = Date()
-                                        transferComment = ""
-                                        showTransferSheet = true
-                                    }
-                                }
-                            }
-                            return true
-                        }
-                    }
+                    goalGrid
                     Button(action: {
                         createType = .goal
                         showCreateSheet = true
@@ -247,67 +301,61 @@ struct OperationsView: View {
             SectionHeader(title: "Расходы", total: "\(Int(expenseTotal)) ₸")
             CategoryGrid {
                 Group {
-                    ForEach(defaultExpenses, id: \.name) { def in
-                        let expense = expensesVM.expenses.first(where: { $0.category == def.name })
-                        let amount = expense.map { abs($0.amount) } ?? 0
-                        OperationCategoryCircle(
-                            icon: def.icon,
-                            color: def.color,
-                            title: def.name,
-                            amount: "\(Int(amount)) ₸"
-                        )
-                        .onTapGesture {
-                            if let exp = expense {
-                                editItem = .expense(exp)
-                            } else {
-                                let newExp = viewModel.addExpenseAndReturn(name: def.name, expenses: &expensesVM.expenses)
-                                editItem = .expense(newExp)
-                            }
-                        }
-                        .onDrop(of: ["public.text"], isTargeted: nil) { providers in
-                            providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
-                                if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let walletId = Int(idString), let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
-                                    DispatchQueue.main.async {
-                                        let exp = expense ?? viewModel.addExpenseAndReturn(name: def.name, expenses: &expensesVM.expenses)
-                                        transferType = .walletToExpense(wallet, exp)
-                                        transferAmount = 0
-                                        transferDate = Date()
-                                        transferComment = ""
-                                        showTransferSheet = true
-                                    }
-                                }
-                            }
-                            return true
-                        }
-                    }
-                    ForEach(expensesVM.expenses.filter { exp in !defaultExpenses.contains(where: { $0.name == exp.category }) }) { expense in
-                        OperationCategoryCircle(
-                            icon: "cart.fill",
-                            color: .red,
-                            title: expense.category,
-                            amount: "\(Int(abs(expense.amount))) ₸"
-                        )
-                        .onTapGesture { editItem = .expense(expense) }
-                        .onDrop(of: ["public.text"], isTargeted: nil) { providers in
-                            providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
-                                if let data = data as? Data, let idString = String(data: data, encoding: .utf8), let walletId = Int(idString), let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
-                                    DispatchQueue.main.async {
-                                        transferType = .walletToExpense(wallet, expense)
-                                        transferAmount = 0
-                                        transferDate = Date()
-                                        transferComment = ""
-                                        showTransferSheet = true
-                                    }
-                                }
-                            }
-                            return true
-                        }
-                    }
+                    expenseGrid
                     Button(action: {
                         createType = .expense
                         showCreateSheet = true
                     }) {
                         PlusCategoryCircle()
+                    }
+                }
+            }
+        }
+    }
+
+    private struct ExpensesDefaultListView: View {
+        let filteredExpenses: [Expense]
+        let defaultExpensesList: [(name: String, icon: String, color: Color)]
+        @Binding var editItem: OperationsView.EditableItem?
+        let allExpenses: [Expense]
+        var body: some View {
+            ForEach(defaultExpensesList, id: \.name) { def in
+                let expense = filteredExpenses.first(where: { $0.name == def.name })
+                let amount = 0
+                OperationCategoryCircle(
+                    icon: def.icon,
+                    color: def.color,
+                    title: def.name,
+                    amount: "\(Int(amount)) ₸"
+                )
+                .onTapGesture {
+                    if let exp = expense, let e = allExpenses.first(where: { $0.id == exp.id }) {
+                        editItem = .expense(e)
+                    }
+                }
+            }
+        }
+    }
+
+    private struct ExpensesCustomListView: View {
+        let filteredExpenses: [Expense]
+        let defaultExpensesList: [(name: String, icon: String, color: Color)]
+        @Binding var editItem: OperationsView.EditableItem?
+        let allExpenses: [Expense]
+        var body: some View {
+            let customExpenses = filteredExpenses.filter { exp in !defaultExpensesList.contains(where: { $0.name == exp.name }) }
+            ForEach(customExpenses) { expense in
+                let title = expense.name
+                let amount = 0
+                OperationCategoryCircle(
+                    icon: "cart.fill",
+                    color: .red,
+                    title: title,
+                    amount: "\(amount) ₸"
+                )
+                .onTapGesture {
+                    if let e = allExpenses.first(where: { $0.id == expense.id }) {
+                        editItem = .expense(e)
                     }
                 }
             }

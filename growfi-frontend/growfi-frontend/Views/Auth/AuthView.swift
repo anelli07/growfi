@@ -5,8 +5,7 @@ struct AuthView: View {
     var onLogin: (() -> Void)? = nil
 
     init(onLogin: (() -> Void)? = nil, goalsViewModel: GoalsViewModel) {
-        _vm = StateObject(wrappedValue: AuthViewModel())
-        vm.goalsViewModel = goalsViewModel
+        _vm = StateObject(wrappedValue: AuthViewModel(goalsViewModel: goalsViewModel))
         self.onLogin = onLogin
     }
     var body: some View {

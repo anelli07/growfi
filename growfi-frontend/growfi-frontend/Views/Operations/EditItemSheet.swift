@@ -7,6 +7,7 @@ struct EditItemSheet: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var walletsVM: WalletsViewModel
     @EnvironmentObject var expensesVM: ExpensesViewModel
+    @EnvironmentObject var incomesVM: IncomesViewModel
     @State private var name: String = ""
     @State private var sum: String = ""
     @State private var showDeleteAlert = false
@@ -56,13 +57,24 @@ struct EditItemSheet: View {
                     TextField("", text: $name)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Сумма")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.gray)
-                    TextField("0", text: $sum)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                if case .wallet = item {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Сумма")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.gray)
+                        TextField("0", text: $sum)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                } else if case .goal = item {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Сумма")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.gray)
+                        TextField("0", text: $sum)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
                 }
                 HStack {
                     Text("Валюта")
@@ -128,27 +140,39 @@ struct EditItemSheet: View {
     }
     private func fillFields() {
         switch item {
-        case .wallet(let w): name = w.name; sum = String(Int(w.balance))
-        case .income(let i): name = i.category; sum = String(Int(i.amount))
-        case .goal(let g): name = g.name; sum = String(Int(g.current_amount))
-        case .expense(let e): name = e.category; sum = String(Int(abs(e.amount)))
+        case .wallet(let w):
+            name = w.name
+            sum = String(Int(w.balance))
+        case .income(let i):
+            name = i.name
+            sum = ""
+        case .goal(let g):
+            name = g.name
+            sum = String(Int(g.current_amount))
+        case .expense(let e):
+            name = e.name
+            sum = ""
         }
     }
     private func saveChanges() {
         let amount = Double(sum) ?? 0
         switch item {
         case .wallet(let w): viewModel.updateWallet(id: w.id, name: name, amount: amount, wallets: &walletsVM.wallets)
-        case .income(let i): viewModel.updateIncome(id: i.id, name: name, amount: amount)
+        case .income(let i): viewModel.updateIncome(id: i.id, name: name, amount: 0) // не трогаем сумму
         case .goal(let g): viewModel.updateGoal(id: g.id, name: name, amount: amount)
-        case .expense(let e): viewModel.updateExpense(id: e.id, name: name, amount: amount, expenses: &expensesVM.expenses)
+        case .expense(let e): viewModel.updateExpense(id: e.id, name: name, amount: 0) // не трогаем сумму
         }
     }
     private func deleteItem() {
         switch item {
-        case .wallet(let w): viewModel.deleteWallet(id: w.id, wallets: &walletsVM.wallets)
-        case .income(let i): viewModel.deleteIncome(id: i.id)
-        case .goal(let g): viewModel.deleteGoal(id: g.id)
-        case .expense(let e): viewModel.deleteExpense(id: e.id, expenses: &expensesVM.expenses)
+        case .wallet(let w):
+            walletsVM.deleteWallet(id: w.id)
+        case .income(let i):
+            incomesVM.deleteIncome(id: i.id)
+        case .goal(let g):
+            viewModel.deleteGoal(goalId: g.id)
+        case .expense(let e):
+            expensesVM.deleteExpense(id: e.id)
         }
     }
 } 
