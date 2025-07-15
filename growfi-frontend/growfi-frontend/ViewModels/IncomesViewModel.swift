@@ -8,6 +8,7 @@ class IncomesViewModel: ObservableObject {
 
     weak var walletsVM: WalletsViewModel? = nil // для обновления баланса кошелька
     weak var goalsVM: GoalsViewModel? = nil // для обновления целей
+    weak var historyVM: HistoryViewModel? = nil // для обновления истории
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -85,6 +86,8 @@ class IncomesViewModel: ObservableObject {
                     if let walletIdx = self?.walletsVM?.wallets.firstIndex(where: { $0.id == resp.wallet.id }) {
                         self?.walletsVM?.wallets[walletIdx] = resp.wallet
                     }
+                    // Обновляем историю
+                    self?.historyVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }

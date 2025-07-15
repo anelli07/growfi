@@ -2,7 +2,7 @@ import SwiftUI
 import Foundation
 
 enum TransactionType: String, Codable {
-    case income, expense
+    case income, expense, goal, wallet_transfer, goal_transfer
 }
 
 struct Transaction: Identifiable, Codable {

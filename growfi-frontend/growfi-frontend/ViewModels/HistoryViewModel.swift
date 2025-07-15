@@ -11,22 +11,28 @@ class HistoryViewModel: ObservableObject {
 
     private var allTransactions: [Transaction] = []
 
-    init() {
-        fetchTransactionsFromApi()
+    var token: String? {
+        UserDefaults.standard.string(forKey: "access_token")
     }
 
-    func fetchTransactionsFromApi() {
+    func fetchTransactions() {
+        guard let token = token, !token.isEmpty else {
+            print("[HistoryViewModel] Нет access_token, не делаю fetchTransactions")
+            return
+        }
         isLoading = true
         error = nil
-        let token = UserDefaults.standard.string(forKey: "access_token") ?? ""
+        print("[HistoryViewModel] fetchTransactions token=\(token.prefix(40))... (len=\(token.count))")
         ApiService.shared.fetchTransactions(token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
                 case .success(let txs):
+                    print("[DEBUG][HistoryViewModel] Получено транзакций с бэка:", txs)
                     self?.allTransactions = txs
                     self?.applyFilters()
                 case .failure(let err):
+                    print("[DEBUG][HistoryViewModel] Ошибка декодирования или запроса:", err.localizedDescription)
                     self?.error = err.localizedDescription
                 }
             }

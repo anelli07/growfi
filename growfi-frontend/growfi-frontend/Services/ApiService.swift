@@ -69,6 +69,7 @@ class ApiService {
 
     // MARK: - Получение транзакций
     func fetchTransactions(token: String, completion: @escaping (Result<[Transaction], Error>) -> Void) {
+        print("[DEBUG][fetchTransactions] token=\(token.prefix(40))... (len=\(token.count))")
         guard let url = URL(string: "\(baseURL)/transactions") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -92,9 +93,11 @@ class ApiService {
             do {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
+                print("[DEBUG][fetchTransactions] raw data:", String(data: data, encoding: .utf8) ?? "<nil>")
                 let transactions = try decoder.decode([Transaction].self, from: data)
                 completion(.success(transactions))
             } catch {
+                print("[DEBUG][fetchTransactions] decode error:", error, String(data: data, encoding: .utf8) ?? "<nil>")
                 completion(.failure(error))
             }
         }.resume()

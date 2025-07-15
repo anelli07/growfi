@@ -8,6 +8,7 @@ struct AppEntry: View {
     @StateObject private var expensesVM = ExpensesViewModel()
     @StateObject private var incomesVM = IncomesViewModel()
     @StateObject private var categoriesVM = CategoriesViewModel()
+    @StateObject private var historyVM = HistoryViewModel()
 
     init() {
         // incomesVM.walletsVM = walletsVM // This line is moved to onAppear
@@ -22,10 +23,13 @@ struct AppEntry: View {
                     .environmentObject(expensesVM)
                     .environmentObject(incomesVM)
                     .environmentObject(categoriesVM)
+                    .environmentObject(historyVM)
                     .onAppear {
                         incomesVM.walletsVM = walletsVM
                         walletsVM.expensesVM = expensesVM
                         walletsVM.goalsVM = goalsViewModel
+                        incomesVM.historyVM = historyVM
+                        walletsVM.historyVM = historyVM
                         let token = UserDefaults.standard.string(forKey: "access_token") ?? "nil"
                         print("[AppEntry] access_token при старте:", token)
                         goalsViewModel.fetchUser()
@@ -34,6 +38,7 @@ struct AppEntry: View {
                         walletsVM.fetchWallets()
                         expensesVM.fetchExpenses()
                         incomesVM.fetchIncomes()
+                        historyVM.fetchTransactions()
                     }
             } else if !triedRefresh, let refresh = UserDefaults.standard.string(forKey: "refresh_token") {
                 ProgressView().onAppear {
@@ -54,7 +59,10 @@ struct AppEntry: View {
                     }
                 }
             } else {
-                AuthView(onLogin: { isLoggedIn = true }, goalsViewModel: goalsViewModel)
+                AuthView(onLogin: {
+                    isLoggedIn = true
+                    historyVM.fetchTransactions()
+                }, goalsViewModel: goalsViewModel)
             }
         }
         .onAppear {

@@ -4,29 +4,53 @@ struct TransactionCell: View {
     let transaction: Transaction
 
     var body: some View {
-        let type = CategoryType.from(name: transaction.category ?? "")
+        let type = transaction.type
+        let catType = CategoryType.from(name: transaction.category ?? "")
+        let icon: String = {
+            switch type {
+            case .income, .expense:
+                return catType.icon
+            case .goal:
+                return "leaf.circle.fill"
+            case .wallet_transfer:
+                return "arrow.left.arrow.right.circle.fill"
+            case .goal_transfer:
+                return "target"
+            }
+        }()
+        let color: Color = {
+            switch type {
+            case .income:
+                return .green
+            case .expense:
+                return .red
+            case .goal:
+                return .green
+            case .wallet_transfer:
+                return .blue
+            case .goal_transfer:
+                return .purple
+            }
+        }()
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(type.color.opacity(0.15))
+                    .fill(color.opacity(0.15))
                     .frame(width: 36, height: 36)
-                Image(systemName: type.icon)
-                    .foregroundColor(type.color)
+                Image(systemName: icon)
+                    .foregroundColor(color)
                     .font(.system(size: 18, weight: .medium))
             }
-
             VStack(alignment: .leading, spacing: 2) {
-                Text(transaction.category ?? "")
+                Text(transaction.category ?? (type == .goal ? "Цель" : ""))
                     .font(.subheadline)
                 Text(transaction.wallet ?? "")
                     .font(.caption2)
                     .foregroundColor(.gray)
             }
-
             Spacer()
-
-            Text("\(transaction.type == .income ? "+" : "-")\(Int(abs(transaction.amount)))")
-                .foregroundColor(transaction.type == .income ? .green : .red)
+            Text("\(type == .income ? "+" : type == .goal ? "→" : "-")\(Int(abs(transaction.amount)))")
+                .foregroundColor(type == .income ? .green : type == .goal ? .green : .red)
                 .font(.headline)
         }
         .padding(.vertical, 8)

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HistoryView: View {
-    @EnvironmentObject var viewModel: GoalsViewModel
+    @EnvironmentObject var historyVM: HistoryViewModel
     @State private var searchText: String = ""
     @State private var selectedPeriod: PeriodType = .month
     @State private var showPeriodPicker = false
@@ -10,7 +10,7 @@ struct HistoryView: View {
     var filteredTransactions: [Transaction] {
         let calendar = Calendar.current
         let now = Date()
-        let periodFiltered = viewModel.transactions.filter { tx in
+        let periodFiltered = historyVM.transactions.filter { tx in
             switch selectedPeriod {
             case .month:
                 return calendar.isDate(tx.date, equalTo: now, toGranularity: .month)

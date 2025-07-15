@@ -8,6 +8,7 @@ class WalletsViewModel: ObservableObject {
 
     weak var goalsVM: GoalsViewModel?
     weak var expensesVM: ExpensesViewModel?
+    weak var historyVM: HistoryViewModel? = nil
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -83,6 +84,8 @@ class WalletsViewModel: ObservableObject {
                     if let goalIdx = self?.goalsVM?.goals.firstIndex(where: { $0.id == resp.goal.id }) {
                         self?.goalsVM?.goals[goalIdx] = resp.goal
                     }
+                    // Обновляем историю
+                    self?.historyVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -106,6 +109,8 @@ class WalletsViewModel: ObservableObject {
                     if let expenseIdx = self?.expensesVM?.expenses.firstIndex(where: { $0.id == resp.expense.id }) {
                         self?.expensesVM?.expenses[expenseIdx] = resp.expense
                     }
+                    // Обновляем историю
+                    self?.historyVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }

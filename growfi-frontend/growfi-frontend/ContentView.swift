@@ -5,12 +5,14 @@ struct ContentView: View {
     @EnvironmentObject var walletsVM: WalletsViewModel
     @EnvironmentObject var expensesVM: ExpensesViewModel
     @EnvironmentObject var incomesVM: IncomesViewModel
+    @EnvironmentObject var historyVM: HistoryViewModel
 
     @State private var selectedTab = 2 // Главный экран — 'Цели'
 
     var body: some View {
         TabView(selection: $selectedTab) {
             HistoryView()
+                .environmentObject(historyVM)
                 .tabItem {
                     Image(systemName: "list.bullet.rectangle")
                     Text("История")

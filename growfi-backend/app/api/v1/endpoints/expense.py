@@ -1,5 +1,6 @@
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.routing import APIRouter
 from sqlmodel import Session
 from datetime import date
 import math
@@ -100,6 +101,16 @@ def delete_expense(
 
 @router.get("/transactions", response_model=list[TransactionRead])
 def get_transactions(
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    return transaction.get_multi_by_user(db, user_id=current_user.id)
+
+from fastapi import APIRouter as _APIRouter
+main_router = _APIRouter()
+
+@main_router.get("/api/v1/transactions", response_model=list[TransactionRead])
+def get_transactions_alias(
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ):
