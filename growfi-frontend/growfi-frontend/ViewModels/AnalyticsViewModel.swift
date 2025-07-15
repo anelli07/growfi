@@ -34,12 +34,84 @@ class AnalyticsViewModel: ObservableObject {
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
         let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: today)!
         allTransactions = [
-            Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: today, category: "Продукты", amount: -2000, type: .expense, note: "Магазин", wallet: "Карта"),
-            Transaction(id: Int(Date().timeIntervalSince1970 * 1001), date: today, category: "Зарплата", amount: 40000, type: .income, note: nil, wallet: "Карта"),
-            Transaction(id: Int(Date().timeIntervalSince1970 * 1002), date: today, category: "Кофе", amount: -800, type: .expense, note: "", wallet: "Карта"),
-            Transaction(id: Int(Date().timeIntervalSince1970 * 1003), date: yesterday, category: "Транспорт", amount: -500, type: .expense, note: "Метро", wallet: "Карта"),
-            Transaction(id: Int(Date().timeIntervalSince1970 * 1004), date: yesterday, category: "Подарок", amount: -1000, type: .expense, note: "Друзья", wallet: "Наличные"),
-            Transaction(id: Int(Date().timeIntervalSince1970 * 1005), date: twoDaysAgo, category: "Еда", amount: -1200, type: .expense, note: nil, wallet: "Карта")
+            Transaction(
+                id: Int(Date().timeIntervalSince1970 * 1000),
+                date: today,
+                type: .expense,
+                amount: -2000,
+                note: "Магазин",
+                title: "Продукты",
+                icon: "cart.fill",
+                color: "#FF0000",
+                wallet_name: "Карта",
+                wallet_icon: "creditcard",
+                wallet_color: "#4F8A8B"
+            ),
+            Transaction(
+                id: Int(Date().timeIntervalSince1970 * 1001),
+                date: today,
+                type: .income,
+                amount: 40000,
+                note: nil,
+                title: "Зарплата",
+                icon: "dollarsign.circle.fill",
+                color: "#00FF00",
+                wallet_name: "Карта",
+                wallet_icon: "creditcard",
+                wallet_color: "#4F8A8B"
+            ),
+            Transaction(
+                id: Int(Date().timeIntervalSince1970 * 1002),
+                date: today,
+                type: .expense,
+                amount: -800,
+                note: "",
+                title: "Кофе",
+                icon: "cup.and.saucer.fill",
+                color: "#A0522D",
+                wallet_name: "Карта",
+                wallet_icon: "creditcard",
+                wallet_color: "#4F8A8B"
+            ),
+            Transaction(
+                id: Int(Date().timeIntervalSince1970 * 1003),
+                date: yesterday,
+                type: .expense,
+                amount: -500,
+                note: "Метро",
+                title: "Транспорт",
+                icon: "tram.fill",
+                color: "#007AFF",
+                wallet_name: "Карта",
+                wallet_icon: "creditcard",
+                wallet_color: "#4F8A8B"
+            ),
+            Transaction(
+                id: Int(Date().timeIntervalSince1970 * 1004),
+                date: yesterday,
+                type: .expense,
+                amount: -1000,
+                note: "Друзья",
+                title: "Подарок",
+                icon: "gift.fill",
+                color: "#FF69B4",
+                wallet_name: "Наличные",
+                wallet_icon: "banknote",
+                wallet_color: "#FFD700"
+            ),
+            Transaction(
+                id: Int(Date().timeIntervalSince1970 * 1005),
+                date: twoDaysAgo,
+                type: .expense,
+                amount: -1200,
+                note: nil,
+                title: "Еда",
+                icon: "fork.knife",
+                color: "#FFA500",
+                wallet_name: "Карта",
+                wallet_icon: "creditcard",
+                wallet_color: "#4F8A8B"
+            )
         ]
     }
 
@@ -68,7 +140,7 @@ class AnalyticsViewModel: ObservableObject {
         }.sorted { $0.0 < $1.0 }
         groupedByDay = sortedDay
         // Группировка по категориям
-        let groupedCat = Dictionary(grouping: filtered) { $0.category }
+        let groupedCat = Dictionary(grouping: filtered) { $0.title }
         groupedByCategory = groupedCat.map { (cat, txs) in
             let total = txs.map { abs($0.amount) }.reduce(0, +)
             let type = CategoryType.from(name: cat ?? "")
@@ -105,7 +177,7 @@ class AnalyticsViewModel: ObservableObject {
 
     var filteredCategories: [CategoryStat] {
         groupedByCategory.filter { cat in
-            let txs = transactions.filter { $0.category == cat.category }
+            let txs = transactions.filter { $0.title == cat.category }
             return selectedType == .income ? txs.contains(where: { $0.type == .income }) : txs.contains(where: { $0.type == .expense })
         }
     }

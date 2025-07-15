@@ -8,9 +8,14 @@ enum TransactionType: String, Codable {
 struct Transaction: Identifiable, Codable {
     let id: Int
     let date: Date
-    var category: String?
-    var amount: Double
     let type: TransactionType
+    var amount: Double
     let note: String?
-    let wallet: String?
+    // Новые поля для истории
+    var title: String
+    let icon: String
+    let color: String
+    let wallet_name: String
+    let wallet_icon: String?
+    let wallet_color: String?
 } 

@@ -33,8 +33,32 @@ struct TransactionDaySection_Previews: PreviewProvider {
     static var previews: some View {
         let date = Date()
         let txs = [
-            Transaction(id: 1, date: date, category: "Продукты", amount: -2000, type: .expense, note: "Магазин", wallet: "Карта"),
-            Transaction(id: 2, date: date, category: "Зарплата", amount: 40000, type: .income, note: nil, wallet: "Карта")
+            Transaction(
+                id: 1,
+                date: date,
+                type: .expense,
+                amount: -2000,
+                note: "Магазин",
+                title: "Продукты",
+                icon: "🛒",
+                color: "#FF0000",
+                wallet_name: "Карта",
+                wallet_icon: "💳",
+                wallet_color: "#0000FF"
+            ),
+            Transaction(
+                id: 2,
+                date: date,
+                type: .income,
+                amount: 40000,
+                note: nil,
+                title: "Зарплата",
+                icon: "💸",
+                color: "#00FF00",
+                wallet_name: "Карта",
+                wallet_icon: "💳",
+                wallet_color: "#0000FF"
+            )
         ]
         let day = TransactionDay(id: 1, date: date, transactions: txs)
         return TransactionDaySection(day: day)

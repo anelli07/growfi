@@ -77,7 +77,10 @@ class CRUDIncome(CRUDBase[Income, IncomeCreate, IncomeUpdate]):
                 amount=amount,
                 transaction_date=income.transaction_date or date.today(),
                 type="income",
-                comment=income.description
+                comment=income.description,
+                name=income.name,
+                icon=income.icon,
+                color=income.color
             )
             logger.debug(f"Creating transaction: {transaction_obj}")
             transaction.create(db, obj_in=transaction_obj)

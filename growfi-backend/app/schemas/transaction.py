@@ -85,6 +85,9 @@ class TransactionBaseSchema(SQLModel):
     transaction_date: date
     type: str
     comment: Optional[str] = None
+    name: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
 
 class TransactionCreate(TransactionBaseSchema):
     pass

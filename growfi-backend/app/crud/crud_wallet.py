@@ -98,7 +98,10 @@ class CRUDWallet:
             amount=amount,
             transaction_date=date,
             type="expense",
-            comment=comment
+            comment=comment,
+            name=expense.name,
+            icon=expense.icon,
+            color=expense.color
         )
         transaction.create(db, obj_in=transaction_obj)
         return wallet

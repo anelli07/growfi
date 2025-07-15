@@ -4,57 +4,35 @@ struct TransactionCell: View {
     let transaction: Transaction
 
     var body: some View {
-        let type = transaction.type
-        let catType = CategoryType.from(name: transaction.category ?? "")
-        let icon: String = {
-            switch type {
-            case .income, .expense:
-                return catType.icon
-            case .goal:
-                return "leaf.circle.fill"
-            case .wallet_transfer:
-                return "arrow.left.arrow.right.circle.fill"
-            case .goal_transfer:
-                return "target"
-            }
-        }()
-        let color: Color = {
-            switch type {
-            case .income:
-                return .green
-            case .expense:
-                return .red
-            case .goal:
-                return .green
-            case .wallet_transfer:
-                return .blue
-            case .goal_transfer:
-                return .purple
-            }
-        }()
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(color.opacity(0.15))
-                    .frame(width: 36, height: 36)
-                Image(systemName: icon)
-                    .foregroundColor(color)
-                    .font(.system(size: 18, weight: .medium))
+                    .fill(Color(hex: transaction.color))
+                    .frame(width: 40, height: 40)
+                Image(systemName: transaction.icon)
+                    .foregroundColor(.white)
+                    .font(.system(size: 20, weight: .bold))
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(transaction.category ?? (type == .goal ? "Цель" : ""))
+                Text(transaction.title)
+                    .font(.headline)
+                Text(transaction.wallet_name)
                     .font(.subheadline)
-                Text(transaction.wallet ?? "")
-                    .font(.caption2)
                     .foregroundColor(.gray)
             }
             Spacer()
-            Text("\(type == .income ? "+" : type == .goal ? "→" : "-")\(Int(abs(transaction.amount)))")
-                .foregroundColor(type == .income ? .green : type == .goal ? .green : .red)
-                .font(.headline)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(transaction.amount, specifier: "%.0f") ₸")
+                    .font(.headline)
+                    .foregroundColor(transaction.type == .income ? .green : (transaction.type == .expense ? .red : .primary))
+                if let note = transaction.note, !note.isEmpty {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 4)
+        .padding(.vertical, 6)
     }
 }
 
@@ -64,23 +42,58 @@ struct TransactionCell_Previews: PreviewProvider {
             TransactionCell(transaction: Transaction(
                 id: 1,
                 date: Date(),
-                category: "Продукты",
-                amount: -2000,
                 type: .expense,
+                amount: -2000,
                 note: "Магазин",
-                wallet: "Карта"
+                title: "Продукты",
+                icon: "cart.fill",
+                color: "#FF0000",
+                wallet_name: "Карта",
+                wallet_icon: "creditcard",
+                wallet_color: "#4F8A8B"
             ))
             TransactionCell(transaction: Transaction(
                 id: 2,
                 date: Date(),
-                category: "Зарплата",
-                amount: 40000,
                 type: .income,
+                amount: 40000,
                 note: nil,
-                wallet: "Карта"
+                title: "Зарплата",
+                icon: "dollarsign.circle.fill",
+                color: "#00FF00",
+                wallet_name: "Карта",
+                wallet_icon: "creditcard",
+                wallet_color: "#4F8A8B"
             ))
         }
         .padding()
         .previewLayout(.sizeThatFits)
+    }
+}
+
+// Для поддержки hex-цвета
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
     }
 } 

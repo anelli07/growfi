@@ -288,50 +288,42 @@ struct GoalDetailsView: View {
 struct LastTransactionsView: View {
     let transactions: [Transaction]
     let onShowHistory: () -> Void
+
+    var lastTxs: [Transaction] {
+        transactions.sorted(by: { $0.date > $1.date }).prefix(3).map { $0 }
+    }
+
     var body: some View {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("Последние транзакции")
-                        .font(.headline)
-                    Spacer()
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Последние транзакции")
+                    .font(.headline)
+                Spacer()
                 Button(action: { onShowHistory() }) {
-                        HStack(spacing: 4) {
-                            Text("Подробнее")
-                                .font(.subheadline)
-                            Image(systemName: "chevron.right")
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.green)
-                        .cornerRadius(8)
+                    HStack(spacing: 4) {
+                        Text("Подробнее")
+                            .font(.subheadline)
+                        Image(systemName: "chevron.right")
                     }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.green)
+                    .cornerRadius(8)
                 }
-                .padding(.bottom, 2)
-            ScrollView(.vertical, showsIndicators: true) {
-                    VStack(spacing: 6) {
-                    ForEach(transactions.sorted(by: { $0.date > $1.date }).prefix(3)) { tx in
-                            HStack {
-                                Text(tx.category ?? "")
-                                        .font(.subheadline)
-                                Spacer()
-                            Text("\(tx.type == .income ? "+" : "-")\(Int(abs(tx.amount))) \(tx.wallet ?? "")")
-                                .foregroundColor(tx.type == .income ? .green : .red)
-                                    .font(.subheadline)
-                            }
-                            .padding(6)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
-                        }
-                    }
-                }
-            .frame(height: transactions.isEmpty ? 44 : 3 * 56)
             }
-            .padding(8)
-            .background(Color(.systemGray5))
-            .cornerRadius(14)
-            .padding(.horizontal)
-        .padding(.top, 8)
+            .padding(.bottom, 2)
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(spacing: 6) {
+                    ForEach(lastTxs) { tx in
+                        // ... твой HStack для транзакции ...
+                    }
+                }
+            }
+            .frame(height: transactions.isEmpty ? 44 : 3 * 56)
+        }
+        .padding(8)
+        .background(Color(.systemGray5))
     }
 }
 

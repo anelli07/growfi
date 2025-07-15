@@ -51,3 +51,6 @@ class Transaction(SQLModel, table=True):
     transaction_date: date = Field()
     type: str = Field()  # income, expense, wallet_transfer, goal_transfer
     comment: Optional[str] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    icon: Optional[str] = Field(default=None)
+    color: Optional[str] = Field(default=None)

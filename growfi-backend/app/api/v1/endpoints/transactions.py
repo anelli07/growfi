@@ -30,43 +30,79 @@ def get_transactions(
     txs = transaction.get_multi_by_user(db, user_id=current_user.id)
     # Собираем id-шники для батч-запроса
     wallet_ids = set()
-    category_ids = set()
+    income_ids = set()
+    expense_ids = set()
+    goal_ids = set()
     for tx in txs:
         if tx.from_wallet_id:
             wallet_ids.add(tx.from_wallet_id)
         if tx.to_wallet_id:
             wallet_ids.add(tx.to_wallet_id)
-        if tx.from_category_id:
-            category_ids.add(tx.from_category_id)
-        if tx.to_category_id:
-            category_ids.add(tx.to_category_id)
-    # Получаем имена кошельков и категорий
-    wallets = {w.id: w.name for w in db.query(models.Wallet).filter(models.Wallet.id.in_(wallet_ids)).all()}
-    categories = {c.id: c.name for c in db.query(models.Category).filter(models.Category.id.in_(category_ids)).all()}
+        if tx.type == "income" and tx.to_category_id:
+            income_ids.add(tx.to_category_id)
+        if tx.type == "expense" and tx.to_category_id:
+            expense_ids.add(tx.to_category_id)
+        if tx.type == "goal_transfer" and tx.to_goal_id:
+            goal_ids.add(tx.to_goal_id)
+    # Получаем объекты
+    wallets = {w.id: w for w in db.query(models.Wallet).filter(models.Wallet.id.in_(wallet_ids)).all()}
+    incomes = {i.category_id: i for i in db.query(models.Income).filter(models.Income.category_id.in_(income_ids)).all()}
+    expenses = {e.category_id: e for e in db.query(models.Expense).filter(models.Expense.category_id.in_(expense_ids)).all()}
+    goals = {g.id: g for g in db.query(models.Goal).filter(models.Goal.id.in_(goal_ids)).all()}
     result = []
     for tx in txs:
-        # Логика: для дохода/расхода/цели определяем, что показывать как category и wallet
+        # Доход
         if tx.type == "income":
-            category = categories.get(tx.to_category_id) or categories.get(tx.from_category_id)
-            wallet = wallets.get(tx.to_wallet_id) or wallets.get(tx.from_wallet_id)
+            income = incomes.get(tx.to_category_id)
+            wallet = wallets.get(tx.to_wallet_id)
+            result.append({
+                "id": tx.id,
+                "date": tx.transaction_date.strftime("%Y-%m-%dT%H:%M:%SZ") if tx.transaction_date else None,
+                "type": tx.type,
+                "amount": tx.amount,
+                "note": tx.comment,
+                "title": tx.name or (income.name if income else "Удалено"),
+                "icon": tx.icon or (income.icon if income else "dollarsign.circle.fill"),
+                "color": tx.color or (income.color if income else "#00FF00"),
+                "wallet_name": wallet.name if wallet else "Удалено",
+                "wallet_icon": wallet.icon_name if wallet else "creditcard",
+                "wallet_color": wallet.color_hex if wallet else "#CCCCCC",
+            })
+        # Расход
         elif tx.type == "expense":
-            category = categories.get(tx.from_category_id) or categories.get(tx.to_category_id)
-            wallet = wallets.get(tx.from_wallet_id) or wallets.get(tx.to_wallet_id)
-        elif tx.type == "goal":
-            category = categories.get(tx.to_category_id) or categories.get(tx.from_category_id)
-            wallet = wallets.get(tx.from_wallet_id) or wallets.get(tx.to_wallet_id)
-        else:
-            category = None
-            wallet = None
-        result.append({
-            "id": tx.id,
-            "date": tx.transaction_date.strftime("%Y-%m-%dT%H:%M:%SZ") if tx.transaction_date else None,
-            "category": category,
-            "amount": tx.amount,
-            "type": tx.type,
-            "note": tx.comment,
-            "wallet": wallet,
-        })
+            expense = expenses.get(tx.to_category_id)
+            wallet = wallets.get(tx.from_wallet_id)
+            result.append({
+                "id": tx.id,
+                "date": tx.transaction_date.strftime("%Y-%m-%dT%H:%M:%SZ") if tx.transaction_date else None,
+                "type": tx.type,
+                "amount": tx.amount,
+                "note": tx.comment,
+                "title": tx.name or (expense.name if expense else "Удалено"),
+                "icon": tx.icon or (expense.icon if expense else "cart.fill"),
+                "color": tx.color or (expense.color if expense else "#FF0000"),
+                "wallet_name": wallet.name if wallet else "Удалено",
+                "wallet_icon": wallet.icon_name if wallet else "creditcard",
+                "wallet_color": wallet.color_hex if wallet else "#CCCCCC",
+            })
+        # Цель
+        elif tx.type == "goal_transfer":
+            goal = goals.get(tx.to_goal_id)
+            wallet = wallets.get(tx.from_wallet_id)
+            result.append({
+                "id": tx.id,
+                "date": tx.transaction_date.strftime("%Y-%m-%dT%H:%M:%SZ") if tx.transaction_date else None,
+                "type": tx.type,
+                "amount": tx.amount,
+                "note": tx.comment,
+                "title": tx.name or (goal.name if goal else "Удалено"),
+                "icon": tx.icon or (goal.icon if goal else "leaf.circle.fill"),
+                "color": tx.color or (goal.color if goal else "#00FF00"),
+                "wallet_name": wallet.name if wallet else "Удалено",
+                "wallet_icon": wallet.icon_name if wallet else "creditcard",
+                "wallet_color": wallet.color_hex if wallet else "#CCCCCC",
+            })
+        # Остальные типы (wallet_transfer и т.д.) можно добавить по аналогии
     return result
 
 # Явный endpoint без редиректа

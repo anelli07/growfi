@@ -10,9 +10,23 @@ class GoalsViewModel: ObservableObject {
     @Published var error: String? = nil
     @Published var showCreateGoal: Bool = false
     @Published var incomes: [Transaction] = [
-        Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Зарплата", amount: 0, type: .income, note: nil, wallet: "Карта")
+        Transaction(
+            id: Int(Date().timeIntervalSince1970 * 1000),
+            date: Date(),
+            type: .income,
+            amount: 0,
+            note: nil,
+            title: "Зарплата",
+            icon: "💸",
+            color: "#00FF00",
+            wallet_name: "Карта",
+            wallet_icon: "💳",
+            wallet_color: "#0000FF"
+        )
     ]
     // Удаляю expenses и все методы, связанные с расходами
+    var expensesVM: ExpensesViewModel? = nil
+    var incomesVM: IncomesViewModel? = nil
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -126,9 +140,28 @@ class GoalsViewModel: ObservableObject {
     func transferIncomeToWallet(incomeId: Int, walletId: Int, amount: Double, wallets: inout [Wallet]) {
         guard let incomeIdx = incomes.firstIndex(where: { $0.id == incomeId }),
               let walletIdx = wallets.firstIndex(where: { $0.id == walletId }) else { return }
-        incomes[incomeIdx].amount += amount
+        var newIncomes = incomes
+        newIncomes[incomeIdx].amount += amount
+        incomes = newIncomes
         wallets[walletIdx].balance += amount
-        let tx = Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Перевод в кошелек", amount: amount, type: .income, note: nil, wallet: wallets[walletIdx].name)
+        let wallet = wallets[walletIdx]
+        var incomeTitle = "Доход"
+        if let income = incomesVM?.incomes.first(where: { $0.id == incomeId }) {
+            incomeTitle = income.name
+        }
+        let tx = Transaction(
+            id: Int(Date().timeIntervalSince1970 * 1000),
+            date: Date(),
+            type: .income,
+            amount: amount,
+            note: nil,
+            title: incomeTitle, // <-- теперь название дохода
+            icon: wallet.iconName ?? "💳",
+            color: wallet.colorHex ?? "#0000FF",
+            wallet_name: wallet.name,
+            wallet_icon: wallet.iconName,
+            wallet_color: wallet.colorHex
+        )
         transactions.append(tx)
     }
     // Drag&Drop: Кошелек -> Цель
@@ -138,17 +171,47 @@ class GoalsViewModel: ObservableObject {
         guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
         wallets[walletIdx].balance -= amount
         goals[goalIdx].current_amount += amount
-        let tx = Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Пополнение цели: \(goals[goalIdx].name)", amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
+        let wallet = wallets[walletIdx]
+        let goal = goals[goalIdx]
+        let tx = Transaction(
+            id: Int(Date().timeIntervalSince1970 * 1000),
+            date: Date(),
+            type: .goal,
+            amount: -abs(amount),
+            note: nil,
+            title: "Пополнение цели: \(goal.name)",
+            icon: goal.icon,
+            color: goal.color,
+            wallet_name: wallet.name,
+            wallet_icon: wallet.iconName,
+            wallet_color: wallet.colorHex
+        )
         transactions.append(tx)
         return true
     }
     // Drag&Drop: Кошелек -> Расход
     func transferWalletToExpense(walletId: Int, expenseId: Int, amount: Double, wallets: inout [Wallet]) -> Bool {
-        // Здесь можно реализовать нужную логику, например, просто уменьшать баланс кошелька и создавать транзакцию
         guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }) else { return false }
         guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
         wallets[walletIdx].balance -= amount
-        let tx = Transaction(id: Int(Date().timeIntervalSince1970 * 1000), date: Date(), category: "Расход", amount: -abs(amount), type: .expense, note: nil, wallet: wallets[walletIdx].name)
+        let wallet = wallets[walletIdx]
+        var expenseTitle = "Расход"
+        if let expense = expensesVM?.expenses.first(where: { $0.id == expenseId }) {
+            expenseTitle = expense.name
+        }
+        let tx = Transaction(
+            id: Int(Date().timeIntervalSince1970 * 1000),
+            date: Date(),
+            type: .expense,
+            amount: -abs(amount),
+            note: nil,
+            title: expenseTitle, // <-- теперь название расхода
+            icon: "💸",
+            color: "#FF0000",
+            wallet_name: wallet.name,
+            wallet_icon: wallet.iconName,
+            wallet_color: wallet.colorHex
+        )
         transactions.append(tx)
         return true
     }
@@ -168,9 +231,12 @@ class GoalsViewModel: ObservableObject {
     func updateIncome(id: Int, name: String, amount: Double) {
         if let idx = incomes.firstIndex(where: { $0.id == id }) {
             var income = incomes[idx]
-            income.category = name
+            // В Transaction нет category, только title
             income.amount = amount
-            incomes[idx] = income
+            // title менять не будем, если нужно — добавь параметр
+            var newIncomes = incomes
+            newIncomes[idx] = income
+            incomes = newIncomes
         }
     }
     func deleteIncome(id: Int) {
@@ -190,9 +256,11 @@ class GoalsViewModel: ObservableObject {
     func updateExpense(id: Int, name: String, amount: Double) {
         if let idx = transactions.firstIndex(where: { $0.id == id }) {
             var tx = transactions[idx]
-            tx.category = name
+            tx.title = name
             tx.amount = -abs(amount)
-            transactions[idx] = tx
+            var newTxs = transactions
+            newTxs[idx] = tx
+            transactions = newTxs
         }
     }
     func deleteExpense(id: Int) {

@@ -57,7 +57,7 @@ class HistoryViewModel: ObservableObject {
         }
         // Поиск по заметке и категории
         let searched = searchText.isEmpty ? filtered : filtered.filter {
-            ($0.category ?? "").lowercased().contains(searchText.lowercased()) ||
+            $0.title.lowercased().contains(searchText.lowercased()) ||
             ($0.note ?? "").lowercased().contains(searchText.lowercased())
         }
         // Убираем транзакции с amount == 0 (шаблоны)

@@ -30,6 +30,8 @@ struct AppEntry: View {
                         walletsVM.goalsVM = goalsViewModel
                         incomesVM.historyVM = historyVM
                         walletsVM.historyVM = historyVM
+                        goalsViewModel.expensesVM = expensesVM
+                        goalsViewModel.incomesVM = incomesVM
                         let token = UserDefaults.standard.string(forKey: "access_token") ?? "nil"
                         print("[AppEntry] access_token при старте:", token)
                         goalsViewModel.fetchUser()
