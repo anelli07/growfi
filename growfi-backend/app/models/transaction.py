@@ -54,3 +54,5 @@ class Transaction(SQLModel, table=True):
     name: Optional[str] = Field(default=None)
     icon: Optional[str] = Field(default=None)
     color: Optional[str] = Field(default=None)
+    goal_name: Optional[str] = Field(default=None)
+    wallet_name: Optional[str] = Field(default=None)

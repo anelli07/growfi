@@ -160,13 +160,18 @@ struct OperationsView: View {
             CategoryGrid {
                 Group {
                     ForEach(incomesVM.incomes) { income in
-                        OperationCategoryCircle(icon: income.icon, color: .green, title: income.name, amount: "\(Int(income.amount ?? 0)) ₸")
-                            .onTapGesture { editItem = .income(income) }
-                            .onDrag {
+                        OperationCategoryCircle(
+                            icon: income.icon,
+                            color: .green,
+                            title: income.name,
+                            amount: "\(Int(income.amount ?? 0)) ₸",
+                            onDrag: {
                                 dragIncomeId = income.id
                                 dragAmount = 0
                                 return NSItemProvider(object: String(income.id) as NSString)
                             }
+                        )
+                        .onTapGesture { editItem = .income(income) }
                     }
                     Button(action: {
                         createType = .income
@@ -181,9 +186,17 @@ struct OperationsView: View {
 
     private var walletGrid: some View {
         ForEach(walletsVM.wallets) { wallet in
-            OperationCategoryCircle(icon: wallet.iconName ?? "creditcard.fill", color: .blue, title: wallet.name, amount: "\(Int(wallet.balance)) ₸")
-                .onTapGesture { editItem = .wallet(wallet) }
-                .onDrop(of: ["public.text"], isTargeted: nil) { providers in
+            OperationCategoryCircle(
+                icon: wallet.iconName ?? "creditcard.fill",
+                color: .blue,
+                title: wallet.name,
+                amount: "\(Int(wallet.balance)) ₸",
+                onDrag: {
+                    dragWalletId = wallet.id
+                    dragAmount = 0
+                    return NSItemProvider(object: String(wallet.id) as NSString)
+                },
+                onDrop: { providers in
                     providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
                         if let data = data as? Data,
                            let idString = String(data: data, encoding: .utf8),
@@ -200,20 +213,19 @@ struct OperationsView: View {
                     }
                     return true
                 }
-                .onDrag {
-                    dragWalletId = wallet.id
-                    dragAmount = 0
-                    return NSItemProvider(object: String(wallet.id) as NSString)
-                }
+            )
+            .onTapGesture { editItem = .wallet(wallet) }
         }
     }
 
     private var expenseGrid: some View {
         ForEach(expensesVM.expenses, id: \.id) { expense in
-            OperationCategoryCircle(icon: expense.icon, color: .red, title: expense.name, amount: "\(Int(expense.amount)) ₸")
-                .onAppear { print("ForEach: \(expense.id): \(expense.amount)") }
-                .onTapGesture { editItem = .expense(expense) }
-                .onDrop(of: ["public.text"], isTargeted: nil) { providers in
+            OperationCategoryCircle(
+                icon: expense.icon,
+                color: .red,
+                title: expense.name,
+                amount: "\(Int(expense.amount)) ₸",
+                onDrop: { providers in
                     providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
                         if let data = data as? Data,
                            let idString = String(data: data, encoding: .utf8),
@@ -230,6 +242,8 @@ struct OperationsView: View {
                     }
                     return true
                 }
+            )
+            .onTapGesture { editItem = .expense(expense) }
         }
     }
 
@@ -239,26 +253,26 @@ struct OperationsView: View {
                 icon: "leaf.circle.fill",
                 color: .green,
                 title: goal.name,
-                amount: "\(Int(goal.current_amount))/\(Int(goal.target_amount)) ₸"
-            )
-            .onTapGesture { editItem = .goal(goal) }
-            .onDrop(of: ["public.text"], isTargeted: nil) { providers in
-                providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
-                    if let data = data as? Data,
-                       let idString = String(data: data, encoding: .utf8),
-                       let walletId = Int(idString),
-                       let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
-                        DispatchQueue.main.async {
-                            transferType = .walletToGoal(wallet, goal)
-                            transferAmount = 0
-                            transferDate = Date()
-                            transferComment = ""
-                            showTransferSheet = true
+                amount: "\(Int(goal.current_amount))/\(Int(goal.target_amount)) ₸",
+                onDrop: { providers in
+                    providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
+                        if let data = data as? Data,
+                           let idString = String(data: data, encoding: .utf8),
+                           let walletId = Int(idString),
+                           let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
+                            DispatchQueue.main.async {
+                                transferType = .walletToGoal(wallet, goal)
+                                transferAmount = 0
+                                transferDate = Date()
+                                transferComment = ""
+                                showTransferSheet = true
+                            }
                         }
                     }
+                    return true
                 }
-                return true
-            }
+            )
+            .onTapGesture { editItem = .goal(goal) }
         }
     }
 

@@ -64,7 +64,12 @@ class CRUDWallet:
             amount=amount,
             transaction_date=date,
             type="goal_transfer",
-            comment=comment
+            comment=comment,
+            goal_name=goal.name,
+            name=goal.name,
+            icon=goal.icon,
+            color=goal.color,
+            wallet_name=wallet.name
         )
         transaction.create(db, obj_in=transaction_obj)
         return wallet
@@ -101,7 +106,8 @@ class CRUDWallet:
             comment=comment,
             name=expense.name,
             icon=expense.icon,
-            color=expense.color
+            color=expense.color,
+            wallet_name=wallet.name
         )
         transaction.create(db, obj_in=transaction_obj)
         return wallet

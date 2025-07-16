@@ -3,6 +3,7 @@ import SwiftUI
 struct GoalsCarouselView: View {
     @EnvironmentObject var viewModel: GoalsViewModel
     @EnvironmentObject var walletsVM: WalletsViewModel
+    @EnvironmentObject var historyVM: HistoryViewModel
     @Binding var selectedTab: Int
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
@@ -28,7 +29,7 @@ struct GoalsCarouselView: View {
                 } else {
 
                     CarouselView(items: viewModel.goals, selectedIndex: $viewModel.selectedGoalIndex) { goal, isActive in
-                        VStack(spacing: 8) {
+                        VStack(spacing: 2) {
                             Image("plant_stage_\(goal.growthStage)")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
@@ -39,6 +40,13 @@ struct GoalsCarouselView: View {
                                 .foregroundColor(isActive ? .primary : .gray)
                                 .lineLimit(1)
                                 .frame(width: isActive ? 120 : 80)
+                            Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            ProgressView(value: goal.current_amount, total: goal.target_amount)
+                                .accentColor(Color.green)
+                                .frame(width: isActive ? 120 : 80)
+                                .padding(.bottom, 0)
                         }
                     }
                     .frame(height: 260)
@@ -54,7 +62,6 @@ struct GoalsCarouselView: View {
                 }
                 
                 LastTransactionsView(
-                    transactions: viewModel.todayTransactions,
                     onShowHistory: { selectedTab = 0 }
                 )
                 .padding(.top, 24)      // ⬆️ расстояние от "цели"
@@ -72,6 +79,9 @@ struct GoalsCarouselView: View {
                     AIChatView()
                 }
             }
+        }
+        .onAppear {
+            viewModel.historyVM = historyVM
         }
     }
 }
@@ -113,7 +123,7 @@ struct EmptyGoalView: View {
     @Binding var showCreateGoalSheet: Bool
     var onCreate: (String, Double, String, String, String) -> Void
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 10) {
             Image("plant_stage_0")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -150,15 +160,16 @@ struct EmptyGoalView: View {
 
 struct SingleGoalView: View {
     let goal: Goal
+    @State private var showOperations = false
     var body: some View {
-        VStack(spacing: 10) {
-                                Image("plant_stage_\(goal.growthStage)")
-                                    .resizable()
+        VStack(spacing: 4) {
+            Image("plant_stage_\(goal.growthStage)")
+                .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 180, height: 180)
                 .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
-                            Text(goal.name)
-                                .font(.subheadline)
+            Text(goal.name)
+                .font(.subheadline)
             Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
                 .font(.subheadline)
                 .foregroundColor(.gray)
@@ -167,7 +178,7 @@ struct SingleGoalView: View {
                 .frame(width: 180)
                 .padding(.bottom, 4)
             Button(action: {
-                // TODO: Sheet для пополнения цели
+                showOperations = true
             }) {
                 Text("Пополнить цель")
                     .font(.headline)
@@ -177,9 +188,12 @@ struct SingleGoalView: View {
                     .foregroundColor(.white)
                     .cornerRadius(10)
             }
+            .sheet(isPresented: $showOperations) {
+                OperationsView()
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 8)
+        .padding(.top, 4)
     }
 }
 
@@ -262,13 +276,13 @@ struct GoalDetailsView: View {
     let goal: Goal
     var body: some View {
                 VStack(spacing: 10) {
-            Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-            ProgressView(value: goal.current_amount, total: goal.target_amount)
-                        .accentColor(Color.green)
-                .frame(height: 4)
-                        .padding(.horizontal, 24)
+//            Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
+//                        .font(.subheadline)
+//                        .foregroundColor(.gray)
+//            ProgressView(value: goal.current_amount, total: goal.target_amount)
+//                        .accentColor(Color.green)
+//                .frame(height: 4)
+//                        .padding(.horizontal, 24)
                     Button(action: {
                         // TODO: Sheet для пополнения цели
                     }) {
@@ -286,11 +300,13 @@ struct GoalDetailsView: View {
             }
 
 struct LastTransactionsView: View {
-    let transactions: [Transaction]
+    @EnvironmentObject var historyVM: HistoryViewModel
     let onShowHistory: () -> Void
 
-    var lastTxs: [Transaction] {
-        transactions.sorted(by: { $0.date > $1.date }).prefix(3).map { $0 }
+    var todayTransactions: [Transaction] {
+        let calendar = Calendar.current
+        return historyVM.transactions.filter { calendar.isDateInToday($0.date) }
+            .sorted(by: { $0.date > $1.date })
     }
 
     var body: some View {
@@ -315,12 +331,12 @@ struct LastTransactionsView: View {
             .padding(.bottom, 2)
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(spacing: 6) {
-                    ForEach(lastTxs) { tx in
-                        // ... твой HStack для транзакции ...
+                    ForEach(todayTransactions) { tx in
+                        TransactionCell(transaction: tx)
                     }
                 }
             }
-            .frame(height: transactions.isEmpty ? 44 : 3 * 56)
+            .frame(height: todayTransactions.isEmpty ? 44 : 3 * 56)
         }
         .padding(8)
         .background(Color(.systemGray5))

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 class LoginViewModel: ObservableObject {
     @Published var email: String = ""
@@ -64,16 +65,14 @@ class LoginViewModel: ObservableObject {
         }
     }
 
-    func loginWithGoogle(onSuccess: @escaping () -> Void) {
+    func loginWithGoogle(presentingViewController: UIViewController, onSuccess: @escaping () -> Void) {
         isGoogleLoading = true
-        error = nil
-        ApiService.shared.loginWithGoogle { [weak self] result in
+        ApiService.shared.loginWithGoogle(presentingViewController: presentingViewController) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isGoogleLoading = false
                 switch result {
-                case .success(let token):
-                    UserDefaults.standard.set(token, forKey: "access_token")
-                    self?.isLoggedIn = true
+                case .success(let jwt):
+                    UserDefaults.standard.set(jwt, forKey: "access_token")
                     onSuccess()
                 case .failure(let err):
                     self?.error = err.localizedDescription

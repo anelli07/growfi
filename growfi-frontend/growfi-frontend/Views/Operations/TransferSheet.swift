@@ -254,6 +254,16 @@ struct TransferSheet: View {
                         .labelsHidden()
                         .padding()
                     Spacer()
+                    Button(action: { showDatePicker = false }) {
+                        Text("Сохранить")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(14)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
                 }
                 .presentationDetents([.medium, .large])
             }

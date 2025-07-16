@@ -5,7 +5,8 @@ class GoalsViewModel: ObservableObject {
     @Published var goals: [Goal] = []
     @Published var selectedGoalIndex: Int = 0
     @Published var user: User? = nil
-    @Published var transactions: [Transaction] = []
+    // Удаляю локальный массив транзакций
+    // @Published var transactions: [Transaction] = []
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
     @Published var showCreateGoal: Bool = false
@@ -27,6 +28,8 @@ class GoalsViewModel: ObservableObject {
     // Удаляю expenses и все методы, связанные с расходами
     var expensesVM: ExpensesViewModel? = nil
     var incomesVM: IncomesViewModel? = nil
+    // Добавляю ссылку на historyVM
+    var historyVM: HistoryViewModel?
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -103,15 +106,18 @@ class GoalsViewModel: ObservableObject {
     }
 
     func deleteGoal(goalId: Int) {
-        guard let token = token else { return }
+        guard let token = token else { print("[deleteGoal] Нет токена"); return }
+        print("[deleteGoal] goalId:", goalId, "token:", token.prefix(8), "...")
         isLoading = true
         ApiService.shared.deleteGoal(goalId: goalId, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
                 case .success:
+                    print("[deleteGoal] Успешно удалено goalId:", goalId)
                     self?.goals.removeAll { $0.id == goalId }
                 case .failure(let err):
+                    print("[deleteGoal] Ошибка удаления goalId:", goalId, err.localizedDescription)
                     self?.error = err.localizedDescription
                 }
             }
@@ -120,7 +126,7 @@ class GoalsViewModel: ObservableObject {
 
     func loadTransactions() {
         // История по умолчанию пустая
-        self.transactions = []
+        // self.transactions = [] // Удалено
     }
 
     var userName: String {
@@ -128,12 +134,18 @@ class GoalsViewModel: ObservableObject {
     }
 
     var todayTransactions: [Transaction] {
+        guard let historyVM = historyVM else { return [] }
         let calendar = Calendar.current
-        return transactions.filter { calendar.isDateInToday($0.date) }
+        return historyVM.transactions.filter { calendar.isDateInToday($0.date) }
     }
 
     var todayExpense: Double {
-        todayTransactions.filter { $0.type == .expense }.map { abs($0.amount) }.reduce(0, +)
+        guard let historyVM = historyVM else { return 0 }
+        let calendar = Calendar.current
+        return historyVM.transactions
+            .filter { ($0.type == .expense || $0.type == .goal_transfer) && calendar.isDateInToday($0.date) }
+            .map { abs($0.amount) }
+            .reduce(0, +)
     }
 
     // Drag&Drop: Доход -> Кошелек
@@ -162,7 +174,7 @@ class GoalsViewModel: ObservableObject {
             wallet_icon: wallet.iconName,
             wallet_color: wallet.colorHex
         )
-        transactions.append(tx)
+        // Удаляю все transactions.append(tx), removeAll, и т.д. в transferWalletToGoal, transferWalletToExpense, transferIncomeToWallet и других местах
     }
     // Drag&Drop: Кошелек -> Цель
     func transferWalletToGoal(walletId: Int, goalId: Int, amount: Double, wallets: inout [Wallet]) -> Bool {
@@ -186,7 +198,7 @@ class GoalsViewModel: ObservableObject {
             wallet_icon: wallet.iconName,
             wallet_color: wallet.colorHex
         )
-        transactions.append(tx)
+        // Удаляю все transactions.append(tx), removeAll, и т.д. в transferWalletToGoal, transferWalletToExpense, transferIncomeToWallet и других местах
         return true
     }
     // Drag&Drop: Кошелек -> Расход
@@ -212,7 +224,7 @@ class GoalsViewModel: ObservableObject {
             wallet_icon: wallet.iconName,
             wallet_color: wallet.colorHex
         )
-        transactions.append(tx)
+        // Удаляю все transactions.append(tx), removeAll, и т.д. в transferWalletToGoal, transferWalletToExpense, transferIncomeToWallet и других местах
         return true
     }
 
@@ -250,20 +262,5 @@ class GoalsViewModel: ObservableObject {
             goals[idx] = goal
         }
     }
-    func deleteGoal(id: Int) {
-        goals.removeAll { $0.id == id }
-    }
-    func updateExpense(id: Int, name: String, amount: Double) {
-        if let idx = transactions.firstIndex(where: { $0.id == id }) {
-            var tx = transactions[idx]
-            tx.title = name
-            tx.amount = -abs(amount)
-            var newTxs = transactions
-            newTxs[idx] = tx
-            transactions = newTxs
-        }
-    }
-    func deleteExpense(id: Int) {
-        transactions.removeAll { $0.id == id }
-    }
+    // Удаляю методы updateExpense и deleteExpense, связанные с expenses
 } 

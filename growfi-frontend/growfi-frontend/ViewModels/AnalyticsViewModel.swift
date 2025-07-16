@@ -6,9 +6,33 @@ struct CategoryStat: Identifiable {
     let category: String
     let total: Double
     let color: Color
+    let categoryIcon: String
+}
+
+class PeriodSelectionViewModel: ObservableObject {
+    @Published var selectedPeriod: PeriodType = .month
+    @Published var customRange: (Date, Date)? = nil
+    
+    var currentRange: (start: Date, end: Date) {
+        selectedPeriod.dateRange(containing: Date(), customRange: customRange)
+    }
+    
+    var formatted: String {
+        selectedPeriod.formattedRange(containing: Date(), customRange: customRange)
+    }
+    
+    func select(period: PeriodType) {
+        selectedPeriod = period
+        if period != .custom { customRange = nil }
+    }
+    func setCustomRange(_ range: (Date, Date)) {
+        selectedPeriod = .custom
+        customRange = range
+    }
 }
 
 class AnalyticsViewModel: ObservableObject {
+    @Published var periodVM = PeriodSelectionViewModel()
     @Published var transactions: [Transaction] = []
     @Published var selectedPeriod: PeriodType = .month
     @Published var chartType: ChartType = .line
@@ -24,111 +48,33 @@ class AnalyticsViewModel: ObservableObject {
     private var allTransactions: [Transaction] = []
 
     init() {
-        loadTestData()
+        fetchTransactions()
         applyFilters()
     }
 
-    func loadTestData() {
-        let calendar = Calendar.current
-        let today = Date()
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
-        let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: today)!
-        allTransactions = [
-            Transaction(
-                id: Int(Date().timeIntervalSince1970 * 1000),
-                date: today,
-                type: .expense,
-                amount: -2000,
-                note: "Магазин",
-                title: "Продукты",
-                icon: "cart.fill",
-                color: "#FF0000",
-                wallet_name: "Карта",
-                wallet_icon: "creditcard",
-                wallet_color: "#4F8A8B"
-            ),
-            Transaction(
-                id: Int(Date().timeIntervalSince1970 * 1001),
-                date: today,
-                type: .income,
-                amount: 40000,
-                note: nil,
-                title: "Зарплата",
-                icon: "dollarsign.circle.fill",
-                color: "#00FF00",
-                wallet_name: "Карта",
-                wallet_icon: "creditcard",
-                wallet_color: "#4F8A8B"
-            ),
-            Transaction(
-                id: Int(Date().timeIntervalSince1970 * 1002),
-                date: today,
-                type: .expense,
-                amount: -800,
-                note: "",
-                title: "Кофе",
-                icon: "cup.and.saucer.fill",
-                color: "#A0522D",
-                wallet_name: "Карта",
-                wallet_icon: "creditcard",
-                wallet_color: "#4F8A8B"
-            ),
-            Transaction(
-                id: Int(Date().timeIntervalSince1970 * 1003),
-                date: yesterday,
-                type: .expense,
-                amount: -500,
-                note: "Метро",
-                title: "Транспорт",
-                icon: "tram.fill",
-                color: "#007AFF",
-                wallet_name: "Карта",
-                wallet_icon: "creditcard",
-                wallet_color: "#4F8A8B"
-            ),
-            Transaction(
-                id: Int(Date().timeIntervalSince1970 * 1004),
-                date: yesterday,
-                type: .expense,
-                amount: -1000,
-                note: "Друзья",
-                title: "Подарок",
-                icon: "gift.fill",
-                color: "#FF69B4",
-                wallet_name: "Наличные",
-                wallet_icon: "banknote",
-                wallet_color: "#FFD700"
-            ),
-            Transaction(
-                id: Int(Date().timeIntervalSince1970 * 1005),
-                date: twoDaysAgo,
-                type: .expense,
-                amount: -1200,
-                note: nil,
-                title: "Еда",
-                icon: "fork.knife",
-                color: "#FFA500",
-                wallet_name: "Карта",
-                wallet_icon: "creditcard",
-                wallet_color: "#4F8A8B"
-            )
-        ]
+    func fetchTransactions() {
+        guard let token = UserDefaults.standard.string(forKey: "access_token"), !token.isEmpty else {
+            print("[AnalyticsViewModel] Нет access_token, не делаю fetchTransactions")
+            return
+        }
+        ApiService.shared.fetchTransactions(token: token) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let txs):
+                    print("[AnalyticsViewModel] Получено транзакций с бэка:", txs)
+                    self?.allTransactions = txs
+                    self?.applyFilters()
+                case .failure(let err):
+                    print("[AnalyticsViewModel] Ошибка декодирования или запроса:", err.localizedDescription)
+                }
+            }
+        }
     }
 
     func applyFilters() {
-        let calendar = Calendar.current
-        let now = Date()
+        let range = periodVM.currentRange
         let filtered = allTransactions.filter { tx in
-            switch selectedPeriod {
-            case .month:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .month)
-            case .week:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .weekOfYear)
-            case .year:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .year)
-            case .quarter, .halfYear, .all, .custom:
-                return true // для MVP
-            }
+            tx.date >= range.start && tx.date <= range.end
         }
         transactions = filtered
         // Группировка по дням
@@ -144,7 +90,7 @@ class AnalyticsViewModel: ObservableObject {
         groupedByCategory = groupedCat.map { (cat, txs) in
             let total = txs.map { abs($0.amount) }.reduce(0, +)
             let type = CategoryType.from(name: cat ?? "")
-            return CategoryStat(category: cat ?? "", total: total, color: type.color)
+            return CategoryStat(category: cat ?? "", total: total, color: type.color, categoryIcon: type.icon)
         }.sorted { $0.total > $1.total }
         // Итоги
         incomeTotal = filtered.filter { $0.type == .income }.map { $0.amount }.reduce(0, +)
@@ -175,11 +121,39 @@ class AnalyticsViewModel: ObservableObject {
         chartType = type
     }
 
+    struct CategoryKey: Hashable {
+        let icon: String
+        let color: String
+        let title: String
+    }
+
     var filteredCategories: [CategoryStat] {
-        groupedByCategory.filter { cat in
-            let txs = transactions.filter { $0.title == cat.category }
-            return selectedType == .income ? txs.contains(where: { $0.type == .income }) : txs.contains(where: { $0.type == .expense })
+        let range = periodVM.currentRange
+        let calendar = Calendar.current
+        let filtered = transactions.filter { tx in
+            let txDay = calendar.startOfDay(for: tx.date)
+            let startDay = calendar.startOfDay(for: range.start)
+            let endDay = calendar.startOfDay(for: range.end)
+            if selectedType == .income {
+                return txDay >= startDay && txDay <= endDay && tx.type == .income
+            } else if selectedType == .expense {
+                return txDay >= startDay && txDay <= endDay && tx.type == .expense
+            } else if selectedType == .goal {
+                // Включаем все транзакции с type == .goal, .goal_transfer, а также с title содержащим 'цель' (на всякий случай)
+                return txDay >= startDay && txDay <= endDay && (tx.type == .goal || tx.type == .goal_transfer || tx.title.lowercased().contains("цель"))
+            } else {
+                return false
+            }
         }
+        // Группировка по CategoryKey
+        let groupedCat = Dictionary(grouping: filtered) { CategoryKey(icon: $0.icon, color: $0.color, title: $0.title) }
+        return groupedCat.map { (key, txs) in
+            let total = txs.map { abs($0.amount) }.reduce(0, +)
+            let icon = key.icon
+            let color = Color(hex: key.color)
+            let title = key.title
+            return CategoryStat(category: title, total: total, color: color, categoryIcon: icon)
+        }.sorted { $0.total > $1.total }
     }
 } 
  

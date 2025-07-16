@@ -12,7 +12,7 @@ struct AuthView: View {
         VStack(spacing: 0) {
             Spacer(minLength: 48)
             VStack(spacing: 12) {
-                Image("Seedling.png")
+                Image("plant_stage_0")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 140, height: 140)
@@ -92,15 +92,27 @@ struct AuthView: View {
             }
             .padding(.horizontal, 28)
             .padding(.bottom, 18)
-            Button(action: { }) {
-                HStack(spacing: 10) {
-                    Image(systemName: "globe").foregroundColor(Color.green)
-                    Text("Continue with Google").font(.headline).foregroundColor(Color.green)
+            Button(action: {
+                if let rootVC = UIApplication.shared.windows.first?.rootViewController {
+                    vm.loginWithGoogle(presentingViewController: rootVC) {
+                        onLogin?()
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .background(Color.white)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray4), lineWidth: 1))
+            }) {
+                if vm.isGoogleLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                } else {
+                    HStack(spacing: 10) {
+                        Image(systemName: "globe").foregroundColor(Color.green)
+                        Text("Continue with Google").font(.headline).foregroundColor(Color.green)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray4), lineWidth: 1))
+                }
             }
             .padding(.horizontal, 28)
             Spacer()

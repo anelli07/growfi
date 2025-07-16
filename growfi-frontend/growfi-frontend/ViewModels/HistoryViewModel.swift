@@ -2,9 +2,9 @@ import Foundation
 import SwiftUI
 
 class HistoryViewModel: ObservableObject {
+    @Published var periodVM = PeriodSelectionViewModel()
     @Published var transactions: [Transaction] = []
     @Published var searchText: String = ""
-    @Published var selectedPeriod: PeriodType = .month
     @Published var filteredDays: [TransactionDay] = []
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
@@ -40,20 +40,9 @@ class HistoryViewModel: ObservableObject {
     }
 
     func applyFilters() {
-        // Фильтрация по периоду (заглушка: только месяц)
-        let calendar = Calendar.current
-        let now = Date()
+        let range = periodVM.currentRange
         let filtered = allTransactions.filter { tx in
-            switch selectedPeriod {
-            case .month:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .month)
-            case .week:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .weekOfYear)
-            case .year:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .year)
-            case .quarter, .halfYear, .all, .custom:
-                return true // для MVP
-            }
+            tx.date >= range.start && tx.date <= range.end
         }
         // Поиск по заметке и категории
         let searched = searchText.isEmpty ? filtered : filtered.filter {
@@ -81,26 +70,7 @@ class HistoryViewModel: ObservableObject {
         applyFilters()
     }
 
-    func updatePeriod(_ period: PeriodType) {
-        selectedPeriod = period
-        applyFilters()
-    }
-    
-    func selectPreviousPeriod() {
-        guard let currentIndex = PeriodType.allCases.firstIndex(of: selectedPeriod),
-              currentIndex > 0 else { return }
-
-        let newPeriod = PeriodType.allCases[currentIndex - 1]
-        updatePeriod(newPeriod)
-    }
-
-    func selectNextPeriod() {
-        guard let currentIndex = PeriodType.allCases.firstIndex(of: selectedPeriod),
-              currentIndex < PeriodType.allCases.count - 1 else { return }
-
-        let newPeriod = PeriodType.allCases[currentIndex + 1]
-        updatePeriod(newPeriod)
-    }
+    // Управление периодом теперь через periodVM
 }
 
 

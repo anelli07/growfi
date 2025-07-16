@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 class AuthViewModel: ObservableObject {
     // Input
@@ -16,6 +17,7 @@ class AuthViewModel: ObservableObject {
     @Published var resentSuccess: Bool = false
     @Published var resetSuccess: Bool = false
     @Published var resent: Bool = false
+    @Published var isGoogleLoading: Bool = false
     // Валидация
     var isEmailValid: Bool { email.contains("@") && email.contains(".") }
     var isPasswordValid: Bool { password.count >= 6 }
@@ -137,6 +139,21 @@ class AuthViewModel: ObservableObject {
             UserDefaults.standard.removeObject(forKey: "refresh_token")
             DispatchQueue.main.async {
                 onComplete?()
+            }
+        }
+    }
+    func loginWithGoogle(presentingViewController: UIViewController, onSuccess: @escaping () -> Void) {
+        isGoogleLoading = true
+        ApiService.shared.loginWithGoogle(presentingViewController: presentingViewController) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isGoogleLoading = false
+                switch result {
+                case .success(let jwt):
+                    UserDefaults.standard.set(jwt, forKey: "access_token")
+                    onSuccess()
+                case .failure(let err):
+                    self?.error = err.localizedDescription
+                }
             }
         }
     }

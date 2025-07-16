@@ -64,7 +64,7 @@ def get_transactions(
                 "title": tx.name or (income.name if income else "Удалено"),
                 "icon": tx.icon or (income.icon if income else "dollarsign.circle.fill"),
                 "color": tx.color or (income.color if income else "#00FF00"),
-                "wallet_name": wallet.name if wallet else "Удалено",
+                "wallet_name": tx.wallet_name if tx.wallet_name else (wallet.name if wallet else "Удалено"),
                 "wallet_icon": wallet.icon_name if wallet else "creditcard",
                 "wallet_color": wallet.color_hex if wallet else "#CCCCCC",
             })
@@ -81,7 +81,7 @@ def get_transactions(
                 "title": tx.name or (expense.name if expense else "Удалено"),
                 "icon": tx.icon or (expense.icon if expense else "cart.fill"),
                 "color": tx.color or (expense.color if expense else "#FF0000"),
-                "wallet_name": wallet.name if wallet else "Удалено",
+                "wallet_name": tx.wallet_name if tx.wallet_name else (wallet.name if wallet else "Удалено"),
                 "wallet_icon": wallet.icon_name if wallet else "creditcard",
                 "wallet_color": wallet.color_hex if wallet else "#CCCCCC",
             })
@@ -95,10 +95,10 @@ def get_transactions(
                 "type": tx.type,
                 "amount": tx.amount,
                 "note": tx.comment,
-                "title": tx.name or (goal.name if goal else "Удалено"),
+                "title": tx.goal_name if tx.goal_name else (goal.name if goal else "Удалено"),
                 "icon": tx.icon or (goal.icon if goal else "leaf.circle.fill"),
                 "color": tx.color or (goal.color if goal else "#00FF00"),
-                "wallet_name": wallet.name if wallet else "Удалено",
+                "wallet_name": tx.wallet_name if tx.wallet_name else (wallet.name if wallet else "Удалено"),
                 "wallet_icon": wallet.icon_name if wallet else "creditcard",
                 "wallet_color": wallet.color_hex if wallet else "#CCCCCC",
             })

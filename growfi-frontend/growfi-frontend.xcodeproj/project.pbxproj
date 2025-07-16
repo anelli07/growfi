@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D9A5C0BA2E271FBE008281D5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = D9A5C0B92E271FBE008281D5 /* GoogleSignIn */; };
+		D9A5C0BC2E271FBE008281D5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D9A5C0BB2E271FBE008281D5 /* GoogleSignInSwift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		D978B9712E1472C700FEEE5F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -30,7 +35,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		D9A5BE0C2E164162008281D5 /* Exceptions for "growfi-frontend" folder in "growfi-frontend" target */ = {
+		D9A5C0BE2E272A45008281D5 /* Exceptions for "growfi-frontend" folder in "growfi-frontend" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -53,7 +58,7 @@
 		D9B8361F2E14BA3200B77C69 /* growfi-frontend */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				D9A5BE0C2E164162008281D5 /* Exceptions for "growfi-frontend" folder in "growfi-frontend" target */,
+				D9A5C0BE2E272A45008281D5 /* Exceptions for "growfi-frontend" folder in "growfi-frontend" target */,
 			);
 			path = "growfi-frontend";
 			sourceTree = "<group>";
@@ -65,6 +70,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D9A5C0BA2E271FBE008281D5 /* GoogleSignIn in Frameworks */,
+				D9A5C0BC2E271FBE008281D5 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,6 +124,8 @@
 			);
 			name = "growfi-frontend";
 			packageProductDependencies = (
+				D9A5C0B92E271FBE008281D5 /* GoogleSignIn */,
+				D9A5C0BB2E271FBE008281D5 /* GoogleSignInSwift */,
 			);
 			productName = "growfi-frontend";
 			productReference = D999AB5F2E1592A600D0EFFA /* growfi-frontend.app */;
@@ -200,6 +209,9 @@
 			);
 			mainGroup = D978B95A2E1472C600FEEE5F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D9A5C0B82E271FBE008281D5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D978B95A2E1472C600FEEE5F;
 			projectDirPath = "";
@@ -406,6 +418,7 @@
 				DEVELOPMENT_TEAM = AHL9CR6C7F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				"INFOPLIST_FILE[sdk=*]" = "growfi-frontend/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -435,6 +448,7 @@
 				DEVELOPMENT_TEAM = AHL9CR6C7F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				"INFOPLIST_FILE[sdk=*]" = "growfi-frontend/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -565,6 +579,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D9A5C0B82E271FBE008281D5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D9A5C0B92E271FBE008281D5 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D9A5C0B82E271FBE008281D5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		D9A5C0BB2E271FBE008281D5 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D9A5C0B82E271FBE008281D5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D978B95B2E1472C600FEEE5F /* Project object */;
 }

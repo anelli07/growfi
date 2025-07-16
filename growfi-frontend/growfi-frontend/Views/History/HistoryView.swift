@@ -3,24 +3,17 @@ import SwiftUI
 struct HistoryView: View {
     @EnvironmentObject var historyVM: HistoryViewModel
     @State private var searchText: String = ""
-    @State private var selectedPeriod: PeriodType = .month
     @State private var showPeriodPicker = false
 
     // Фильтрация по периоду
     var filteredTransactions: [Transaction] {
+        let range = historyVM.periodVM.currentRange
         let calendar = Calendar.current
-        let now = Date()
         let periodFiltered = historyVM.transactions.filter { tx in
-            switch selectedPeriod {
-            case .month:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .month)
-            case .week:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .weekOfYear)
-            case .year:
-                return calendar.isDate(tx.date, equalTo: now, toGranularity: .year)
-            case .quarter, .halfYear, .all, .custom:
-                return true // MVP
-            }
+            let txDay = calendar.startOfDay(for: tx.date)
+            let startDay = calendar.startOfDay(for: range.start)
+            let endDay = calendar.startOfDay(for: range.end)
+            return txDay >= startDay && txDay <= endDay
         }
         let sorted = periodFiltered.sorted { $0.date > $1.date }
         if searchText.isEmpty { return sorted }
@@ -49,13 +42,7 @@ struct HistoryView: View {
                 Text("История")
                     .font(.largeTitle).bold()
                 Spacer()
-                Button {
-                    showPeriodPicker = true
-                } label: {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .font(.title2)
-                        .foregroundColor(.gray)
-                }
+                // Кнопка фильтра удалена
             }
             .padding(.horizontal)
             .padding(.top, 16)
@@ -65,37 +52,18 @@ struct HistoryView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
 
-            // Период и стрелки
-            HStack {
-                Button(action: {
-                    selectPreviousPeriod()
-                }) {
-                    Image(systemName: "chevron.left")
+            // Новый выбор периода
+            Button(action: { showPeriodPicker = true }) {
+                HStack(spacing: 4) {
+                    Text(historyVM.periodVM.formatted)
+                        .font(.subheadline)
+                        .foregroundColor(.black)
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(.gray)
                 }
-
-                Spacer()
-
-                Button(action: {
-                    showPeriodPicker = true
-                }) {
-                    HStack(spacing: 4) {
-                        Text(selectedPeriod.rawValue)
-                        Image(systemName: "chevron.down")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(.black)
-                }
-
-                Spacer()
-
-                Button(action: {
-                    selectNextPeriod()
-                }) {
-                    Image(systemName: "chevron.right")
-                }
+                .padding(.vertical, 6)
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 12)
+            .padding(.top, 8)
 
             // Блок баланса
             BalanceCard(
@@ -130,22 +98,8 @@ struct HistoryView: View {
         }
         .background(Color.white.ignoresSafeArea())
         .sheet(isPresented: $showPeriodPicker) {
-            PeriodPicker(selected: $selectedPeriod)
+            PeriodPicker(selected: $historyVM.periodVM.selectedPeriod, customRange: $historyVM.periodVM.customRange)
         }
-    }
-
-    // Периоды
-    func selectPreviousPeriod() {
-        guard let currentIndex = PeriodType.allCases.firstIndex(of: selectedPeriod),
-              currentIndex > 0 else { return }
-        let newPeriod = PeriodType.allCases[currentIndex - 1]
-        selectedPeriod = newPeriod
-    }
-    func selectNextPeriod() {
-        guard let currentIndex = PeriodType.allCases.firstIndex(of: selectedPeriod),
-              currentIndex < PeriodType.allCases.count - 1 else { return }
-        let newPeriod = PeriodType.allCases[currentIndex + 1]
-        selectedPeriod = newPeriod
     }
 }
 

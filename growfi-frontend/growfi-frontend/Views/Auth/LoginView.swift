@@ -86,8 +86,10 @@ struct LoginView: View {
             .padding(.horizontal, 32)
             .padding(.vertical, 8)
             Button(action: {
-                viewModel.loginWithGoogle {
-                    onLogin?()
+                if let rootVC = UIApplication.shared.windows.first?.rootViewController {
+                    viewModel.loginWithGoogle(presentingViewController: rootVC) {
+                        onLogin?()
+                    }
                 }
             }) {
                 if viewModel.isGoogleLoading {

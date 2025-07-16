@@ -88,6 +88,8 @@ class TransactionBaseSchema(SQLModel):
     name: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    goal_name: Optional[str] = None
+    wallet_name: Optional[str] = None
 
 class TransactionCreate(TransactionBaseSchema):
     pass

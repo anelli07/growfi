@@ -160,7 +160,7 @@ struct EditItemSheet: View {
         case .wallet(let w): viewModel.updateWallet(id: w.id, name: name, amount: amount, wallets: &walletsVM.wallets)
         case .income(let i): viewModel.updateIncome(id: i.id, name: name, amount: 0) // не трогаем сумму
         case .goal(let g): viewModel.updateGoal(id: g.id, name: name, amount: amount)
-        case .expense(let e): viewModel.updateExpense(id: e.id, name: name, amount: 0) // не трогаем сумму
+        case .expense(let e): expensesVM.updateExpense(id: e.id, name: name, icon: selectedIcon, color: selectedColor.toHex ?? "#000000", description: "")
         }
     }
     private func deleteItem() {

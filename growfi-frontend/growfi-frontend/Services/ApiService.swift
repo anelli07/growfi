@@ -1,4 +1,6 @@
 import Foundation
+import GoogleSignIn
+import GoogleSignInSwift
 
 class ApiService {
     static let shared = ApiService()
@@ -159,8 +161,33 @@ class ApiService {
     }
 
     // MARK: - Google Auth (заглушка)
-    func loginWithGoogle(completion: @escaping (Result<String, Error>) -> Void) {
-        completion(.failure(NSError(domain: "Google Auth не реализован", code: 0)))
+    func loginWithGoogle(presentingViewController: UIViewController, completion: @escaping (Result<String, Error>) -> Void) {
+        GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { result, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard let idToken = result?.user.idToken?.tokenString else {
+                completion(.failure(NSError(domain: "Нет idToken", code: 0)))
+                return
+            }
+            // Отправляем idToken на бэкенд
+            guard let url = URL(string: "\(self.baseURL)/auth/google") else { return }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let body: [String: Any] = ["token": idToken]
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error { completion(.failure(error)); return }
+                guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let token = json["access_token"] as? String {
+                    completion(.success(token))
+                } else {
+                    completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                }
+            }.resume()
+        }
     }
 
     // MARK: - Получение доходов
@@ -349,7 +376,7 @@ class ApiService {
     }
 
     func deleteGoal(goalId: Int, token: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/goals/\(goalId)/") else { return }
+        guard let url = URL(string: "\(baseURL)/goals/\(goalId)") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

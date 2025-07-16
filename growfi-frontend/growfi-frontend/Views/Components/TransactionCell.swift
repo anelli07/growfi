@@ -24,7 +24,7 @@ struct TransactionCell: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(transaction.amount, specifier: "%.0f") ₸")
                     .font(.headline)
-                    .foregroundColor(transaction.type == .income ? .green : (transaction.type == .expense ? .red : .primary))
+                    .foregroundColor(transaction.type == .income ? .green : ((transaction.type == .expense || transaction.type == .goal_transfer) ? .red : .primary))
                 if let note = transaction.note, !note.isEmpty {
                     Text(note)
                         .font(.caption)
