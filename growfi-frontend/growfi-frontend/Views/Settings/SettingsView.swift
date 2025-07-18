@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var showLanguageSheet = false
     @State private var showDeleteAccountAlert = false
     @State private var isDeletingAccount = false
+    @State private var showAccountDeletedAlert = false
 
     var body: some View {
         NavigationView {
@@ -135,6 +136,18 @@ struct SettingsView: View {
             } message: {
                 Text("delete_account_confirmation".localized)
             }
+            .alert("account_deleted".localized, isPresented: $showAccountDeletedAlert) {
+                Button("ok".localized) {
+                    // Очищаем все данные пользователя
+                    UserDefaults.standard.removeObject(forKey: "access_token")
+                    UserDefaults.standard.removeObject(forKey: "refresh_token")
+                    goalsVM.user = nil
+                    // Вызываем onLogout для перехода на экран авторизации
+                    onLogout()
+                }
+            } message: {
+                Text("account_deleted_message".localized)
+            }
             .onLanguageChange()
         }
     }
@@ -150,12 +163,8 @@ struct SettingsView: View {
                 
                 switch result {
                 case .success:
-                    // Очищаем все данные пользователя
-                    UserDefaults.standard.removeObject(forKey: "access_token")
-                    UserDefaults.standard.removeObject(forKey: "refresh_token")
-                    goalsVM.user = nil
-                    // Вызываем onLogout для перехода на экран авторизации
-                    onLogout()
+                    // Показываем уведомление об успешном удалении
+                    showAccountDeletedAlert = true
                 case .failure(_):
                     // Можно показать алерт с ошибкой
                     break

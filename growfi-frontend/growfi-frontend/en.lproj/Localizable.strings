@@ -88,6 +88,8 @@
 "delete_account" = "Delete Account";
 "delete_account_confirmation" = "Are you sure you want to delete your account? This action cannot be undone.";
 "delete_account_title" = "Delete Account";
+"account_deleted" = "Account Deleted";
+"account_deleted_message" = "Your account and all data have been successfully deleted";
 "cancel" = "Cancel";
 "insufficient_funds" = "Insufficient funds in wallet";
 "language" = "Language";

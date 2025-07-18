@@ -48,7 +48,6 @@ class GoalsViewModel: ObservableObject {
                     self?.user = user
                 case .failure(let err):
                     // Handle error silently
-                    break
                     self?.error = err.localizedDescription
                 }
             }
@@ -162,7 +161,7 @@ class GoalsViewModel: ObservableObject {
         if let income = incomesVM?.incomes.first(where: { $0.id == incomeId }) {
             incomeTitle = income.name
         }
-        let tx = Transaction(
+        _ = Transaction(
             id: Int(Date().timeIntervalSince1970 * 1000),
             date: Date(),
             type: .income,
@@ -186,7 +185,7 @@ class GoalsViewModel: ObservableObject {
         goals[goalIdx].current_amount += amount
         let wallet = wallets[walletIdx]
         let goal = goals[goalIdx]
-        let tx = Transaction(
+        _ = Transaction(
             id: Int(Date().timeIntervalSince1970 * 1000),
             date: Date(),
             type: .goal,
@@ -212,7 +211,7 @@ class GoalsViewModel: ObservableObject {
         if let expense = expensesVM?.expenses.first(where: { $0.id == expenseId }) {
             expenseTitle = expense.name
         }
-        let tx = Transaction(
+        _ = Transaction(
             id: Int(Date().timeIntervalSince1970 * 1000),
             date: Date(),
             type: .expense,

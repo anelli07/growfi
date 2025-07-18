@@ -48,7 +48,6 @@ class IncomesViewModel: ObservableObject {
                     self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     // Handle error silently
-                    break
                     self?.error = err.localizedDescription
                 }
             }

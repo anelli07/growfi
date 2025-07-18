@@ -62,7 +62,7 @@ class AnalyticsViewModel: ObservableObject {
                 case .success(let txs):
                     self?.allTransactions = txs
                     self?.applyFilters()
-                case .failure(let err):
+                case .failure(_):
                     // Handle error silently
                     break
                 }
@@ -88,8 +88,8 @@ class AnalyticsViewModel: ObservableObject {
         let groupedCat = Dictionary(grouping: filtered) { $0.title }
         groupedByCategory = groupedCat.map { (cat, txs) in
             let total = txs.map { abs($0.amount) }.reduce(0, +)
-            let type = CategoryType.from(name: cat ?? "")
-            return CategoryStat(category: cat ?? "", total: total, color: type.color, categoryIcon: type.icon)
+            let type = CategoryType.from(name: cat)
+            return CategoryStat(category: cat, total: total, color: type.color, categoryIcon: type.icon)
         }.sorted { $0.total > $1.total }
         // Итоги
         incomeTotal = filtered.filter { $0.type == .income }.map { $0.amount }.reduce(0, +)

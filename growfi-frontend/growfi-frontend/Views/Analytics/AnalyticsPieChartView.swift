@@ -90,7 +90,6 @@ struct AnalyticsPieChartView: View {
                 labelX = alignRight ? center.x + radius + sideOffset : center.x - radius - sideOffset
             }
             // Линия теперь до ближайшей точки к подписи (на 16pt ближе к кругу)
-            let labelRadiusForLine = labelRadius - 10
             let isSide = (labelY == topLimit) || (labelY == bottomLimit)
             let textWidth = CGFloat(item.category.count) * 8.0
             let lineEnd: CGPoint

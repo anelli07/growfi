@@ -101,7 +101,8 @@ struct LoginView: View {
                 .padding(.horizontal, 32)
                 .padding(.vertical, 8)
                 Button(action: {
-                    if let rootVC = UIApplication.shared.windows.first?.rootViewController {
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let rootVC = windowScene.windows.first?.rootViewController {
                         viewModel.loginWithGoogle(presentingViewController: rootVC) {
                             onLogin?()
                         }

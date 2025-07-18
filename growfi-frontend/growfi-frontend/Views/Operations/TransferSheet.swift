@@ -61,7 +61,7 @@ struct TransferSheet: View {
     }
     var rightSubtitle: String {
         switch type {
-        case .incomeToWallet(_, let wallet): return "wallet".localized
+        case .incomeToWallet(_, _): return "wallet".localized
         case .walletToGoal(_, _): return "goal".localized
         case .walletToExpense(_, _): return "expense".localized
         }
@@ -167,12 +167,12 @@ struct TransferSheet: View {
                 .padding(.bottom, 8)
                 
                 // Показываем предупреждение о недостаточности средств
-                if case .walletToGoal(let wallet, _) = type, amount > wallet.balance {
+                if case .walletToGoal(_, _) = type, isInsufficientFunds {
                     Text("insufficient_funds".localized)
                         .font(.caption)
                         .foregroundColor(.red)
                         .padding(.bottom, 8)
-                } else if case .walletToExpense(let wallet, _) = type, amount > wallet.balance {
+                } else if case .walletToExpense(_, _) = type, isInsufficientFunds {
                     Text("insufficient_funds".localized)
                         .font(.caption)
                         .foregroundColor(.red)

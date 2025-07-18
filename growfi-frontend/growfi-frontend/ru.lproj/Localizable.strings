@@ -16,6 +16,8 @@
 "delete_account" = "Удалить аккаунт";
 "delete_account_confirmation" = "Вы уверены, что хотите удалить аккаунт? Это действие нельзя отменить.";
 "delete_account_title" = "Удаление аккаунта";
+"account_deleted" = "Аккаунт удален";
+"account_deleted_message" = "Ваш аккаунт и все данные были успешно удалены";
 "cancel" = "Отмена";
 "insufficient_funds" = "Недостаточно средств в кошельке";
 "login" = "Войти";

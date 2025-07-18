@@ -12,9 +12,9 @@ struct AppleSignInButton: View {
             },
             onCompletion: { result in
                 switch result {
-                case .success(let authResults):
+                case .success(_):
                     onSignIn()
-                case .failure(let error):
+                case .failure(_):
                     // Handle error silently
                     break
                 }

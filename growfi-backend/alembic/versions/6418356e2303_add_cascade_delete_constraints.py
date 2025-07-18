@@ -20,23 +20,23 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Удаляем существующие foreign key constraints
-    op.drop_constraint('category_user_id_fkey', 'category', type_='foreignkey')
-    op.drop_constraint('expense_category_id_fkey', 'expense', type_='foreignkey')
-    op.drop_constraint('expense_user_id_fkey', 'expense', type_='foreignkey')
-    op.drop_constraint('expense_wallet_id_fkey', 'expense', type_='foreignkey')
-    op.drop_constraint('goal_user_id_fkey', 'goal', type_='foreignkey')
-    op.drop_constraint('income_category_id_fkey', 'income', type_='foreignkey')
-    op.drop_constraint('income_user_id_fkey', 'income', type_='foreignkey')
-    op.drop_constraint('income_wallet_id_fkey', 'income', type_='foreignkey')
-    op.drop_constraint('transaction_from_category_id_fkey', 'transaction', type_='foreignkey')
-    op.drop_constraint('transaction_from_goal_id_fkey', 'transaction', type_='foreignkey')
-    op.drop_constraint('transaction_from_wallet_id_fkey', 'transaction', type_='foreignkey')
-    op.drop_constraint('transaction_to_category_id_fkey', 'transaction', type_='foreignkey')
-    op.drop_constraint('transaction_to_goal_id_fkey', 'transaction', type_='foreignkey')
-    op.drop_constraint('transaction_to_wallet_id_fkey', 'transaction', type_='foreignkey')
-    op.drop_constraint('transaction_user_id_fkey', 'transaction', type_='foreignkey')
-    op.drop_constraint('wallet_user_id_fkey', 'wallet', type_='foreignkey')
+    # Удаляем существующие foreign key constraints с проверкой IF EXISTS
+    op.execute('ALTER TABLE "category" DROP CONSTRAINT IF EXISTS "category_user_id_fkey"')
+    op.execute('ALTER TABLE "expense" DROP CONSTRAINT IF EXISTS "expense_category_id_fkey"')
+    op.execute('ALTER TABLE "expense" DROP CONSTRAINT IF EXISTS "expense_user_id_fkey"')
+    op.execute('ALTER TABLE "expense" DROP CONSTRAINT IF EXISTS "expense_wallet_id_fkey"')
+    op.execute('ALTER TABLE "goal" DROP CONSTRAINT IF EXISTS "goal_user_id_fkey"')
+    op.execute('ALTER TABLE "income" DROP CONSTRAINT IF EXISTS "income_category_id_fkey"')
+    op.execute('ALTER TABLE "income" DROP CONSTRAINT IF EXISTS "income_user_id_fkey"')
+    op.execute('ALTER TABLE "income" DROP CONSTRAINT IF EXISTS "income_wallet_id_fkey"')
+    op.execute('ALTER TABLE "transaction" DROP CONSTRAINT IF EXISTS "transaction_from_category_id_fkey"')
+    op.execute('ALTER TABLE "transaction" DROP CONSTRAINT IF EXISTS "transaction_from_goal_id_fkey"')
+    op.execute('ALTER TABLE "transaction" DROP CONSTRAINT IF EXISTS "transaction_from_wallet_id_fkey"')
+    op.execute('ALTER TABLE "transaction" DROP CONSTRAINT IF EXISTS "transaction_to_category_id_fkey"')
+    op.execute('ALTER TABLE "transaction" DROP CONSTRAINT IF EXISTS "transaction_to_goal_id_fkey"')
+    op.execute('ALTER TABLE "transaction" DROP CONSTRAINT IF EXISTS "transaction_to_wallet_id_fkey"')
+    op.execute('ALTER TABLE "transaction" DROP CONSTRAINT IF EXISTS "transaction_user_id_fkey"')
+    op.execute('ALTER TABLE "wallet" DROP CONSTRAINT IF EXISTS "wallet_user_id_fkey"')
 
     # Добавляем новые constraints с каскадным удалением
     op.create_foreign_key('category_user_id_fkey', 'category', 'user', ['user_id'], ['id'], ondelete='CASCADE')

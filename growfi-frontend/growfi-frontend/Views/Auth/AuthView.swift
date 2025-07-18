@@ -108,7 +108,8 @@ struct AuthView: View {
             .padding(.horizontal, 28)
             .padding(.bottom, 18)
             Button(action: {
-                if let rootVC = UIApplication.shared.windows.first?.rootViewController {
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let rootVC = windowScene.windows.first?.rootViewController {
                     vm.loginWithGoogle(presentingViewController: rootVC) {
                         onLogin?()
                     }
@@ -137,8 +138,9 @@ struct AuthView: View {
                 let request = provider.createRequest()
                 request.requestedScopes = [.fullName, .email]
                 let controller = ASAuthorizationController(authorizationRequests: [request])
-                controller.delegate = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
-                controller.presentationContextProvider = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
+                let coordinator = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
+                controller.delegate = coordinator
+                controller.presentationContextProvider = coordinator
                 controller.performRequests()
             }) {
                 HStack(spacing: 10) {
@@ -192,7 +194,11 @@ class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate, ASAut
         self.onLogin = onLogin
     }
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first(where: { $0.isKeyWindow }) {
+            return window
+        }
+        return ASPresentationAnchor()
     }
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,

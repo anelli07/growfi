@@ -133,7 +133,6 @@ struct AppEntry: View {
                             goalsViewModel.expensesVM = expensesVM
                             goalsViewModel.incomesVM = incomesVM
                             goalsViewModel.analyticsVM = analyticsVM
-                            let token = UserDefaults.standard.string(forKey: "access_token") ?? "nil"
                     
                             goalsViewModel.fetchUser()
                             goalsViewModel.fetchGoals()

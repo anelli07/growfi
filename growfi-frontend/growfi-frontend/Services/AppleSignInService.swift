@@ -84,7 +84,7 @@ class AppleSignInService: NSObject, ObservableObject {
 extension AppleSignInService: ASAuthorizationControllerDelegate {
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-            guard let nonce = currentNonce else {
+            guard currentNonce != nil else {
                 fatalError("Invalid state: A login callback was received, but no login request was sent.")
             }
             
@@ -92,7 +92,7 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
                 return
             }
             
-            guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
+            guard String(data: appleIDToken, encoding: .utf8) != nil else {
                 return
             }
             
