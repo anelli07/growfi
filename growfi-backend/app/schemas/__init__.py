@@ -1,5 +1,5 @@
 from .user import User, UserCreate, UserUpdate
-from .token import Token, TokenPayload, GoogleToken
+from .token import Token, TokenData, GoogleToken, AppleToken
 from .category import Category, CategoryCreate, CategoryUpdate
 from .wallet import Wallet, WalletCreate, WalletUpdate
 from .transaction import (
@@ -22,8 +22,9 @@ __all__ = [
     "UserCreate",
     "UserUpdate",
     "Token",
-    "TokenPayload",
+    "TokenData",
     "GoogleToken",
+    "AppleToken",
     "Category",
     "CategoryCreate",
     "CategoryUpdate",

@@ -57,3 +57,11 @@ class User(UserInDBBase):
 class UserInDB(UserInDBBase):
     hashed_password: Optional[str] = None
     google_id: Optional[str] = Field(default=None, unique=True, index=True)
+
+
+class PasswordResetRequest(SQLModel):
+    email: EmailStr
+
+class PasswordResetConfirm(SQLModel):
+    token: str
+    new_password: str

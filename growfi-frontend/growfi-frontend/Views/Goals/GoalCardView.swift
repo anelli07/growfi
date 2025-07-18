@@ -12,7 +12,7 @@ struct GoalCardView: View {
                 .frame(width: isSelected ? 100 : 70, height: isSelected ? 100 : 70)
                 .shadow(color: .black.opacity(isSelected ? 0.15 : 0.05), radius: isSelected ? 12 : 4, x: 0, y: 6)
 
-            Text(goal.name)
+            Text(goal.name.localizedIfDefault)
                 .font(.subheadline)
                 .foregroundColor(.primary)
                 .opacity(isSelected ? 1 : 0.5)

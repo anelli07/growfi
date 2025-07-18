@@ -4,7 +4,7 @@ struct AIChatView: View {
     var body: some View {
         VStack {
             Spacer()
-            Text("ИИ-помощник скоро будет доступен 🚀")
+            Text("ai_coming_soon".localized)
                 .font(.title3)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)

@@ -130,7 +130,7 @@ class GoalsViewModel: ObservableObject {
     }
 
     var userName: String {
-        user?.full_name ?? "Гость"
+        user?.full_name ?? "Guest".localized
     }
 
     var todayTransactions: [Transaction] {

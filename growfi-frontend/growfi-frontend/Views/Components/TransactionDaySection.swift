@@ -2,10 +2,11 @@ import SwiftUI
 
 struct TransactionDaySection: View {
     let day: TransactionDay
+    @ObservedObject private var langManager = AppLanguageManager.shared
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(day.date, formatter: dateFormatter)
+                Text(formattedDate(day.date))
                     .font(.subheadline).bold()
                 Spacer()
                 Text("\(day.total >= 0 ? "+" : "-")\(Int(abs(day.total)))")
@@ -20,14 +21,15 @@ struct TransactionDaySection: View {
         .padding(.vertical, 6)
         .padding(.horizontal, 2)
     }
+    private func formattedDate(_ date: Date) -> String {
+        let lang = langManager.currentLanguage.rawValue
+        let locale = Locale(identifier: lang)
+        let df = DateFormatter()
+        df.locale = locale
+        df.setLocalizedDateFormatFromTemplate("d MMMM yyyy, EEEE")
+        return df.string(from: date)
+    }
 }
-
-private let dateFormatter: DateFormatter = {
-    let df = DateFormatter()
-    df.locale = Locale(identifier: "ru_RU")
-    df.setLocalizedDateFormatFromTemplate("d MMMM yyyy, EEEE")
-    return df
-}()
 
 struct TransactionDaySection_Previews: PreviewProvider {
     static var previews: some View {

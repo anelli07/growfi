@@ -47,15 +47,15 @@ struct OperationsView: View {
     var expenseTotal: Double { Double(expensesVM.expenses.count) } // или 0, если не нужно
 
     let defaultExpenses: [(name: String, icon: String, color: Color)] = [
-        ("Развлечения", CategoryType.from(name: "Развлечения").icon, CategoryType.from(name: "Развлечения").color),
-        ("Связь", "phone.fill", .teal),
-        ("Транспорт", CategoryType.from(name: "Транспорт").icon, CategoryType.from(name: "Транспорт").color),
-        ("Еда", CategoryType.from(name: "Еда").icon, CategoryType.from(name: "Еда").color),
-        ("Продукты", CategoryType.from(name: "Продукты").icon, CategoryType.from(name: "Продукты").color),
-        ("Здоровье", CategoryType.from(name: "Здоровье").icon, CategoryType.from(name: "Здоровье").color),
-        ("Путешествия", "airplane", .mint),
-        ("Одежда", "tshirt.fill", .gray),
-        ("Красота", "scissors", .pink)
+        (CategoryType.развлечения.localizedName, CategoryType.развлечения.icon, CategoryType.развлечения.color),
+        (CategoryType.связь.localizedName, "phone.fill", .teal),
+        (CategoryType.транспорт.localizedName, CategoryType.транспорт.icon, CategoryType.транспорт.color),
+        (CategoryType.еда.localizedName, CategoryType.еда.icon, CategoryType.еда.color),
+        (CategoryType.продукты.localizedName, CategoryType.продукты.icon, CategoryType.продукты.color),
+        (CategoryType.здоровье.localizedName, CategoryType.здоровье.icon, CategoryType.здоровье.color),
+        ("Travel".localized, "airplane", .mint),
+        ("Clothes".localized, "tshirt.fill", .gray),
+        ("Beauty".localized, "scissors", .pink)
     ]
 
     @State private var showIncome = true
@@ -81,7 +81,7 @@ struct OperationsView: View {
             print("[OperationsView] expensesVM.expenses:", expensesVM.expenses)
         }
         .alert(isPresented: $showAlert) {
-            Alert(title: Text("Ошибка"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            Alert(title: Text("error".localized), message: Text(alertMessage), dismissButton: .default(Text("ok".localized)))
         }
         .sheet(isPresented: $showTransferSheet) {
             if let type = transferType {
@@ -122,8 +122,10 @@ struct OperationsView: View {
                     }
                     showTransferSheet = false
                 }
+                .id(UUID())
             }
         }
+        .id(AppLanguageManager.shared.currentLanguage)
         .sheet(isPresented: $showCreateSheet) {
             if let type = createType {
                 CreateItemSheet(type: type) { name, sum, icon, color, currency in
@@ -144,19 +146,24 @@ struct OperationsView: View {
                     }
                     showCreateSheet = false
                 }
+                .id(UUID())
             }
         }
+        .id(AppLanguageManager.shared.currentLanguage)
         .sheet(item: $editItem) { item in
             EditItemSheet(item: item, viewModel: viewModel) {
                 editItem = nil
             }
+            .id(item.id)
         }
+        .id(AppLanguageManager.shared.currentLanguage)
+        .onLanguageChange()
     }
 
     // --- СЕКЦИИ ---
     private var incomesSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionToggleHeader(title: "Доходы", total: "\(Int(incomeTotal)) ₸", isExpanded: .constant(true))
+            SectionToggleHeader(title: "incomes_section".localized, total: "\(Int(incomeTotal)) ₸", isExpanded: .constant(true))
             CategoryGrid {
                 Group {
                     ForEach(incomesVM.incomes) { income in
@@ -189,7 +196,7 @@ struct OperationsView: View {
             OperationCategoryCircle(
                 icon: wallet.iconName ?? "creditcard.fill",
                 color: .blue,
-                title: wallet.name,
+                title: wallet.name.localizedIfDefault,
                 amount: "\(Int(wallet.balance)) ₸",
                 onDrag: {
                     dragWalletId = wallet.id
@@ -223,7 +230,7 @@ struct OperationsView: View {
             OperationCategoryCircle(
                 icon: expense.icon,
                 color: .red,
-                title: expense.name,
+                title: expense.name.localizedIfDefault,
                 amount: "\(Int(expense.amount)) ₸",
                 onDrop: { providers in
                     providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
@@ -252,7 +259,7 @@ struct OperationsView: View {
             OperationCategoryCircle(
                 icon: "leaf.circle.fill",
                 color: .green,
-                title: goal.name,
+                title: goal.name.localizedIfDefault,
                 amount: "\(Int(goal.current_amount))/\(Int(goal.target_amount)) ₸",
                 onDrop: { providers in
                     providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
@@ -278,7 +285,7 @@ struct OperationsView: View {
 
     private var walletsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionHeader(title: "Кошельки", total: "\(Int(walletTotal)) ₸")
+            SectionHeader(title: "wallets_section".localized, total: "\(Int(walletTotal)) ₸")
             CategoryGrid {
                 Group {
                     walletGrid
@@ -295,7 +302,7 @@ struct OperationsView: View {
 
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionHeader(title: "Цели", total: "")
+            SectionHeader(title: "goals_section".localized, total: "")
             CategoryGrid {
                 Group {
                     goalGrid
@@ -312,7 +319,7 @@ struct OperationsView: View {
 
     private var expensesSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionHeader(title: "Расходы", total: "\(Int(expenseTotal)) ₸")
+            SectionHeader(title: "expenses_section".localized, total: "\(Int(expenseTotal)) ₸")
             CategoryGrid {
                 Group {
                     expenseGrid

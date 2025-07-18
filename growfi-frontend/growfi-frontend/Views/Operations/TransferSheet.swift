@@ -10,19 +10,27 @@ struct TransferSheet: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var showDatePicker: Bool = false
     
+    init(type: TransferType, amount: Binding<Double>, date: Binding<Date>, comment: Binding<String>, onConfirm: @escaping (Double, Date, String) -> Void) {
+        self.type = type
+        self._amount = amount
+        self._date = date
+        self._comment = comment
+        self.onConfirm = onConfirm
+    }
+    
     // Универсальные вычисления для левой и правой части
     var leftTitle: String {
         switch type {
-        case .incomeToWallet(_, _): return "Доход"
-        case .walletToGoal(let wallet, _): return wallet.name
-        case .walletToExpense(let wallet, _): return wallet.name
+        case .incomeToWallet(_, _): return "Income".localized
+        case .walletToGoal(let wallet, _): return wallet.name.localizedIfDefault
+        case .walletToExpense(let wallet, _): return wallet.name.localizedIfDefault
         }
     }
     var leftSubtitle: String {
         switch type {
-        case .incomeToWallet(_, _): return "Доход"
-        case .walletToGoal: return "Кошелек"
-        case .walletToExpense: return "Кошелек"
+        case .incomeToWallet(_, _): return "Income".localized
+        case .walletToGoal: return "Wallet".localized
+        case .walletToExpense: return "Wallet".localized
         }
     }
     var leftAmount: String {
@@ -46,44 +54,44 @@ struct TransferSheet: View {
     }
     var rightTitle: String {
         switch type {
-        case .incomeToWallet(_, let wallet): return wallet.name
-        case .walletToGoal(_, let goal): return goal.name
-        case .walletToExpense(_, let expense): return expense.name
+        case .incomeToWallet(_, let wallet): return wallet.name.localizedIfDefault
+        case .walletToGoal(_, let goal): return goal.name.localizedIfDefault
+        case .walletToExpense(_, let expense): return expense.name.localizedIfDefault
         }
     }
     var rightSubtitle: String {
         switch type {
-        case .incomeToWallet: return "Кошелек"
-        case .walletToGoal: return "Цель"
-        case .walletToExpense: return "Категория"
+        case .incomeToWallet(_, let wallet): return "wallet".localized
+        case .walletToGoal(_, _): return "goal".localized
+        case .walletToExpense(_, _): return "expense".localized
         }
     }
     var rightAmount: String {
         switch type {
         case .incomeToWallet(_, let wallet): return "\(Int(wallet.balance)) ₸"
-        case .walletToGoal(_, let goal): return "\(Int(goal.current_amount)) ₸"
-        case .walletToExpense: return ""
+        case .walletToGoal(_, let goal): return "\(Int(goal.current_amount)) / \(Int(goal.target_amount)) ₸"
+        case .walletToExpense(_, let expense): return "\(Int(expense.amount)) ₸"
         }
     }
     var rightIcon: String {
         switch type {
         case .incomeToWallet: return "creditcard.fill"
         case .walletToGoal: return "leaf.circle.fill"
-        case .walletToExpense: return "building.columns.fill"
+        case .walletToExpense: return "cart.fill"
         }
     }
     var rightColor: Color {
         switch type {
         case .incomeToWallet: return .blue
         case .walletToGoal: return .green
-        case .walletToExpense: return .orange
+        case .walletToExpense: return .red
         }
     }
     var title: String {
         switch type {
-        case .incomeToWallet: return "Пополнение"
-        case .walletToGoal: return "Цель"
-        case .walletToExpense: return "Расход"
+        case .incomeToWallet: return "TopUp".localized
+        case .walletToGoal: return "Goal".localized
+        case .walletToExpense: return "Expense".localized
         }
     }
     var dateOptions: [Date] {
@@ -100,15 +108,16 @@ struct TransferSheet: View {
         return formatter.string(from: d)
     }
     func dateWeekday(_ d: Date) -> String {
+        let lang = AppLanguageManager.shared.currentLanguage.rawValue
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.locale = Locale(identifier: lang)
         formatter.dateFormat = "EEEE"
         return formatter.string(from: d).capitalized
     }
     func dateSpecial(_ d: Date) -> String? {
         let cal = Calendar.current
-        if cal.isDateInToday(d) { return "Сегодня" }
-        if cal.isDateInYesterday(d) { return "Вчера" }
+        if cal.isDateInToday(d) { return "today".localized }
+        if cal.isDateInYesterday(d) { return "yesterday".localized }
         return nil
     }
     var body: some View {
@@ -126,7 +135,7 @@ struct TransferSheet: View {
                 }
             }
             Spacer().frame(height: 8)
-            Text("Сумма")
+            Text("amount".localized)
                 .font(.system(size: 16, weight: .regular))
                 .foregroundColor(.gray)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -189,7 +198,7 @@ struct TransferSheet: View {
             }
             .padding(.vertical, 16)
             VStack(alignment: .leading, spacing: 8) {
-                Text("Дата")
+                Text("Дата".localized)
                     .font(.system(size: 16))
                     .foregroundColor(.gray)
                 HStack(spacing: 8) {
@@ -240,7 +249,7 @@ struct TransferSheet: View {
             .sheet(isPresented: $showDatePicker) {
                 VStack {
                     HStack {
-                        Text("Выберите дату")
+                        Text("Выберите дату".localized)
                             .font(.headline)
                         Spacer()
                         Button(action: { showDatePicker = false }) {
@@ -253,9 +262,10 @@ struct TransferSheet: View {
                         .datePickerStyle(.graphical)
                         .labelsHidden()
                         .padding()
+                        .environment(\.locale, Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue))
                     Spacer()
                     Button(action: { showDatePicker = false }) {
-                        Text("Сохранить")
+                        Text("Сохранить".localized)
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color.blue)
@@ -268,10 +278,10 @@ struct TransferSheet: View {
                 .presentationDetents([.medium, .large])
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text("Комментарий")
+                Text("Комментарий".localized)
                     .font(.system(size: 16))
                     .foregroundColor(.gray)
-                TextField("Комментарий", text: $comment)
+                TextField("Комментарий".localized, text: $comment)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
             .padding(.vertical, 8)
@@ -279,7 +289,7 @@ struct TransferSheet: View {
             Button(action: {
                 onConfirm(amount, date, comment)
             }) {
-                Text("Сохранить")
+                Text("Сохранить".localized)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.blue)

@@ -35,7 +35,7 @@ struct GoalsCarouselView: View {
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: isActive ? 180 : 120, height: isActive ? 180 : 120)
                                 .shadow(color: .black.opacity(isActive ? 0.15 : 0), radius: 8, x: 0, y: 4)
-                            Text(goal.name)
+                            Text(goal.name.localizedIfDefault)
                                 .font(isActive ? .headline : .subheadline)
                                 .foregroundColor(isActive ? .primary : .gray)
                                 .lineLimit(1)
@@ -62,26 +62,35 @@ struct GoalsCarouselView: View {
                 }
                 
                 LastTransactionsView(
-                    onShowHistory: { selectedTab = 0 }
+                    onShowHistory: { selectedTab = 0 },
+                    todayTransactions: viewModel.todayTransactions
                 )
-                .padding(.top, 24)      // ⬆️ расстояние от "цели"
-                .padding(.bottom, 16)   // ⬇️ расстояние до поисковика
-                
-                SearchBar(
-                    placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
-                    text: .constant("")
-                )
-                .onTapGesture { showAIChat = true }
+                .id(AppLanguageManager.shared.currentLanguage)
                 .padding(.horizontal)
-                .padding(.bottom, 32)
-                .frame(height: 44)
-                .sheet(isPresented: $showAIChat) {
-                    AIChatView()
-                }
+                .padding(.top, 24)
+                .padding(.bottom, 16)
+                .background(Color(.systemGray6))
+                .cornerRadius(14)
+                
+                // SearchBar(
+                //     placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
+                //     text: .constant("")
+                // )
+                // .onTapGesture { showAIChat = true }
+                // .padding(.horizontal)
+                // .padding(.bottom, 32)
+                // .frame(height: 44)
+                // .sheet(isPresented: $showAIChat) {
+                //     AIChatView()
+                // }
             }
         }
         .onAppear {
             viewModel.historyVM = historyVM
+        }
+        .onLanguageChange()
+        .onReceive(NotificationCenter.default.publisher(for: .languageChanged)) { _ in
+            // Принудительно обновляем View при смене языка
         }
     }
 }
@@ -90,32 +99,34 @@ struct GoalsCarouselView: View {
 struct GreetingView: View {
     let userName: String
     var body: some View {
-            HStack {
-            Text("Привет, \(userName)👋")
-                    .font(.title2).bold()
-                Spacer()
-            }
-            .padding(.horizontal)
+        HStack {
+            Text(String(format: "GreetingUser".localized, userName))
+                .font(.title2).bold()
+            Spacer()
+        }
+        .padding(.horizontal)
+        .onLanguageChange()
     }
 }
 
 struct TodayExpenseView: View {
     let todayExpense: Double
     var body: some View {
-            HStack {
-                Image(systemName: "calendar")
-                    .foregroundColor(.red)
-                Text("Расходы за сегодня:")
-                    .font(.subheadline)
-            Text("\(Int(todayExpense)) т")
-                    .foregroundColor(.red)
-                    .font(.subheadline).bold()
-                Spacer()
-            }
+        HStack {
+            Image(systemName: "calendar")
+                .foregroundColor(.red)
+            Text("TodayExpense".localized)
+                .font(.subheadline)
+            Text("\(Int(todayExpense)) ₸")
+                .foregroundColor(.red)
+                .font(.subheadline).bold()
+            Spacer()
+        }
         .padding(8)
-            .background(Color(.systemGray6))
-            .cornerRadius(14)
-            .padding(.horizontal)
+        .background(Color(.systemGray6))
+        .cornerRadius(14)
+        .padding(.horizontal)
+        .onLanguageChange()
     }
 }
 
@@ -130,7 +141,7 @@ struct EmptyGoalView: View {
                 .frame(width: 180, height: 180)
                 .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
             Button(action: { showCreateGoalSheet = true }) {
-                Text("Создать цель")
+                Text("CreateGoal".localized)
                     .font(.headline)
                     .foregroundColor(.green)
                     .padding(.horizontal, 20)
@@ -155,6 +166,7 @@ struct EmptyGoalView: View {
                 onCreate(name, sum, "", "", "")
             }
         }
+        .onLanguageChange()
     }
 }
 
@@ -168,7 +180,7 @@ struct SingleGoalView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 180, height: 180)
                 .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
-            Text(goal.name)
+            Text(goal.name.localizedIfDefault)
                 .font(.subheadline)
             Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
                 .font(.subheadline)
@@ -180,7 +192,7 @@ struct SingleGoalView: View {
             Button(action: {
                 showOperations = true
             }) {
-                Text("Пополнить цель")
+                Text("ReplenishGoal".localized)
                     .font(.headline)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 24)
@@ -194,6 +206,7 @@ struct SingleGoalView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 4)
+        .onLanguageChange()
     }
 }
 
@@ -275,7 +288,7 @@ struct GoalsCarousel: View {
 struct GoalDetailsView: View {
     let goal: Goal
     var body: some View {
-                VStack(spacing: 10) {
+        VStack(spacing: 10) {
 //            Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
 //                        .font(.subheadline)
 //                        .foregroundColor(.gray)
@@ -283,41 +296,36 @@ struct GoalDetailsView: View {
 //                        .accentColor(Color.green)
 //                .frame(height: 4)
 //                        .padding(.horizontal, 24)
-                    Button(action: {
-                        // TODO: Sheet для пополнения цели
-                    }) {
-                        Text("Пополнить цель")
-                            .font(.headline)
+            Button(action: {
+                // TODO: Sheet для пополнения цели
+            }) {
+                Text("ReplenishGoal".localized)
+                    .font(.headline)
                     .padding(.vertical, 8)
-                            .padding(.horizontal, 24)
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
+                    .padding(.horizontal, 24)
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
             .frame(height: 44)
-                    }
-                }
-            }
+        }
+        .onLanguageChange()
+    }
+}
 
 struct LastTransactionsView: View {
     @EnvironmentObject var historyVM: HistoryViewModel
-    let onShowHistory: () -> Void
-
-    var todayTransactions: [Transaction] {
-        let calendar = Calendar.current
-        return historyVM.transactions.filter { calendar.isDateInToday($0.date) }
-            .sorted(by: { $0.date > $1.date })
-    }
-
+    var onShowHistory: () -> Void = {}
+    var todayTransactions: [Transaction] = []
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Последние транзакции")
+                Text("LastTransactions".localized)
                     .font(.headline)
                 Spacer()
                 Button(action: { onShowHistory() }) {
                     HStack(spacing: 4) {
-                        Text("Подробнее")
+                        Text("Details".localized)
                             .font(.subheadline)
                         Image(systemName: "chevron.right")
                     }
@@ -340,6 +348,7 @@ struct LastTransactionsView: View {
         }
         .padding(8)
         .background(Color(.systemGray5))
+        .onLanguageChange()
     }
 }
 

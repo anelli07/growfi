@@ -18,6 +18,9 @@ class AuthViewModel: ObservableObject {
     @Published var resetSuccess: Bool = false
     @Published var resent: Bool = false
     @Published var isGoogleLoading: Bool = false
+    @Published var showEmailExistsAlert: Bool = false
+    @Published var existingEmail: String = ""
+    @Published var isAppleLoading: Bool = false
     // Валидация
     var isEmailValid: Bool { email.contains("@") && email.contains(".") }
     var isPasswordValid: Bool { password.count >= 6 }
@@ -56,7 +59,14 @@ class AuthViewModel: ObservableObject {
                     self?.showVerifyScreen = true
                     completion(true)
                 case .failure(let err):
-                    self?.error = err.localizedDescription
+                    // Проверяем, является ли ошибка связанной с существующим email
+                    if err.localizedDescription.contains("already exists") || err.localizedDescription.contains("уже существует") {
+                        self?.existingEmail = self?.email ?? ""
+                        self?.showEmailExistsAlert = true
+                        self?.error = "email_exists_but_not_verified".localized
+                    } else {
+                        self?.error = err.localizedDescription
+                    }
                     completion(false)
                 }
             }
@@ -157,7 +167,41 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
+
+    func loginWithApple(idToken: String, onSuccess: @escaping () -> Void) {
+        isAppleLoading = true
+        ApiService.shared.loginWithApple(idToken: idToken) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isAppleLoading = false
+                switch result {
+                case .success(let jwt):
+                    UserDefaults.standard.set(jwt, forKey: "access_token")
+                    onSuccess()
+                case .failure(let err):
+                    self?.error = err.localizedDescription
+                }
+            }
+        }
+    }
     func clearFields() {
         email = ""; password = ""; fullName = ""; code = ""; error = nil
+    }
+    
+    func resendCodeForExistingEmail(completion: (() -> Void)? = nil) {
+        isLoading = true
+        ApiService.shared.resendCode(email: existingEmail) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success:
+                    self?.showEmailExistsAlert = false
+                    self?.showVerifyScreen = true
+                    self?.email = self?.existingEmail ?? ""
+                    completion?()
+                case .failure(let err):
+                    self?.error = err.localizedDescription
+                }
+            }
+        }
     }
 } 

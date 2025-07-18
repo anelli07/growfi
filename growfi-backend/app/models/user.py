@@ -14,6 +14,7 @@ class UserBase(SQLModel):
     is_superuser: bool = Field(default=False)
     is_email_verified: bool = Field(default=False)
     google_id: Optional[str] = Field(default=None, unique=True)
+    apple_id: Optional[str] = Field(default=None, unique=True)
     timezone: str = Field(default="UTC")
 
 
@@ -23,6 +24,8 @@ class User(UserBase, table=True):
     refresh_token: Optional[str] = Field(default=None, index=True)
     email_verification_code: Optional[str] = Field(default=None, index=True)
     email_verification_code_sent_at: Optional[datetime] = Field(default=None)
+    reset_password_token: Optional[str] = Field(default=None, index=True)
+    reset_password_token_sent_at: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships

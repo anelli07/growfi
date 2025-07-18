@@ -18,6 +18,32 @@ struct EditItemSheet: View {
     ]
     let availableColors: [Color] = [.blue, .green, .yellow, .orange, .red, .purple, .mint, .gray]
 
+    init(item: OperationsView.EditableItem, viewModel: GoalsViewModel, onClose: @escaping () -> Void) {
+        self.item = item
+        self.viewModel = viewModel
+        self.onClose = onClose
+        
+        // Инициализируем @State переменные в зависимости от типа элемента
+        let (name, sum, icon, color) = Self.getInitialValues(for: item)
+        _name = State(initialValue: name)
+        _sum = State(initialValue: sum)
+        _selectedIcon = State(initialValue: icon)
+        _selectedColor = State(initialValue: color)
+    }
+    
+    private static func getInitialValues(for item: OperationsView.EditableItem) -> (String, String, String, Color) {
+        switch item {
+        case .wallet(let w):
+            return (w.name.localizedIfDefault, String(Int(w.balance)), "creditcard.fill", .blue)
+        case .income(let i):
+            return (i.name.localizedIfDefault, "", "dollarsign.circle.fill", .green)
+        case .goal(let g):
+            return (g.name.localizedIfDefault, String(Int(g.current_amount)), "leaf.circle.fill", .green)
+        case .expense(let e):
+            return (e.name.localizedIfDefault, "", "cart.fill", .red)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -39,7 +65,7 @@ struct EditItemSheet: View {
             .padding(.horizontal, 24)
             .padding(.top, 16)
             VStack(spacing: 16) {
-                Text("Иконка")
+                Text("icon".localized)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.gray)
                 IconColorPickerView(
@@ -51,7 +77,7 @@ struct EditItemSheet: View {
                 )
                 .padding(.bottom, 8)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("название")
+                    Text("name".localized)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.gray)
                     TextField("", text: $name)
@@ -59,7 +85,7 @@ struct EditItemSheet: View {
                 }
                 if case .wallet = item {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Сумма")
+                        Text("Amount".localized)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                         TextField("0", text: $sum)
@@ -68,7 +94,7 @@ struct EditItemSheet: View {
                     }
                 } else if case .goal = item {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Сумма")
+                        Text("Amount".localized)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                         TextField("0", text: $sum)
@@ -77,7 +103,7 @@ struct EditItemSheet: View {
                     }
                 }
                 HStack {
-                    Text("Валюта")
+                    Text("Currency".localized)
                         .font(.system(size: 14, weight: .medium))
                     Spacer()
                     Text("₸")
@@ -93,7 +119,7 @@ struct EditItemSheet: View {
                 onClose()
                 presentationMode.wrappedValue.dismiss()
             }) {
-                Text("Сохранить")
+                Text("Save".localized)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(name.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
@@ -107,53 +133,29 @@ struct EditItemSheet: View {
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
-        .onAppear { fillFields(); initIconColor() }
         .alert(isPresented: $showDeleteAlert) {
             Alert(
-                title: Text("Удалить?"),
-                message: Text("Действие необратимо"),
-                primaryButton: .destructive(Text("Удалить"), action: {
+                title: Text("Delete".localized),
+                message: Text("IrreversibleAction".localized),
+                primaryButton: .destructive(Text("Delete".localized), action: {
                     deleteItem()
                     onClose()
                     presentationMode.wrappedValue.dismiss()
                 }),
-                secondaryButton: .cancel()
+                secondaryButton: .cancel(Text("Cancel".localized))
             )
         }
     }
 
     private var title: String {
         switch item {
-        case .wallet: return "Кошелек"
-        case .income: return "Доход"
-        case .goal: return "Цель"
-        case .expense: return "Расход"
+        case .wallet: return "Wallet".localized
+        case .income: return "Income".localized
+        case .goal: return "Goal".localized
+        case .expense: return "Expense".localized
         }
     }
-    private func initIconColor() {
-        switch item {
-        case .wallet: selectedIcon = "creditcard.fill"; selectedColor = .blue
-        case .income: selectedIcon = "dollarsign.circle.fill"; selectedColor = .green
-        case .goal: selectedIcon = "leaf.circle.fill"; selectedColor = .green
-        case .expense: selectedIcon = "cart.fill"; selectedColor = .red
-        }
-    }
-    private func fillFields() {
-        switch item {
-        case .wallet(let w):
-            name = w.name
-            sum = String(Int(w.balance))
-        case .income(let i):
-            name = i.name
-            sum = ""
-        case .goal(let g):
-            name = g.name
-            sum = String(Int(g.current_amount))
-        case .expense(let e):
-            name = e.name
-            sum = ""
-        }
-    }
+    
     private func saveChanges() {
         let amount = Double(sum) ?? 0
         switch item {

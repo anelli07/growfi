@@ -11,7 +11,7 @@ struct BalanceCard: View {
     var body: some View {
         VStack(spacing: 16) {
             // Сальдо заголовок
-            Text("Сальдо")
+            Text("Balance".localized)
                 .font(.subheadline)
                 .foregroundColor(.gray)
 
@@ -23,13 +23,13 @@ struct BalanceCard: View {
             // Поступления и Списания
             HStack(spacing: 12) {
                 StatTile(
-                    title: "Поступления",
+                    title: "Income".localized,
                     value: income,
                     color: .green,
                     currency: currency,
                 )
                 StatTile(
-                    title: "Списания",
+                    title: "Expense".localized,
                     value: expense,
                     color: .red,
                     currency: currency,

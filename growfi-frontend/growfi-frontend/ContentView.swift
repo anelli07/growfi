@@ -7,6 +7,8 @@ struct ContentView: View {
     @EnvironmentObject var incomesVM: IncomesViewModel
     @EnvironmentObject var historyVM: HistoryViewModel
 
+    var onLogout: () -> Void
+
     @State private var selectedTab = 2 // Главный экран — 'Цели'
 
     var body: some View {
@@ -15,31 +17,31 @@ struct ContentView: View {
                 .environmentObject(historyVM)
                 .tabItem {
                     Image(systemName: "list.bullet.rectangle")
-                    Text("История")
+                    Text("history".localized)
                 }
                 .tag(0)
             OperationsView()
                 .tabItem {
                     Image(systemName: "arrow.left.arrow.right")
-                    Text("Операции")
+                    Text("operations".localized)
                 }
                 .tag(1)
             GoalsCarouselView(selectedTab: $selectedTab)
                 .tabItem {
                     Image(systemName: "leaf.circle.fill")
-                    Text("Цели")
+                    Text("goals".localized)
                 }
                 .tag(2)
             AnalyticsView()
                 .tabItem {
                     Image(systemName: "chart.pie.fill")
-                    Text("Аналитика")
+                    Text("analytics".localized)
                 }
                 .tag(3)
-            SettingsView()
+            SettingsView(onLogout: onLogout)
                 .tabItem {
                     Image(systemName: "gearshape.fill")
-                    Text("Настройки")
+                    Text("settings".localized)
                 }
                 .tag(4)
         }
@@ -48,7 +50,7 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView(onLogout: {})
             .environmentObject(GoalsViewModel())
             .environmentObject(WalletsViewModel())
             .environmentObject(ExpensesViewModel())

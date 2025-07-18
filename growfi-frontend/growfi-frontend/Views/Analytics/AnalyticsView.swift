@@ -8,7 +8,7 @@ struct AnalyticsView: View {
         VStack(spacing: 0) {
             // Заголовок и фильтр
             HStack {
-                Text("Отчет")
+                Text("report".localized.capitalized)
                     .font(.largeTitle).bold()
                 Spacer()
                 // Кнопка фильтра удалена
@@ -69,7 +69,7 @@ struct AnalyticsView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
                     Button(action: { viewModel.selectedType = .income }) {
-                        Text("Доходы")
+                        Text("incomes_section".localized)
                             .font(.subheadline)
                             .foregroundColor(viewModel.selectedType == .income ? .white : .black)
                             .frame(maxWidth: .infinity)
@@ -78,7 +78,7 @@ struct AnalyticsView: View {
                             .cornerRadius(8)
                     }
                     Button(action: { viewModel.selectedType = .expense }) {
-                        Text("Расходы")
+                        Text("expenses_section".localized)
                             .font(.subheadline)
                             .foregroundColor(viewModel.selectedType == .expense ? .white : .black)
                             .frame(maxWidth: .infinity)
@@ -87,7 +87,7 @@ struct AnalyticsView: View {
                             .cornerRadius(8)
                     }
                     Button(action: { viewModel.selectedType = .goal }) {
-                        Text("Цель")
+                        Text("goals_section".localized)
                             .font(.subheadline)
                             .foregroundColor(viewModel.selectedType == .goal ? .white : .black)
                             .frame(maxWidth: .infinity)
@@ -113,6 +113,7 @@ struct AnalyticsView: View {
         .sheet(isPresented: $showPeriodPicker) {
             PeriodPicker(selected: $viewModel.periodVM.selectedPeriod, customRange: $viewModel.periodVM.customRange)
         }
+        .onLanguageChange()
     }
     
 }

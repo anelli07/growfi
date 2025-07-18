@@ -13,7 +13,7 @@ struct PeriodPicker: View {
             List {
                 ForEach(PeriodType.allCases) { period in
                     HStack {
-                        Text(period.rawValue)
+                        Text(period.localized)
                         Spacer()
                         if period == selected {
                             Image(systemName: "checkmark")
@@ -30,13 +30,16 @@ struct PeriodPicker: View {
                         }
                     }
                 }
+                .id(AppLanguageManager.shared.currentLanguage)
                 if showCustomPicker || selected == .custom {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Выберите период:")
+                        Text("Выберите период:".localized)
                             .font(.subheadline)
-                        DatePicker("Начало", selection: $customStart, displayedComponents: .date)
-                        DatePicker("Конец", selection: $customEnd, in: customStart...Date.distantFuture, displayedComponents: .date)
-                        Button("Сохранить") {
+                        DatePicker("Начало".localized, selection: $customStart, displayedComponents: .date)
+                            .environment(\.locale, Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue))
+                        DatePicker("Конец".localized, selection: $customEnd, in: customStart...Date.distantFuture, displayedComponents: .date)
+                            .environment(\.locale, Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue))
+                        Button("save".localized) {
                             selected = .custom
                             customRange = (customStart, customEnd)
                             presentationMode.wrappedValue.dismiss()
@@ -46,13 +49,14 @@ struct PeriodPicker: View {
                     .padding(.vertical, 8)
                 }
             }
-            .navigationBarTitle("Выбор периода", displayMode: .inline)
+            .navigationBarTitle("period_picker_title".localized, displayMode: .inline)
             .navigationBarItems(trailing: Button(action: {
                 presentationMode.wrappedValue.dismiss()
             }) {
                 Image(systemName: "xmark")
                     .foregroundColor(.gray)
             })
+            .onLanguageChange()
         }
     }
 }

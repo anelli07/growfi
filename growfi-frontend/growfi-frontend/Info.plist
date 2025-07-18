@@ -2,21 +2,31 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <true/>
-    </dict>
-    <key>GIDClientID</key>
-    <string>510212627096-lb3t5odoqhmlik87v20rcm2crr9hvj3q.apps.googleusercontent.com</string>
-    <key>CFBundleURLTypes</key>
-    <array>
-      <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>com.googleusercontent.apps.510212627096-lb3t5odoqhmlik87v20rcm2crr9hvj3q</string>
-        </array>
-      </dict>
-    </array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.510212627096-lb3t5odoqhmlik87v20rcm2crr9hvj3q</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>AppleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.growfi.app1</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>510212627096-lb3t5odoqhmlik87v20rcm2crr9hvj3q.apps.googleusercontent.com</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSPrivacyPolicyURL</key>
+	<string>https://docs.google.com/document/d/1uNAUnFUbZJ9EOkoUymDY1Nl8iPszRx03k_2kCKRMO6I/edit?tab=t.0</string>
 </dict>
 </plist>

@@ -19,7 +19,7 @@ struct OperationBlockView: View {
                         .font(.title2)
                 }
             }
-            Text(title)
+            Text(title.localizedIfDefault)
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(amount)

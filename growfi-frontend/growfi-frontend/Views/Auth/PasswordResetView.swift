@@ -11,16 +11,16 @@ struct PasswordResetView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 90, height: 90)
                 .padding(.bottom, 16)
-            Text("Восстановление пароля")
+            Text("reset_password".localized)
                 .font(.title2).bold()
                 .padding(.bottom, 8)
-            Text("Введите email, на который придёт ссылка для сброса пароля.")
+            Text("email".localized)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
-            TextField("Email", text: $vm.email)
+            TextField("email".localized, text: $vm.email)
                 .keyboardType(.emailAddress)
                 .autocapitalization(.none)
                 .padding(.vertical, 18)
@@ -32,13 +32,13 @@ struct PasswordResetView: View {
                 Text(error).foregroundColor(.red).font(.caption).padding(.bottom, 8)
             }
             if vm.resetSuccess {
-                Text("Письмо отправлено!").foregroundColor(.green).font(.caption).padding(.bottom, 8)
+                Text("reset_password".localized).foregroundColor(.green).font(.caption).padding(.bottom, 8)
             }
             Button(action: { vm.resetPassword { } }) {
                 if vm.isLoading {
                     ProgressView().frame(maxWidth: .infinity).frame(height: 54)
                 } else {
-                    Text("Отправить ссылку")
+                    Text("continue".localized)
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -50,7 +50,7 @@ struct PasswordResetView: View {
             .padding(.horizontal, 32)
             .padding(.bottom, 12)
             .disabled(!vm.isEmailValid || vm.isLoading)
-            Button("Закрыть") {
+            Button("ok".localized) {
                 presentationMode.wrappedValue.dismiss()
             }
             .foregroundColor(.green)

@@ -9,7 +9,7 @@ struct AnalyticsSummaryView: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 4) {
-                Text("Доходы")
+                Text("Доходы".localized)
                     .font(.caption)
                     .foregroundColor(.gray)
                 Text("\(Int(income)) \(currency)")
@@ -18,7 +18,7 @@ struct AnalyticsSummaryView: View {
             }
             .frame(maxWidth: .infinity)
             VStack(spacing: 4) {
-                Text("Расходы")
+                Text("Расходы".localized)
                     .font(.caption)
                     .foregroundColor(.gray)
                 Text("\(Int(expense)) \(currency)")
@@ -27,7 +27,7 @@ struct AnalyticsSummaryView: View {
             }
             .frame(maxWidth: .infinity)
             VStack(spacing: 4) {
-                Text("Итого")
+                Text("Итого".localized)
                     .font(.caption)
                     .foregroundColor(.gray)
                 Text("\(Int(balance)) \(currency)")

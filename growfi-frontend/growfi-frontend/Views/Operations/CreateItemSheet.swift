@@ -15,11 +15,34 @@ struct CreateItemSheet: View {
     let availableColors: [Color] = [.blue, .green, .yellow, .orange, .red, .purple, .mint, .gray]
     let availableCurrencies = ["₸", "$", "€", "₽"]
     
+    init(type: OperationsView.CreateType, onCreate: @escaping (String, Double, String?, String?, String) -> Void) {
+        self.type = type
+        self.onCreate = onCreate
+        
+        // Инициализируем @State переменные в зависимости от типа
+        let (icon, color) = Self.getDefaultIconAndColor(for: type)
+        _selectedIcon = State(initialValue: icon)
+        _selectedColor = State(initialValue: color)
+    }
+    
+    private static func getDefaultIconAndColor(for type: OperationsView.CreateType) -> (String, Color) {
+        switch type {
+        case .income:
+            return ("dollarsign.circle.fill", .green)
+        case .wallet:
+            return ("creditcard.fill", .blue)
+        case .goal:
+            return ("leaf.circle.fill", .green)
+        case .expense:
+            return ("wallet.pass.fill", .red)
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
-                Text(type == .wallet ? "Новый кошелек" : "Создать")
+                Text(type == .wallet ? "create_wallet_title".localized : "create_title".localized)
                     .font(.system(size: 20, weight: .semibold))
                     .padding(.top, 16)
                 Spacer()
@@ -31,7 +54,7 @@ struct CreateItemSheet: View {
             }
             Spacer().frame(height: 8)
             VStack(spacing: 8) {
-                Text("Иконка")
+                Text("icon".localized)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.gray)
                 IconColorPickerView(
@@ -43,29 +66,17 @@ struct CreateItemSheet: View {
                 )
             }
             .padding(.bottom, 8)
-            .onAppear {
-                switch type {
-                case .income:
-                    selectedIcon = "dollarsign.circle.fill"; selectedColor = .green
-                case .wallet:
-                    selectedIcon = "creditcard.fill"; selectedColor = .blue
-                case .goal:
-                    selectedIcon = "leaf.circle.fill"; selectedColor = .green
-                case .expense:
-                    selectedIcon = "wallet.pass.fill"; selectedColor = .red
-                }
-            }
             VStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Название")
+                    Text("name".localized)
                         .font(.system(size: 16))
                         .foregroundColor(.gray)
-                    TextField("Введите название", text: $name)
+                    TextField("enter_name".localized, text: $name)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
                 if type == .goal {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Желаемая сумма")
+                        Text("goal_amount".localized)
                             .font(.system(size: 16))
                             .foregroundColor(.gray)
                         TextField("0", text: $sum)
@@ -74,7 +85,7 @@ struct CreateItemSheet: View {
                     }
                 } else if type == .wallet {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Сумма (опционально)")
+                        Text("wallet_amount_optional".localized)
                             .font(.system(size: 16))
                             .foregroundColor(.gray)
                         TextField("0", text: $sum)
@@ -84,7 +95,7 @@ struct CreateItemSheet: View {
                 }
                 if type == .goal || type == .wallet {
                     HStack {
-                        Text("Валюта")
+                        Text("currency".localized)
                             .font(.system(size: 16))
                         Spacer()
                         Picker("Валюта", selection: $selectedCurrency) {
@@ -101,10 +112,11 @@ struct CreateItemSheet: View {
             Spacer()
             Button(action: {
                 let amount: Double = (type == .goal || type == .wallet) ? (Double(sum) ?? 0) : 0
-                onCreate(name, amount, selectedIcon, selectedColor.toHex, selectedCurrency)
+                let finalName = name.isEmpty ? defaultName.localizedIfDefault : name
+                onCreate(finalName, amount, selectedIcon, selectedColor.toHex, selectedCurrency)
                 presentationMode.wrappedValue.dismiss()
             }) {
-                Text("Сохранить")
+                Text("save".localized)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(name.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
@@ -118,6 +130,16 @@ struct CreateItemSheet: View {
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
+    }
+    
+    // Добавляю вычисляемое свойство для дефолтного имени
+    private var defaultName: String {
+        switch type {
+        case .income: return "Income"
+        case .wallet: return "Wallet"
+        case .goal: return "Goal"
+        case .expense: return "Expense"
+        }
     }
 }
 

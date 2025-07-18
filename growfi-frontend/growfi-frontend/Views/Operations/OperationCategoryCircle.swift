@@ -25,7 +25,7 @@ struct OperationCategoryCircle: View {
             .ifLet(onDrop) { view, onDrop in
                 view.onDrop(of: ["public.text"], isTargeted: nil, perform: onDrop)
             }
-            Text(title)
+            Text(title.localizedIfDefault)
                 .font(.system(size: 14))
                 .foregroundColor(.black)
                 .lineLimit(1)

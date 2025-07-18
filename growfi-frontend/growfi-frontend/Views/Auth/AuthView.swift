@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct AuthView: View {
     @StateObject private var vm: AuthViewModel
@@ -16,28 +17,28 @@ struct AuthView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 140, height: 140)
-                Text("GrowFi")
+                Text("growfi".localized)
                     .font(.largeTitle).fontWeight(.bold)
                     .foregroundColor(Color.green)
             }
             .padding(.bottom, 36)
             VStack(spacing: 20) {
                 if !vm.isLogin {
-                    TextField("Имя", text: $vm.fullName)
+                    TextField("full_name".localized, text: $vm.fullName)
                         .autocapitalization(.words)
                         .padding(.vertical, 18)
                         .padding(.horizontal, 16)
                         .background(Color.white)
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(vm.fullName.isEmpty ? 0.15 : 1), lineWidth: 1.5))
                 }
-                TextField("Email", text: $vm.email)
+                TextField("email".localized, text: $vm.email)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
                     .padding(.vertical, 18)
                     .padding(.horizontal, 16)
                     .background(Color.white)
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(vm.email.isEmpty ? 0.15 : 1), lineWidth: 1.5))
-                SecureField("Пароль", text: $vm.password)
+                SecureField("password".localized, text: $vm.password)
                     .padding(.vertical, 18)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -45,7 +46,7 @@ struct AuthView: View {
             }
             .padding(.horizontal, 28)
             .padding(.bottom, 10)
-            Button("Восстановить пароль") { vm.showResetSheet = true }
+            Button("reset_password".localized) { vm.showResetSheet = true }
                 .font(.subheadline)
                 .foregroundColor(.green)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,7 +67,7 @@ struct AuthView: View {
                 if vm.isLoading {
                     ProgressView().frame(maxWidth: .infinity).frame(height: 56)
                 } else {
-                    Text(vm.isLogin ? "Войти" : "Зарегистрироваться")
+                    Text(vm.isLogin ? "login".localized : "register".localized)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
@@ -79,7 +80,7 @@ struct AuthView: View {
             .padding(.top, 8)
             .padding(.bottom, 12)
             .disabled(!vm.isEmailValid || !vm.isPasswordValid || vm.isLoading)
-            Button(vm.isLogin ? "Регистрация" : "Войти") {
+            Button(vm.isLogin ? "register".localized : "login".localized) {
                 vm.isLogin.toggle(); vm.error = nil
             }
             .foregroundColor(.green)
@@ -87,7 +88,7 @@ struct AuthView: View {
             .padding(.bottom, 18)
             HStack {
                 Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
-                Text("или").foregroundColor(.gray)
+                Text("or".localized).foregroundColor(.gray)
                 Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
             }
             .padding(.horizontal, 28)
@@ -106,7 +107,7 @@ struct AuthView: View {
                 } else {
                     HStack(spacing: 10) {
                         Image(systemName: "globe").foregroundColor(Color.green)
-                        Text("Continue with Google").font(.headline).foregroundColor(Color.green)
+                        Text("continue_with_google".localized).font(.headline).foregroundColor(Color.green)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
@@ -115,9 +116,43 @@ struct AuthView: View {
                 }
             }
             .padding(.horizontal, 28)
+            
+            // Кастомная Apple Sign In Button
+            Button(action: {
+                let provider = ASAuthorizationAppleIDProvider()
+                let request = provider.createRequest()
+                request.requestedScopes = [.fullName, .email]
+                let controller = ASAuthorizationController(authorizationRequests: [request])
+                controller.delegate = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
+                controller.presentationContextProvider = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
+                controller.performRequests()
+            }) {
+                HStack(spacing: 10) {
+                    Image(systemName: "applelogo").font(.title2)
+                    Text("continue_with_apple".localized).font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(Color.black)
+                .foregroundColor(.white)
+                .cornerRadius(16)
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, 8)
+            
             Spacer()
         }
         .background(Color.white.ignoresSafeArea())
+        .alert("email_already_exists".localized, isPresented: $vm.showEmailExistsAlert) {
+            Button("resend_verification".localized) {
+                vm.resendCodeForExistingEmail()
+            }
+            Button("Cancel", role: .cancel) {
+                vm.showEmailExistsAlert = false
+            }
+        } message: {
+            Text("email_exists_but_not_verified".localized)
+        }
         .sheet(isPresented: $vm.showResetSheet) {
             PasswordResetView(vm: vm)
         }
@@ -132,5 +167,29 @@ struct AuthView: View {
 struct AuthView_Previews: PreviewProvider {
     static var previews: some View {
         AuthView(goalsViewModel: GoalsViewModel())
+    }
+} 
+
+class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    let vm: AuthViewModel
+    let onLogin: (() -> Void)?
+    init(vm: AuthViewModel, onLogin: (() -> Void)?) {
+        self.vm = vm
+        self.onLogin = onLogin
+    }
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
+    }
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+           let identityToken = appleIDCredential.identityToken,
+           let idTokenString = String(data: identityToken, encoding: .utf8) {
+            vm.loginWithApple(idToken: idTokenString) {
+                self.onLogin?()
+            }
+        }
+    }
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        vm.error = error.localizedDescription
     }
 } 

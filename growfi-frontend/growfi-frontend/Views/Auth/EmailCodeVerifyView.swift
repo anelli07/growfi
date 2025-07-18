@@ -11,16 +11,16 @@ struct EmailCodeVerifyView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 90, height: 90)
                 .padding(.bottom, 16)
-            Text("Подтверждение email")
+            Text("email".localized)
                 .font(.title2).bold()
                 .padding(.bottom, 8)
-            Text("На \(vm.email) отправлен код. Введите его ниже.")
+            Text("enter_code_sent_to_email".localized)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
-            TextField("Код из письма", text: $vm.code)
+            TextField("code".localized, text: $vm.code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
                 .multilineTextAlignment(.center)
@@ -41,7 +41,7 @@ struct EmailCodeVerifyView: View {
                 if vm.isLoading {
                     ProgressView().frame(maxWidth: .infinity).frame(height: 54)
                 } else {
-                    Text("Подтвердить")
+                    Text("continue".localized)
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -52,14 +52,14 @@ struct EmailCodeVerifyView: View {
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 12)
-            Button("Отправить код повторно") {
+            Button("continue".localized) {
                 vm.resendCode()
             }
             .foregroundColor(.green)
             .font(.subheadline)
             .padding(.bottom, vm.resent ? 8 : 24)
             if vm.resent {
-                Text("Код отправлен повторно!").foregroundColor(.green).font(.caption)
+                Text("continue".localized).foregroundColor(.green).font(.caption)
             }
             Spacer()
         }

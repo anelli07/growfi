@@ -23,9 +23,10 @@ struct AnalyticsChartView: View {
             }
         }
         .chartXAxis {
+            let lang = AppLanguageManager.shared.currentLanguage.rawValue
             AxisMarks(values: .stride(by: .day)) { value in
                 AxisGridLine()
-                AxisValueLabel(format: .dateTime.day().month(.abbreviated))
+                AxisValueLabel(format: .dateTime.day().month(.abbreviated).locale(Locale(identifier: lang)))
             }
         }
         .chartYAxis {

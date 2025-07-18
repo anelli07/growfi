@@ -31,7 +31,7 @@ def get_current_active_user(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
-        token_data = schemas.TokenPayload(**payload)
+        token_data = TokenData(**payload)
     except (JWTError, ValidationError) as e:
         print(f"[DEBUG] get_current_active_user: JWTError/ValidationError: {e}")
         raise HTTPException(

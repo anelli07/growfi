@@ -1,15 +1,19 @@
 import Foundation
 
-enum PeriodType: String, CaseIterable, Identifiable {
-    case week = "Неделя"
-    case month = "Месяц"
-    case quarter = "Квартал"
-    case halfYear = "Полгода"
-    case year = "Год"
-    case all = "Весь период"
-    case custom = "Произвольный"
-    
-    var id: String { self.rawValue }
+enum PeriodType: CaseIterable, Identifiable {
+    case week, month, quarter, halfYear, year, all, custom
+    var id: String { String(describing: self) }
+    var localized: String {
+        switch self {
+        case .week: return "period_week".localized
+        case .month: return "period_month".localized
+        case .quarter: return "period_quarter".localized
+        case .halfYear: return "period_halfyear".localized
+        case .year: return "period_year".localized
+        case .all: return "period_all".localized
+        case .custom: return "period_custom".localized
+        }
+    }
 }
 
 // --- Расширение для вычисления диапазона дат и форматирования ---
@@ -64,8 +68,9 @@ extension PeriodType {
 
     func formattedRange(containing date: Date = Date(), customRange: (Date, Date)? = nil) -> String {
         let (start, end) = dateRange(containing: date, customRange: customRange)
+        let lang = AppLanguageManager.shared.currentLanguage.rawValue
         let df = DateFormatter()
-        df.locale = Locale(identifier: "ru_RU")
+        df.locale = Locale(identifier: lang)
         switch self {
         case .week:
             df.dateFormat = "dd MMMM"
@@ -79,16 +84,16 @@ extension PeriodType {
         case .quarter:
             let quarter = (Calendar.current.component(.month, from: start) - 1) / 3 + 1
             let year = Calendar.current.component(.year, from: start)
-            return "\(quarter)-й квартал \(year)"
+            return String(format: "%@ %d", "quarter".localized, quarter) + " " + String(year)
         case .halfYear:
             let month = Calendar.current.component(.month, from: start)
             let year = Calendar.current.component(.year, from: start)
-            return month == 1 ? "1-е полугодие \(year)" : "2-е полугодие \(year)"
+            return month == 1 ? String(format: "%@ %d", "first_half".localized, year) : String(format: "%@ %d", "second_half".localized, year)
         case .year:
             let year = Calendar.current.component(.year, from: start)
-            return "\(year) год"
+            return String(format: "%d %@", year, "year".localized)
         case .all:
-            return "Весь период"
+            return "Весь период".localized
         case .custom:
             df.dateFormat = "dd MMMM yyyy"
             let startStr = df.string(from: start)

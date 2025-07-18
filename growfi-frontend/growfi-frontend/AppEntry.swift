@@ -28,26 +28,79 @@ struct SplashView: View {
     }
 }
 
+enum AppRootScreen {
+    case splash, welcome, auth, main
+}
+
 struct AppEntry: View {
-    @State private var isLoggedIn = UserDefaults.standard.string(forKey: "access_token") != nil
-    @State private var triedRefresh = false
+    @State private var rootScreen: AppRootScreen = .splash
+    @StateObject private var langManager = AppLanguageManager.shared
     @StateObject private var goalsViewModel = GoalsViewModel()
     @StateObject private var walletsVM = WalletsViewModel()
     @StateObject private var expensesVM = ExpensesViewModel()
     @StateObject private var incomesVM = IncomesViewModel()
     @StateObject private var categoriesVM = CategoriesViewModel()
     @StateObject private var historyVM = HistoryViewModel()
-    @State private var showSplash = true
 
-    init() {
-        // incomesVM.walletsVM = walletsVM // This line is moved to onAppear
+    private func resetAllViewModels() {
+        goalsViewModel.user = nil
+        goalsViewModel.goals = []
+        walletsVM.wallets = []
+        expensesVM.expenses = []
+        incomesVM.incomes = []
+        categoriesVM.incomeCategories = []
+        categoriesVM.expenseCategories = []
+        historyVM.transactions = []
+    }
+
+    private func determineInitialScreen() {
+    // Временно сбрасываем флаг для тестирования экрана выбора языка
+    UserDefaults.standard.removeObject(forKey: "has_launched_before")
+    
+    let hasLaunched = UserDefaults.standard.bool(forKey: "has_launched_before")
+    let accessToken = UserDefaults.standard.string(forKey: "access_token")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { // splash задержка
+        if !hasLaunched {
+            rootScreen = .welcome
+            UserDefaults.standard.set(true, forKey: "has_launched_before")
+        } else if accessToken == nil {
+            rootScreen = .auth
+        } else {
+            rootScreen = .main
+        }
+    }
+}
+
+    private func handleLogout() {
+        UserDefaults.standard.removeObject(forKey: "access_token")
+        UserDefaults.standard.removeObject(forKey: "refresh_token")
+        resetAllViewModels()
+        rootScreen = .auth
     }
 
     var body: some View {
         ZStack {
             Group {
-                if isLoggedIn {
-                    ContentView()
+                switch rootScreen {
+                case .splash:
+                    SplashView()
+                        .transition(.opacity)
+                        .onAppear {
+                            determineInitialScreen()
+                        }
+                case .welcome:
+                    WelcomeView(onLanguageSelected: {
+                        withAnimation { rootScreen = .auth }
+                    })
+                    .transition(.opacity)
+                case .auth:
+                    AuthView(onLogin: {
+                        withAnimation { rootScreen = .main }
+                        historyVM.fetchTransactions()
+                    }, goalsViewModel: goalsViewModel)
+                    .transition(.opacity)
+                case .main:
+                    ContentView(onLogout: { withAnimation { handleLogout() } })
                         .environmentObject(goalsViewModel)
                         .environmentObject(walletsVM)
                         .environmentObject(expensesVM)
@@ -72,50 +125,11 @@ struct AppEntry: View {
                             incomesVM.fetchIncomes()
                             historyVM.fetchTransactions()
                         }
-                } else if !triedRefresh, let refresh = UserDefaults.standard.string(forKey: "refresh_token") {
-                    ProgressView().onAppear {
-                        ApiService.shared.refreshToken(refreshToken: refresh) { result in
-                            DispatchQueue.main.async {
-                                switch result {
-                                case .success(let access):
-                                    UserDefaults.standard.set(access, forKey: "access_token")
-                                    print("[AppEntry] Новый access_token после refresh:", access)
-                                    isLoggedIn = true
-                                case .failure:
-                                    UserDefaults.standard.removeObject(forKey: "access_token")
-                                    UserDefaults.standard.removeObject(forKey: "refresh_token")
-                                    isLoggedIn = false
-                                }
-                                triedRefresh = true
-                            }
-                        }
-                    }
-                } else {
-                    AuthView(onLogin: {
-                        isLoggedIn = true
-                        historyVM.fetchTransactions()
-                    }, goalsViewModel: goalsViewModel)
-                }
-            }
-            .opacity(showSplash ? 0 : 1)
-            if showSplash {
-                SplashView()
-                    .transition(.opacity)
-                    .zIndex(2)
-            }
-        }
-        .onAppear {
-            NotificationCenter.default.addObserver(forName: NSNotification.Name("LogoutDueTo401"), object: nil, queue: .main) { _ in
-                UserDefaults.standard.removeObject(forKey: "access_token")
-                UserDefaults.standard.removeObject(forKey: "refresh_token")
-                isLoggedIn = false
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation {
-                    showSplash = false
+                        .transition(.opacity)
                 }
             }
         }
+        .animation(.easeInOut, value: rootScreen)
     }
 } 
 

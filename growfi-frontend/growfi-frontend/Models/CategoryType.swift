@@ -5,6 +5,7 @@ enum CategoryType: String, CaseIterable, Identifiable {
     case еда = "Еда"
     case развлечения = "Развлечения"
     case транспорт = "Транспорт"
+    case связь = "Связь"
     case зарплата = "Зарплата"
     case кофе = "Кофе"
     case подарок = "Подарок"
@@ -20,6 +21,7 @@ enum CategoryType: String, CaseIterable, Identifiable {
         case .еда: return .green
         case .развлечения: return .pink
         case .транспорт: return .yellow
+        case .связь: return .teal
         case .зарплата: return .green
         case .кофе: return .brown
         case .подарок: return .pink.opacity(0.7)
@@ -35,6 +37,7 @@ enum CategoryType: String, CaseIterable, Identifiable {
         case .еда: return "fork.knife"
         case .развлечения: return "gamecontroller.fill"
         case .транспорт: return "car.fill"
+        case .связь: return "phone.fill"
         case .зарплата: return "dollarsign.circle.fill"
         case .кофе: return "cup.and.saucer.fill"
         case .подарок: return "gift.fill"
@@ -44,7 +47,13 @@ enum CategoryType: String, CaseIterable, Identifiable {
         }
     }
 
+    var localizedName: String {
+        NSLocalizedString(self.rawValue, comment: "")
+    }
+
     static func from(name: String) -> CategoryType {
         CategoryType.allCases.first(where: { $0.rawValue == name }) ?? .другое
     }
-} 
+}
+
+ 

@@ -18,6 +18,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def get_by_google_id(self, db: Session, *, google_id: str) -> Optional[User]:
         return db.query(User).filter(User.google_id == google_id).first()
 
+    def get_by_apple_id(self, db: Session, *, apple_id: str) -> Optional[User]:
+        return db.query(User).filter(User.apple_id == apple_id).first()
+
     def create(self, db: Session, *, obj_in: UserCreate) -> User:
         code = str(random.randint(100000, 999999))
         db_obj = User(
@@ -39,6 +42,20 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             full_name=full_name,
             email=email,
             google_id=google_id,
+            is_email_verified=True,
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    def create_with_apple(
+        self, db: Session, *, full_name: Optional[str], email: str, apple_id: str
+    ) -> User:
+        db_obj = User(
+            full_name=full_name,
+            email=email,
+            apple_id=apple_id,
             is_email_verified=True,
         )
         db.add(db_obj)
@@ -89,6 +106,33 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db.commit()
         db.refresh(user)
         return code
+
+    def generate_reset_password_token(self, db: Session, *, email: str) -> Optional[str]:
+        user = self.get_by_email(db, email=email)
+        if not user:
+            return None
+        token = str(uuid.uuid4())
+        user.reset_password_token = token
+        user.reset_password_token_sent_at = datetime.utcnow()
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return token
+
+    def reset_password(self, db: Session, *, token: str, new_password: str) -> bool:
+        user = db.query(User).filter(User.reset_password_token == token).first()
+        if not user:
+            return False
+        # 1 час на сброс пароля
+        if (datetime.utcnow() - user.reset_password_token_sent_at).total_seconds() > 3600:
+            return False
+        user.hashed_password = get_password_hash(new_password)
+        user.reset_password_token = None
+        user.reset_password_token_sent_at = None
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return True
 
 
 user = CRUDUser(User)

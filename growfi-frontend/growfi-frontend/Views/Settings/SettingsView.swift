@@ -2,61 +2,106 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var goalsVM: GoalsViewModel
-    @State private var showProfile = false
-    @State private var isLoggedOut = false
     @StateObject private var loginVM = LoginViewModel()
+    @ObservedObject var langManager = AppLanguageManager.shared
+    var onLogout: () -> Void
+    @State private var showLanguageSheet = false
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Настройки")
-                .font(.title2).bold()
-            Button(action: { showProfile.toggle() }) {
-                HStack {
-                    Image(systemName: "person.crop.circle")
-                        .font(.system(size: 32))
-                        .foregroundColor(.green)
-                    VStack(alignment: .leading) {
-                        Text(goalsVM.user?.full_name ?? "Имя не указано")
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("settings".localized.capitalized)
+                        .font(.largeTitle).bold()
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 8)
+                        .padding(.horizontal)
+                    // Профиль (на всю ширину)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(goalsVM.user?.full_name ?? "full_name".localized)
                             .font(.headline)
-                        Text(goalsVM.user?.email ?? "Логин не указан")
+                            .foregroundColor(.primary)
+                        Text(goalsVM.user?.email ?? "email".localized)
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(14)
-            }
-            .sheet(isPresented: $showProfile) {
-                VStack(spacing: 16) {
-                    Text("Профиль")
-                        .font(.title2).bold()
-                    Text("Имя: \(goalsVM.user?.full_name ?? "-")")
-                    Text("Логин: \(goalsVM.user?.email ?? "-")")
-                    Spacer()
-                }
-                .padding()
-            }
-            Button(action: {
-                loginVM.logout {
-                    isLoggedOut = true
-                }
-            }) {
-                Text("Выйти")
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
                     .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
-                    .cornerRadius(14)
+                    .cornerRadius(16)
+                    // Язык
+                    Button(action: { showLanguageSheet = true }) {
+                        HStack {
+                            Text("language".localized)
+                            Spacer()
+                            Text(langManager.currentLanguage.displayName)
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(16)
+                    }
+                    // Legal (заголовок вынесен)
+                    Text("legal".localized)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .padding(.top, 8)
+                        .padding(.leading, 4)
+                    VStack(spacing: 0) {
+                        if langManager.currentLanguage == .ru {
+                            Link("privacy_policy".localized, destination: URL(string: "https://docs.google.com/document/d/1A6j_rbcnJxfKa8EuVrSXmwD1SAFTVT0hNi_J3j_1bnk/edit?tab=t.0")!)
+                                .padding(.vertical, 10)
+                                .padding(.horizontal)
+                            Divider().padding(.leading)
+                            Link("terms_and_conditions".localized, destination: URL(string: "https://docs.google.com/document/d/1ZdSp24--D5_YP3DMHljmuUbXlo99jiMezs2jj5GhyBM/edit?tab=t.0")!)
+                                .padding(.vertical, 10)
+                                .padding(.horizontal)
+                        } else {
+                            Link("privacy_policy_en".localized, destination: URL(string: "https://docs.google.com/document/d/1uNAUnFUbZJ9EOkoUymDY1Nl8iPszRx03k_2kCKRMO6I/edit?tab=t.0")!)
+                                .padding(.vertical, 10)
+                                .padding(.horizontal)
+                            Divider().padding(.leading)
+                            Link("terms_and_conditions_en".localized, destination: URL(string: "https://docs.google.com/document/d/1O1VpJVU7cdOAbrwNAtD0o_8TS7vwDAVchEeEG2bj2yg/edit?tab=t.0")!)
+                                .padding(.vertical, 10)
+                                .padding(.horizontal)
+                        }
+                    }
+                    .background(Color(.systemGray6))
+                    .cornerRadius(16)
+                    // Logout
+                    Button(action: {
+                        loginVM.logout {
+                            goalsVM.user = nil
+                            onLogout()
+                        }
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("logout".localized)
+                                .foregroundColor(.red)
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(16)
+                    }
+                    .padding(.top, 8)
+                    Spacer(minLength: 24)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top)
             }
-            Spacer()
+            .background(Color.white.ignoresSafeArea())
+            .navigationBarHidden(true)
+            .actionSheet(isPresented: $showLanguageSheet) {
+                ActionSheet(title: Text("language".localized), buttons: AppLanguage.allCases.map { lang in
+                    .default(Text(lang.displayName)) {
+                        langManager.currentLanguage = lang
+                    }
+                } + [.cancel()])
+            }
+            .onLanguageChange()
         }
-        .padding()
-        .fullScreenCover(isPresented: $isLoggedOut) {
-            AuthView(onLogin: { isLoggedOut = false }, goalsViewModel: goalsVM)
-        }       
     }
-} 
+}

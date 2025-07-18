@@ -60,3 +60,20 @@ async def send_verification_code_email(email_to: EmailStr, full_name: str, code:
         template_name="verify_email.html",
         template_body=template_body,
     )
+
+
+async def send_password_reset_email(email_to: EmailStr, full_name: str, token: str):
+    project_name = settings.MAIL_FROM_NAME
+    subject = f"{project_name} - Сброс пароля"
+    template_body = {
+        "full_name": full_name,
+        "reset_link": f"https://growfi-frontend/reset-password?token={token}",
+        "project_name": project_name,
+        "token": token,
+    }
+    await send_email(
+        recipients=[email_to],
+        subject=subject,
+        template_name="reset_password.html",
+        template_body=template_body,
+    )

@@ -14,22 +14,22 @@ struct LoginView: View {
                 .frame(width: 80, height: 80)
                 .foregroundColor(.green)
                 .padding(.bottom, 8)
-            Text("GrowFi")
+            Text("growfi".localized)
                 .font(.largeTitle).bold()
                 .foregroundColor(.green)
                 .padding(.bottom, 32)
             VStack(spacing: 16) {
-                TextField("Email", text: $viewModel.email)
+                TextField("email".localized, text: $viewModel.email)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
-                SecureField("Пароль", text: $viewModel.password)
+                SecureField("password".localized, text: $viewModel.password)
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
-                Button("Восстановить пароль") {
+                Button("reset_password".localized) {
                     viewModel.resetPassword {
                         showResetAlert = true
                     }
@@ -59,7 +59,7 @@ struct LoginView: View {
                         .background(Color.green)
                         .cornerRadius(14)
                 } else {
-                    Text("Войти")
+                    Text("login".localized)
                         .foregroundColor(.white)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
@@ -70,7 +70,7 @@ struct LoginView: View {
             }
             .padding(.horizontal, 32)
             .padding(.top, 8)
-            Button("Регистрация") {
+            Button("register".localized) {
                 viewModel.register {
                     showRegisterAlert = true
                 }
@@ -80,7 +80,7 @@ struct LoginView: View {
             .padding(.top, 8)
             HStack {
                 Rectangle().frame(height: 1).foregroundColor(.gray.opacity(0.2))
-                Text("или").font(.caption).foregroundColor(.gray)
+                Text("or".localized).font(.caption).foregroundColor(.gray)
                 Rectangle().frame(height: 1).foregroundColor(.gray.opacity(0.2))
             }
             .padding(.horizontal, 32)
@@ -105,7 +105,7 @@ struct LoginView: View {
                 } else {
                     HStack {
                         Image(systemName: "globe")
-                        Text("Continue with Google")
+                        Text("continue_with_google".localized)
                     }
                     .foregroundColor(.green)
                     .frame(maxWidth: .infinity)
@@ -122,10 +122,10 @@ struct LoginView: View {
         }
         .background(Color.white.ignoresSafeArea())
         .alert(isPresented: $showRegisterAlert) {
-            Alert(title: Text("Регистрация успешна!"), message: Text("Теперь вы можете войти."), dismissButton: .default(Text("OK")))
+            Alert(title: Text("register".localized), message: Text("login".localized), dismissButton: .default(Text("ok".localized)))
         }
         .alert(isPresented: $showResetAlert) {
-            Alert(title: Text("Письмо отправлено!"), message: Text("Проверьте почту для восстановления пароля."), dismissButton: .default(Text("OK")))
+            Alert(title: Text("reset_password".localized), message: Text("email".localized), dismissButton: .default(Text("ok".localized)))
         }
     }
 } 

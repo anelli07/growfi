@@ -14,9 +14,9 @@ struct TransactionCell: View {
                     .font(.system(size: 20, weight: .bold))
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(transaction.title)
+                Text(transaction.title.localizedIfDefault)
                     .font(.headline)
-                Text(transaction.wallet_name)
+                Text(transaction.wallet_name.localizedIfDefault)
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }

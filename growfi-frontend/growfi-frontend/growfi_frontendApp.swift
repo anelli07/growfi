@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct growfi_frontendApp: App {
+    @StateObject var langManager = AppLanguageManager.shared
+    
     var body: some Scene {
         WindowGroup {
             AppEntry()

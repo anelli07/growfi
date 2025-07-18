@@ -5,12 +5,16 @@ from sqlmodel import SQLModel
 class Token(SQLModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str
 
 
-class TokenPayload(SQLModel):
-    sub: Optional[int] = None
+class TokenData(SQLModel):
+    username: Optional[str] = None
 
 
 class GoogleToken(SQLModel):
+    token: str
+
+
+class AppleToken(SQLModel):
     token: str

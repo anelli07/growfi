@@ -4,7 +4,8 @@ import GoogleSignInSwift
 
 class ApiService {
     static let shared = ApiService()
-    private let baseURL = "http://127.0.0.1:8000/api/v1"
+//    private let baseURL = "http://127.0.0.1:8000/api/v1"
+    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
     private init() {}
 
     // MARK: - Авторизация
@@ -134,9 +135,9 @@ class ApiService {
         }.resume()
     }
 
-    // MARK: - Восстановление пароля
+    // MARK: - Восстановление пароля (запрос на email)
     func resetPassword(email: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/auth/reset-password") else { return }
+        guard let url = URL(string: "\(baseURL)/auth/reset-password-request") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -154,6 +155,32 @@ class ApiService {
                 completion(.failure(NSError(domain: "Ошибка", code: 0, userInfo: [NSLocalizedDescriptionKey: detail])))
             } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
                 completion(.failure(NSError(domain: "Ошибка восстановления пароля", code: httpResponse.statusCode)))
+            } else {
+                completion(.success(()))
+            }
+        }.resume()
+    }
+
+    // MARK: - Подтверждение сброса пароля (установка нового пароля)
+    func confirmResetPassword(token: String, newPassword: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/auth/reset-password") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["token": token, "new_password": newPassword]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(NSError(domain: "Проблемы с сетью", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]))); return
+            }
+            guard let data = data else {
+                completion(.failure(NSError(domain: "Нет данных от сервера", code: 0)));
+                return
+            }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let detail = json["detail"] as? String {
+                completion(.failure(NSError(domain: "Ошибка", code: 0, userInfo: [NSLocalizedDescriptionKey: detail])))
+            } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
+                completion(.failure(NSError(domain: "Ошибка сброса пароля", code: httpResponse.statusCode)))
             } else {
                 completion(.success(()))
             }
@@ -188,6 +215,24 @@ class ApiService {
                 }
             }.resume()
         }
+    }
+
+    func loginWithApple(idToken: String, completion: @escaping (Result<String, Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/auth/apple") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["token": idToken]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let token = json["access_token"] as? String {
+                completion(.success(token))
+            } else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+            }
+        }.resume()
     }
 
     // MARK: - Получение доходов

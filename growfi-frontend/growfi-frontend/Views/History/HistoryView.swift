@@ -35,11 +35,24 @@ struct HistoryView: View {
         return grouped
     }
 
+    @ObservedObject private var langManager = AppLanguageManager.shared
+
+    private func formattedPeriod(_ period: String) -> String {
+        // Ожидается формат типа "Июль 2025" или "July 2025"
+        let comps = period.split(separator: " ")
+        guard comps.count == 2 else { return period }
+        let month = String(comps[0])
+        let year = String(comps[1])
+        // Пробуем локализовать месяц
+        let localizedMonth = NSLocalizedString(month, comment: "")
+        return "\(localizedMonth) \(year)"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Верхняя панель
             HStack {
-                Text("История")
+                Text("History".localized)
                     .font(.largeTitle).bold()
                 Spacer()
                 // Кнопка фильтра удалена
@@ -48,14 +61,14 @@ struct HistoryView: View {
             .padding(.top, 16)
 
             // Поиск
-            SearchBar(placeholder: "Поиск по примечаниям", text: $searchText)
+            SearchBar(placeholder: "search_notes".localized, text: $searchText)
                 .padding(.horizontal)
                 .padding(.top, 8)
 
             // Новый выбор периода
             Button(action: { showPeriodPicker = true }) {
                 HStack(spacing: 4) {
-                    Text(historyVM.periodVM.formatted)
+                    Text(formattedPeriod(historyVM.periodVM.formatted))
                         .font(.subheadline)
                         .foregroundColor(.black)
                     Image(systemName: "chevron.down")
@@ -77,7 +90,7 @@ struct HistoryView: View {
 
             // Заголовок списка операций
             HStack {
-                Text("Список операций")
+                Text("OperationsList".localized)
                     .font(.headline)
                 Spacer()
             }
@@ -100,6 +113,7 @@ struct HistoryView: View {
         .sheet(isPresented: $showPeriodPicker) {
             PeriodPicker(selected: $historyVM.periodVM.selectedPeriod, customRange: $historyVM.periodVM.customRange)
         }
+        .onLanguageChange()
     }
 }
 
