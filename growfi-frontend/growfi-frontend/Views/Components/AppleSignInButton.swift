@@ -13,10 +13,10 @@ struct AppleSignInButton: View {
             onCompletion: { result in
                 switch result {
                 case .success(let authResults):
-                    print("Apple Sign-In successful: \(authResults)")
                     onSignIn()
                 case .failure(let error):
-                    print("Apple Sign-In failed: \(error.localizedDescription)")
+                    // Handle error silently
+                    break
                 }
             }
         )
@@ -30,7 +30,7 @@ struct AppleSignInButton: View {
 struct AppleSignInButton_Previews: PreviewProvider {
     static var previews: some View {
         AppleSignInButton {
-            print("Apple Sign-In tapped")
+            // Handle sign in
         }
         .padding()
     }

@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from .user import User
     from .category import Category
     from .wallet import Wallet
+    from .goal import Goal
 
 
 class Income(SQLModel, table=True):

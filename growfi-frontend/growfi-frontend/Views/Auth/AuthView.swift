@@ -4,6 +4,7 @@ import AuthenticationServices
 struct AuthView: View {
     @StateObject private var vm: AuthViewModel
     var onLogin: (() -> Void)? = nil
+    @State private var showPassword = false
 
     init(onLogin: (() -> Void)? = nil, goalsViewModel: GoalsViewModel) {
         _vm = StateObject(wrappedValue: AuthViewModel(goalsViewModel: goalsViewModel))
@@ -38,11 +39,24 @@ struct AuthView: View {
                     .padding(.horizontal, 16)
                     .background(Color.white)
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(vm.email.isEmpty ? 0.15 : 1), lineWidth: 1.5))
-                SecureField("password".localized, text: $vm.password)
-                    .padding(.vertical, 18)
-                    .padding(.horizontal, 16)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(vm.password.isEmpty ? 0.15 : 1), lineWidth: 1.5))
+                HStack {
+                    if showPassword {
+                        TextField("password".localized, text: $vm.password)
+                    } else {
+                        SecureField("password".localized, text: $vm.password)
+                    }
+                    Button(action: {
+                        showPassword.toggle()
+                    }) {
+                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 16))
+                    }
+                }
+                .padding(.vertical, 18)
+                .padding(.horizontal, 16)
+                .background(Color.white)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(vm.password.isEmpty ? 0.15 : 1), lineWidth: 1.5))
             }
             .padding(.horizontal, 28)
             .padding(.bottom, 10)

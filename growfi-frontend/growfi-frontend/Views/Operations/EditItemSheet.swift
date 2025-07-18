@@ -45,94 +45,111 @@ struct EditItemSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: { showDeleteAlert = true }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.blue)
-                        .font(.system(size: 28))
-                }
-                Spacer()
-                Text(title)
-                    .font(.system(size: 22, weight: .semibold))
-                Spacer()
-                Button(action: { onClose(); presentationMode.wrappedValue.dismiss() }) {
-                    Image(systemName: "xmark")
-                        .foregroundColor(.blue)
-                        .font(.system(size: 28))
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            VStack(spacing: 16) {
-                Text("icon".localized)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.gray)
-                IconColorPickerView(
-                    selectedIcon: $selectedIcon,
-                    selectedColor: $selectedColor,
-                    name: name,
-                    availableIcons: availableIcons,
-                    availableColors: availableColors
-                )
-                .padding(.bottom, 8)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("name".localized)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.gray)
-                    TextField("", text: $name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-                if case .wallet = item {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Amount".localized)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.gray)
-                        TextField("0", text: $sum)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
-                } else if case .goal = item {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Amount".localized)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.gray)
-                        TextField("0", text: $sum)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
-                }
+        ScrollView {
+            VStack(spacing: 0) {
                 HStack {
-                    Text("Currency".localized)
-                        .font(.system(size: 14, weight: .medium))
+                    Button(action: { showDeleteAlert = true }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.blue)
+                            .font(.system(size: 28))
+                    }
                     Spacer()
-                    Text("₸")
-                        .font(.system(size: 22, weight: .bold))
+                    Text(title)
+                        .font(.system(size: 22, weight: .semibold))
+                    Spacer()
+                    Button(action: { onClose(); presentationMode.wrappedValue.dismiss() }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.blue)
+                            .font(.system(size: 28))
+                    }
                 }
-                .padding(.top, 4)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                VStack(spacing: 16) {
+                    Text("icon".localized)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.gray)
+                    IconColorPickerView(
+                        selectedIcon: $selectedIcon,
+                        selectedColor: $selectedColor,
+                        name: name,
+                        availableIcons: availableIcons,
+                        availableColors: availableColors
+                    )
+                    .padding(.bottom, 8)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("name".localized)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.gray)
+                        TextField("", text: $name)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardToolbar(title: "Готово") {
+                                hideKeyboard()
+                            }
+                    }
+                    if case .wallet = item {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Amount".localized)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                            TextField("0", text: $sum)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardToolbar(title: "Готово") {
+                                    hideKeyboard()
+                                }
+                        }
+                    } else if case .goal = item {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Amount".localized)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                            TextField("0", text: $sum)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardToolbar(title: "Готово") {
+                                    hideKeyboard()
+                                }
+                        }
+                    }
+                    HStack {
+                        Text("Currency".localized)
+                            .font(.system(size: 14, weight: .medium))
+                        Spacer()
+                        Text("₸")
+                            .font(.system(size: 22, weight: .bold))
+                    }
+                    .padding(.top, 4)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                
+                // Кнопка сохранения всегда видна
+                Button(action: {
+                    saveChanges()
+                    onClose()
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Text("Save".localized)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(name.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(14)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
+                .disabled(name.isEmpty)
+                
+                // Дополнительный отступ для клавиатуры
+                Spacer(minLength: 100)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
-            Spacer()
-            Button(action: {
-                saveChanges()
-                onClose()
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Text("Save".localized)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(name.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(14)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
-            .disabled(name.isEmpty)
         }
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
+        .hideKeyboardOnTap()
         .alert(isPresented: $showDeleteAlert) {
             Alert(
                 title: Text("Delete".localized),
@@ -159,10 +176,14 @@ struct EditItemSheet: View {
     private func saveChanges() {
         let amount = Double(sum) ?? 0
         switch item {
-        case .wallet(let w): viewModel.updateWallet(id: w.id, name: name, amount: amount, wallets: &walletsVM.wallets)
-        case .income(let i): viewModel.updateIncome(id: i.id, name: name, amount: 0) // не трогаем сумму
-        case .goal(let g): viewModel.updateGoal(id: g.id, name: name, amount: amount)
-        case .expense(let e): expensesVM.updateExpense(id: e.id, name: name, icon: selectedIcon, color: selectedColor.toHex ?? "#000000", description: "")
+        case .wallet(let w): 
+            walletsVM.updateWallet(id: w.id, name: name, balance: amount, icon: selectedIcon, color: selectedColor.toHex ?? "#000000")
+        case .income(let i): 
+            viewModel.updateIncome(id: i.id, name: name, amount: 0) // не трогаем сумму
+        case .goal(let g): 
+            viewModel.updateGoal(id: g.id, name: name, amount: amount)
+        case .expense(let e): 
+            expensesVM.updateExpense(id: e.id, name: name, icon: selectedIcon, color: selectedColor.toHex ?? "#000000", description: "")
         }
     }
     private func deleteItem() {

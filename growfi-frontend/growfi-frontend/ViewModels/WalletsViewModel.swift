@@ -9,6 +9,7 @@ class WalletsViewModel: ObservableObject {
     weak var goalsVM: GoalsViewModel?
     weak var expensesVM: ExpensesViewModel?
     weak var historyVM: HistoryViewModel? = nil
+    weak var analyticsVM: AnalyticsViewModel? = nil // для обновления аналитики
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -43,6 +44,8 @@ class WalletsViewModel: ObservableObject {
                 switch result {
                 case .success(let wallet):
                     self?.wallets.append(wallet)
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -86,6 +89,8 @@ class WalletsViewModel: ObservableObject {
                     }
                     // Обновляем историю
                     self?.historyVM?.fetchTransactions()
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -111,6 +116,8 @@ class WalletsViewModel: ObservableObject {
                     }
                     // Обновляем историю
                     self?.historyVM?.fetchTransactions()
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -127,6 +134,8 @@ class WalletsViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.wallets.removeAll { $0.id == id }
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }

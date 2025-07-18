@@ -72,7 +72,6 @@ class ApiService {
 
     // MARK: - Получение транзакций
     func fetchTransactions(token: String, completion: @escaping (Result<[Transaction], Error>) -> Void) {
-        print("[DEBUG][fetchTransactions] token=\(token.prefix(40))... (len=\(token.count))")
         guard let url = URL(string: "\(baseURL)/transactions") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -96,11 +95,9 @@ class ApiService {
             do {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
-                print("[DEBUG][fetchTransactions] raw data:", String(data: data, encoding: .utf8) ?? "<nil>")
                 let transactions = try decoder.decode([Transaction].self, from: data)
                 completion(.success(transactions))
             } catch {
-                print("[DEBUG][fetchTransactions] decode error:", error, String(data: data, encoding: .utf8) ?? "<nil>")
                 completion(.failure(error))
             }
         }.resume()
@@ -261,10 +258,8 @@ class ApiService {
             do {
                 let decoder = JSONDecoder()
                 let paged = try decoder.decode(PaginatedResponse<Income>.self, from: data)
-                print("[fetchIncomes] decoded items:", paged.items)
                 completion(.success(paged.items))
             } catch {
-                print("[fetchIncomes] decode error:", error, String(data: data, encoding: .utf8) ?? "")
                 completion(.failure(error))
             }
         }.resume()
@@ -296,10 +291,8 @@ class ApiService {
             do {
                 let decoder = JSONDecoder()
                 let paged = try decoder.decode(PaginatedResponse<Expense>.self, from: data)
-                print("[fetchExpenses] decoded items:", paged.items)
                 completion(.success(paged.items))
             } catch {
-                print("[fetchExpenses] decode error:", error, String(data: data, encoding: .utf8) ?? "")
                 completion(.failure(error))
             }
         }.resume()
@@ -562,13 +555,12 @@ class ApiService {
                 return
             }
 
-            if let error = error { print("createIncome error:", error); completion(.failure(error)); return }
-            guard let data = data else { print("createIncome: no data"); completion(.failure(NSError(domain: "No data", code: 0))); return }
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
             do {
                 let income = try JSONDecoder().decode(Income.self, from: data)
                 completion(.success(income))
             } catch {
-                print("createIncome decode error:", error, String(data: data, encoding: .utf8) ?? "")
                 completion(.failure(error))
             }
         }.resume()
@@ -659,9 +651,7 @@ class ApiService {
                 return
             }
 
-            if let httpResponse = response as? HTTPURLResponse {
-                print("[deleteIncome] status: \(httpResponse.statusCode)")
-            }
+
             if let error = error { completion(.failure(error)); return }
             completion(.success(()))
         }.resume()
@@ -692,13 +682,12 @@ class ApiService {
                 return
             }
 
-            if let error = error { print("createExpense error:", error); completion(.failure(error)); return }
-            guard let data = data else { print("createExpense: no data"); completion(.failure(NSError(domain: "No data", code: 0))); return }
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
             do {
                 let expense = try JSONDecoder().decode(Expense.self, from: data)
                 completion(.success(expense))
             } catch {
-                print("createExpense decode error:", error, String(data: data, encoding: .utf8) ?? "")
                 completion(.failure(error))
             }
         }.resume()
@@ -753,9 +742,7 @@ class ApiService {
                 return
             }
 
-            if let httpResponse = response as? HTTPURLResponse {
-                print("[deleteExpense] status: \(httpResponse.statusCode)")
-            }
+
             if let error = error { completion(.failure(error)); return }
             completion(.success(()))
         }.resume()
@@ -891,6 +878,26 @@ class ApiService {
             } catch {
                 completion(.failure(error))
             }
+        }.resume()
+    }
+    
+    // MARK: - Удаление аккаунта
+    func deleteAccount(token: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/users/me") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("LogoutDueTo401"), object: nil)
+                }
+                completion(.failure(NSError(domain: "Unauthorized", code: 401)))
+                return
+            }
+            
+            if let error = error { completion(.failure(error)); return }
+            completion(.success(()))
         }.resume()
     }
 } 

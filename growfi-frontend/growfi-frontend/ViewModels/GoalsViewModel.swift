@@ -30,6 +30,7 @@ class GoalsViewModel: ObservableObject {
     var incomesVM: IncomesViewModel? = nil
     // Добавляю ссылку на historyVM
     var historyVM: HistoryViewModel?
+    weak var analyticsVM: AnalyticsViewModel? = nil // для обновления аналитики
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -39,16 +40,15 @@ class GoalsViewModel: ObservableObject {
     }
 
     func fetchUser() {
-        guard let token = UserDefaults.standard.string(forKey: "access_token") else { print("[fetchUser] Нет access_token"); return }
-        print("[fetchUser] access_token:", token)
+        guard let token = UserDefaults.standard.string(forKey: "access_token") else { return }
         ApiService.shared.fetchCurrentUser(token: token) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let user):
-                    print("[fetchUser] User from API:", user)
                     self?.user = user
                 case .failure(let err):
-                    print("[fetchUser] Ошибка:", err.localizedDescription)
+                    // Handle error silently
+                    break
                     self?.error = err.localizedDescription
                 }
             }
@@ -80,6 +80,8 @@ class GoalsViewModel: ObservableObject {
                 switch result {
                 case .success(let goal):
                     self?.goals.append(goal)
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -106,18 +108,17 @@ class GoalsViewModel: ObservableObject {
     }
 
     func deleteGoal(goalId: Int) {
-        guard let token = token else { print("[deleteGoal] Нет токена"); return }
-        print("[deleteGoal] goalId:", goalId, "token:", token.prefix(8), "...")
+        guard let token = token else { return }
         isLoading = true
         ApiService.shared.deleteGoal(goalId: goalId, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
                 case .success:
-                    print("[deleteGoal] Успешно удалено goalId:", goalId)
                     self?.goals.removeAll { $0.id == goalId }
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
-                    print("[deleteGoal] Ошибка удаления goalId:", goalId, err.localizedDescription)
                     self?.error = err.localizedDescription
                 }
             }

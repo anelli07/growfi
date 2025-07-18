@@ -4,10 +4,10 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 
 app = FastAPI(
-    title="My API",
-    openapi_url="/openapi.json",  # стандартный путь
-    docs_url="/docs",             # Swagger UI
-    redoc_url="/redoc"            # ReDoc
+    title="GrowFi API",
+    openapi_url=None,  # отключаем OpenAPI для продакшена
+    docs_url=None,     # отключаем Swagger UI для продакшена
+    redoc_url=None     # отключаем ReDoc для продакшена
 )
 
 # Set all CORS enabled origins

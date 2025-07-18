@@ -41,6 +41,7 @@ struct AppEntry: View {
     @StateObject private var incomesVM = IncomesViewModel()
     @StateObject private var categoriesVM = CategoriesViewModel()
     @StateObject private var historyVM = HistoryViewModel()
+    @StateObject private var analyticsVM = AnalyticsViewModel()
 
     private func resetAllViewModels() {
         goalsViewModel.user = nil
@@ -54,24 +55,34 @@ struct AppEntry: View {
     }
 
     private func determineInitialScreen() {
-    // Временно сбрасываем флаг для тестирования экрана выбора языка
-    UserDefaults.standard.removeObject(forKey: "has_launched_before")
-    
-    let hasLaunched = UserDefaults.standard.bool(forKey: "has_launched_before")
-    let accessToken = UserDefaults.standard.string(forKey: "access_token")
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { // splash задержка
-        if !hasLaunched {
-            rootScreen = .welcome
-            UserDefaults.standard.set(true, forKey: "has_launched_before")
-        } else if accessToken == nil {
-            rootScreen = .auth
-        } else {
-            rootScreen = .main
+        let hasLaunched = UserDefaults.standard.bool(forKey: "has_launched_before")
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        
+
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { // splash задержка
+            if !hasLaunched {
+                // Первый запуск: Loading → Welcome → Auth → ContentView
+                rootScreen = .welcome
+                UserDefaults.standard.set(true, forKey: "has_launched_before")
+            } else if accessToken == nil {
+                // Нет токена: Loading → Auth → ContentView
+                rootScreen = .auth
+            } else {
+                // Есть токен: Loading → ContentView
+                rootScreen = .main
+            }
         }
     }
-}
 
     private func handleLogout() {
+        UserDefaults.standard.removeObject(forKey: "access_token")
+        UserDefaults.standard.removeObject(forKey: "refresh_token")
+        resetAllViewModels()
+        rootScreen = .auth
+    }
+    
+    private func handleAccountDeleted() {
         UserDefaults.standard.removeObject(forKey: "access_token")
         UserDefaults.standard.removeObject(forKey: "refresh_token")
         resetAllViewModels()
@@ -100,23 +111,30 @@ struct AppEntry: View {
                     }, goalsViewModel: goalsViewModel)
                     .transition(.opacity)
                 case .main:
-                    ContentView(onLogout: { withAnimation { handleLogout() } })
+                    ContentView(onLogout: { 
+                        withAnimation { handleLogout() } 
+                    })
                         .environmentObject(goalsViewModel)
                         .environmentObject(walletsVM)
                         .environmentObject(expensesVM)
                         .environmentObject(incomesVM)
                         .environmentObject(categoriesVM)
                         .environmentObject(historyVM)
+                        .environmentObject(analyticsVM)
                         .onAppear {
                             incomesVM.walletsVM = walletsVM
                             walletsVM.expensesVM = expensesVM
                             walletsVM.goalsVM = goalsViewModel
                             incomesVM.historyVM = historyVM
                             walletsVM.historyVM = historyVM
+                            incomesVM.analyticsVM = analyticsVM
+                            walletsVM.analyticsVM = analyticsVM
+                            expensesVM.analyticsVM = analyticsVM
                             goalsViewModel.expensesVM = expensesVM
                             goalsViewModel.incomesVM = incomesVM
+                            goalsViewModel.analyticsVM = analyticsVM
                             let token = UserDefaults.standard.string(forKey: "access_token") ?? "nil"
-                            print("[AppEntry] access_token при старте:", token)
+                    
                             goalsViewModel.fetchUser()
                             goalsViewModel.fetchGoals()
                             categoriesVM.fetchCategories()
@@ -130,6 +148,10 @@ struct AppEntry: View {
             }
         }
         .animation(.easeInOut, value: rootScreen)
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("LogoutDueTo401"))) { _ in
+            // Автоматический выход при 401 ошибке
+            handleLogout()
+        }
     }
 } 
 

@@ -54,18 +54,17 @@ class AnalyticsViewModel: ObservableObject {
 
     func fetchTransactions() {
         guard let token = UserDefaults.standard.string(forKey: "access_token"), !token.isEmpty else {
-            print("[AnalyticsViewModel] Нет access_token, не делаю fetchTransactions")
             return
         }
         ApiService.shared.fetchTransactions(token: token) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let txs):
-                    print("[AnalyticsViewModel] Получено транзакций с бэка:", txs)
                     self?.allTransactions = txs
                     self?.applyFilters()
                 case .failure(let err):
-                    print("[AnalyticsViewModel] Ошибка декодирования или запроса:", err.localizedDescription)
+                    // Handle error silently
+                    break
                 }
             }
         }

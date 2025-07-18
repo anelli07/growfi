@@ -120,195 +120,244 @@ struct TransferSheet: View {
         if cal.isDateInYesterday(d) { return "yesterday".localized }
         return nil
     }
+    
+    var isInsufficientFunds: Bool {
+        switch type {
+        case .walletToGoal(let wallet, _):
+            return amount > wallet.balance
+        case .walletToExpense(let wallet, _):
+            return amount > wallet.balance
+        case .incomeToWallet:
+            return false
+        }
+    }
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Text(title)
-                    .font(.system(size: 20, weight: .semibold))
-                    .padding(.top, 16)
-                Spacer()
-                Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                    Image(systemName: "xmark")
-                        .foregroundColor(.blue)
+        ScrollView {
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Text(title)
+                        .font(.system(size: 20, weight: .semibold))
                         .padding(.top, 16)
-                }
-            }
-            Spacer().frame(height: 8)
-            Text("amount".localized)
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(.gray)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                TextField("0", value: $amount, formatter: NumberFormatter())
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .multilineTextAlignment(.center)
-                    .keyboardType(.decimalPad)
-                    .frame(maxWidth: .infinity)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Text("₸")
-                    .font(.system(size: 32, weight: .bold))
-            }
-            .padding(.bottom, 8)
-            // Универсальный блок: слева и справа
-            HStack(spacing: 32) {
-                VStack(spacing: 4) {
-                    Text(leftSubtitle)
-                        .font(.system(size: 14))
-                        .foregroundColor(.gray)
-                    Text(leftTitle)
-                        .font(.system(size: 16, weight: .semibold))
-                    ZStack {
-                        Circle()
-                            .fill(leftColor)
-                            .frame(width: 56, height: 56)
-                        Image(systemName: leftIcon)
-                            .foregroundColor(.white)
-                            .font(.system(size: 28))
-                    }
-                    if !leftAmount.isEmpty {
-                        Text(leftAmount)
-                            .font(.system(size: 14))
-                            .foregroundColor(.gray)
-                    }
-                }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 24))
-                    .foregroundColor(.gray)
-                VStack(spacing: 4) {
-                    Text(rightSubtitle)
-                        .font(.system(size: 14))
-                        .foregroundColor(.gray)
-                    Text(rightTitle)
-                        .font(.system(size: 16, weight: .semibold))
-                    ZStack {
-                        Circle()
-                            .fill(rightColor)
-                            .frame(width: 56, height: 56)
-                        Image(systemName: rightIcon)
-                            .foregroundColor(.white)
-                            .font(.system(size: 28))
-                    }
-                    if !rightAmount.isEmpty {
-                        Text(rightAmount)
-                            .font(.system(size: 14))
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
-            .padding(.vertical, 16)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Дата".localized)
-                    .font(.system(size: 16))
-                    .foregroundColor(.gray)
-                HStack(spacing: 8) {
-                    Button(action: { showDatePicker = true }) {
-                        Image(systemName: "calendar")
+                    Spacer()
+                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                        Image(systemName: "xmark")
                             .foregroundColor(.blue)
-                            .frame(width: 32, height: 32)
-                    }
-                    ScrollViewReader { scrollProxy in
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
-                                ForEach(dateOptions, id: \.self) { d in
-                                    VStack(spacing: 2) {
-                                        Text(dateShort(d))
-                                            .font(.system(size: 18, weight: .bold))
-                                            .foregroundColor(Calendar.current.isDate(d, inSameDayAs: date) ? .black : .gray)
-                                        Text(dateWeekday(d))
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.gray)
-                                        if let special = dateSpecial(d) {
-                                            Text(special)
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.blue)
-                                        }
-                                    }
-                                    .padding(8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Calendar.current.isDate(d, inSameDayAs: date) ? Color.blue : Color.clear, lineWidth: 2)
-                                    )
-                                    .onTapGesture { date = d }
-                                    .id(d)
-                                }
-                            }
-                        }
-                        .onAppear {
-                            // Скроллим к сегодняшней дате (по центру/справа)
-                            if let today = dateOptions.first(where: { Calendar.current.isDateInToday($0) }) {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    scrollProxy.scrollTo(today, anchor: .trailing)
-                                }
-                            }
-                        }
+                            .padding(.top, 16)
                     }
                 }
-            }
-            .padding(.vertical, 8)
-            .sheet(isPresented: $showDatePicker) {
-                VStack {
-                    HStack {
-                        Text("Выберите дату".localized)
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { showDatePicker = false }) {
-                            Image(systemName: "xmark")
+                Spacer().frame(height: 8)
+                Text("amount".localized)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(.gray)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    TextField("0", value: $amount, formatter: NumberFormatter())
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .keyboardType(.decimalPad)
+                        .frame(maxWidth: .infinity)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .keyboardToolbar(title: "Готово") {
+                            hideKeyboard()
+                        }
+                    Text("₸")
+                        .font(.system(size: 32, weight: .bold))
+                }
+                .padding(.bottom, 8)
+                
+                // Показываем предупреждение о недостаточности средств
+                if case .walletToGoal(let wallet, _) = type, amount > wallet.balance {
+                    Text("insufficient_funds".localized)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.bottom, 8)
+                } else if case .walletToExpense(let wallet, _) = type, amount > wallet.balance {
+                    Text("insufficient_funds".localized)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.bottom, 8)
+                }
+                // Универсальный блок: слева и справа
+                HStack(spacing: 32) {
+                    VStack(spacing: 4) {
+                        Text(leftSubtitle)
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                        Text(leftTitle)
+                            .font(.system(size: 16, weight: .semibold))
+                        ZStack {
+                            Circle()
+                                .fill(leftColor)
+                                .frame(width: 56, height: 56)
+                            Image(systemName: leftIcon)
+                                .foregroundColor(.white)
+                                .font(.system(size: 28))
+                        }
+                        if !leftAmount.isEmpty {
+                            Text(leftAmount)
+                                .font(.system(size: 14))
                                 .foregroundColor(.gray)
                         }
                     }
-                    .padding()
-                    DatePicker("", selection: $date, displayedComponents: .date)
-                        .datePickerStyle(.graphical)
-                        .labelsHidden()
-                        .padding()
-                        .environment(\.locale, Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue))
-                    Spacer()
-                    Button(action: { showDatePicker = false }) {
-                        Text("Сохранить".localized)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(14)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 24))
+                        .foregroundColor(.gray)
+                    VStack(spacing: 4) {
+                        Text(rightSubtitle)
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                        Text(rightTitle)
+                            .font(.system(size: 16, weight: .semibold))
+                        ZStack {
+                            Circle()
+                                .fill(rightColor)
+                                .frame(width: 56, height: 56)
+                            Image(systemName: rightIcon)
+                                .foregroundColor(.white)
+                                .font(.system(size: 28))
+                        }
+                        if !rightAmount.isEmpty {
+                            Text(rightAmount)
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
                 }
-                .presentationDetents([.medium, .large])
+                .padding(.vertical, 16)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Дата".localized)
+                        .font(.system(size: 16))
+                        .foregroundColor(.gray)
+                    HStack(spacing: 8) {
+                        Button(action: { showDatePicker = true }) {
+                            Image(systemName: "calendar")
+                                .foregroundColor(.blue)
+                                .frame(width: 32, height: 32)
+                        }
+                        ScrollViewReader { scrollProxy in
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    ForEach(dateOptions, id: \.self) { d in
+                                        VStack(spacing: 2) {
+                                            Text(dateShort(d))
+                                                .font(.system(size: 18, weight: .bold))
+                                                .foregroundColor(Calendar.current.isDate(d, inSameDayAs: date) ? .black : .gray)
+                                            Text(dateWeekday(d))
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.gray)
+                                            if let special = dateSpecial(d) {
+                                                Text(special)
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.blue)
+                                            }
+                                        }
+                                        .padding(8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Calendar.current.isDate(d, inSameDayAs: date) ? Color.blue : Color.clear, lineWidth: 2)
+                                        )
+                                        .onTapGesture { date = d }
+                                        .id(d)
+                                    }
+                                }
+                            }
+                            .onAppear {
+                                // Скроллим к сегодняшней дате (по центру/справа)
+                                if let today = dateOptions.first(where: { Calendar.current.isDateInToday($0) }) {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        scrollProxy.scrollTo(today, anchor: .trailing)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                .sheet(isPresented: $showDatePicker) {
+                    VStack {
+                        HStack {
+                            Text("Выберите дату".localized)
+                                .font(.headline)
+                            Spacer()
+                            Button(action: { showDatePicker = false }) {
+                                Image(systemName: "xmark")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .padding()
+                        DatePicker("", selection: $date, displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .labelsHidden()
+                            .padding()
+                            .environment(\.locale, Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue))
+                        Spacer()
+                        Button(action: { showDatePicker = false }) {
+                            Text("Сохранить".localized)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(14)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
+                    }
+                    .presentationDetents([.medium, .large])
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Комментарий".localized)
+                        .font(.system(size: 16))
+                        .foregroundColor(.gray)
+                    TextField("Комментарий".localized, text: $comment)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardToolbar(title: "Готово") {
+                            hideKeyboard()
+                        }
+                }
+                .padding(.vertical, 8)
+                
+                // Кнопка сохранения всегда видна
+                Button(action: {
+                    // Проверяем достаточность средств для кошелька
+                    if case .walletToGoal(let wallet, _) = type, amount > wallet.balance {
+                        // Показываем ошибку - недостаточно средств
+                        return
+                    }
+                    if case .walletToExpense(let wallet, _) = type, amount > wallet.balance {
+                        // Показываем ошибку - недостаточно средств
+                        return
+                    }
+                    onConfirm(amount, date, comment)
+                }) {
+                    Text("Сохранить".localized)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(14)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
+                .disabled(amount <= 0 || isInsufficientFunds)
+                
+                // Дополнительный отступ для клавиатуры
+                Spacer(minLength: 100)
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Комментарий".localized)
-                    .font(.system(size: 16))
-                    .foregroundColor(.gray)
-                TextField("Комментарий".localized, text: $comment)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            .padding(.vertical, 8)
-            Spacer()
-            Button(action: {
-                onConfirm(amount, date, comment)
-            }) {
-                Text("Сохранить".localized)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(14)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
+            .background(Color.white)
+            .cornerRadius(24)
+            .ignoresSafeArea(edges: .bottom)
+            .hideKeyboardOnTap()
         }
-        .background(Color.white)
-        .cornerRadius(24)
-        .ignoresSafeArea(edges: .bottom)
     }
 }
 
+// MARK: - Date Extension
 extension Date {
     func toBackendString() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: self)
     }
-} 
+}

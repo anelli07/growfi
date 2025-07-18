@@ -42,7 +42,6 @@ class CRUDIncome(CRUDBase[Income, IncomeCreate, IncomeUpdate]):
     def assign_income_to_wallet(
         self, db: Session, *, income_id: int, wallet_id: int, amount: float, category_id: Optional[int] = None
     ) -> Income:
-        logger.debug(f"assign_income_to_wallet: income_id={income_id}, wallet_id={wallet_id}, amount={amount}, category_id={category_id}")
         try:
             income = db.get(Income, income_id)
             if not income:
@@ -53,7 +52,6 @@ class CRUDIncome(CRUDBase[Income, IncomeCreate, IncomeUpdate]):
                 logger.warning(f"Wallet not found: wallet_id={wallet_id}")
                 raise ValueError("Wallet not found")
             wallet.balance += amount
-            logger.debug(f"Перед коммитом: wallet.id={wallet.id}, balance={wallet.balance}")
             db.add(wallet)
             income.wallet_id = wallet_id
             income.amount += amount
@@ -64,7 +62,6 @@ class CRUDIncome(CRUDBase[Income, IncomeCreate, IncomeUpdate]):
             db.expire_all()
             db.refresh(income)
             db.refresh(wallet)
-            logger.debug(f"После коммита: wallet.id={wallet.id}, balance={wallet.balance}")
             # Создаём Transaction
             transaction_obj = TransactionCreate(
                 user_id=income.user_id,
@@ -82,7 +79,6 @@ class CRUDIncome(CRUDBase[Income, IncomeCreate, IncomeUpdate]):
                 icon=income.icon,
                 color=income.color
             )
-            logger.debug(f"Creating transaction: {transaction_obj}")
             transaction.create(db, obj_in=transaction_obj)
             logger.info(f"Income assigned and transaction created: income_id={income_id}")
             return income

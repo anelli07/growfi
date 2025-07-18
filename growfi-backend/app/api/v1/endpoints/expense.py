@@ -36,7 +36,6 @@ def read_expenses(
         start_date=start_date,
         end_date=end_date,
     )
-    print("DEBUG: items", [(e.id, e.amount) for e in items])
     return Page(
         items=items,
         total=total,

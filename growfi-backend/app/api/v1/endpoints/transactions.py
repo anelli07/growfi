@@ -14,19 +14,6 @@ def get_transactions(
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ):
-    frame = inspect.currentframe()
-    outer_frames = inspect.getouterframes(frame)
-    # Попробуем получить request через стек (FastAPI не даёт напрямую)
-    request = None
-    for f in outer_frames:
-        if 'request' in f.frame.f_locals:
-            request = f.frame.f_locals['request']
-            break
-    print(f"[DEBUG] get_transactions: user={getattr(current_user, 'id', None)}, email={getattr(current_user, 'email', None)}")
-    if request:
-        print(f"[DEBUG] get_transactions: Authorization header = {request.headers.get('authorization')}")
-    else:
-        print("[DEBUG] get_transactions: request object not found in stack, не могу вывести токен")
     txs = transaction.get_multi_by_user(db, user_id=current_user.id)
     # Собираем id-шники для батч-запроса
     wallet_ids = set()

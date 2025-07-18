@@ -89,12 +89,10 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
             }
             
             guard let appleIDToken = appleIDCredential.identityToken else {
-                print("Unable to fetch identity token")
                 return
             }
             
             guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
-                print("Unable to serialize token string from data")
                 return
             }
             
@@ -106,15 +104,11 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
             isSignedIn = true
             
             // Здесь можно отправить данные на сервер
-            print("Apple Sign-In successful")
-            print("User ID: \(userID ?? "nil")")
-            print("Email: \(email ?? "nil")")
-            print("Full Name: \(fullName ?? "nil")")
         }
     }
     
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-        print("Apple Sign-In failed: \(error.localizedDescription)")
+        // Handle error silently
     }
 }
 

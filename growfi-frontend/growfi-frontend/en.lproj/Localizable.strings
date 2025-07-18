@@ -85,6 +85,11 @@
 "goals" = "Goals";
 "analytics" = "Analytics";
 "logout" = "Logout";
+"delete_account" = "Delete Account";
+"delete_account_confirmation" = "Are you sure you want to delete your account? This action cannot be undone.";
+"delete_account_title" = "Delete Account";
+"cancel" = "Cancel";
+"insufficient_funds" = "Insufficient funds in wallet";
 "language" = "Language";
 "legal" = "Legal";
 "profile" = "Profile";

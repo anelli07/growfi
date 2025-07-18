@@ -5,13 +5,14 @@ class ExpensesViewModel: ObservableObject {
     @Published var expenses: [Expense] = []
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
+    
+    weak var analyticsVM: AnalyticsViewModel? = nil // для обновления аналитики
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
     }
 
     init() {
-        print("[ExpensesViewModel] init", self)
         fetchExpenses()
     }
 
@@ -23,7 +24,6 @@ class ExpensesViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let expenses):
-                    print("[fetchExpenses] expenses после assign:", expenses.map { "\($0.id): \($0.amount)" })
                     self?.expenses = expenses.sorted { $0.id < $1.id }
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -41,8 +41,9 @@ class ExpensesViewModel: ObservableObject {
                 switch result {
                 case .success(let expense):
                     self?.expenses.append(expense)
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
-                    print("createExpense error:", err.localizedDescription)
                     self?.error = err.localizedDescription
                 }
             }
@@ -76,6 +77,8 @@ class ExpensesViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.expenses.removeAll { $0.id == id }
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }

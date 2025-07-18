@@ -297,7 +297,7 @@ struct GoalDetailsView: View {
 //                .frame(height: 4)
 //                        .padding(.horizontal, 24)
             Button(action: {
-                // TODO: Sheet для пополнения цели
+                
             }) {
                 Text("ReplenishGoal".localized)
                     .font(.headline)

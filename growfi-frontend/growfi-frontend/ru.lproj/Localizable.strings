@@ -13,6 +13,11 @@
 "settings" = "Настройки";
 "profile" = "Профиль";
 "logout" = "Выйти";
+"delete_account" = "Удалить аккаунт";
+"delete_account_confirmation" = "Вы уверены, что хотите удалить аккаунт? Это действие нельзя отменить.";
+"delete_account_title" = "Удаление аккаунта";
+"cancel" = "Отмена";
+"insufficient_funds" = "Недостаточно средств в кошельке";
 "login" = "Войти";
 "register" = "Зарегистрироваться";
 "email" = "Email";

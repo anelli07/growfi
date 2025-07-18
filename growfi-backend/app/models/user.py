@@ -5,6 +5,8 @@ from datetime import datetime
 if TYPE_CHECKING:
     from .category import Category
     from .transaction import Income, Expense
+    from .wallet import Wallet
+    from .goal import Goal
 
 
 class UserBase(SQLModel):
@@ -29,6 +31,8 @@ class User(UserBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    categories: List["Category"] = Relationship(back_populates="user")
-    incomes: List["Income"] = Relationship(back_populates="user")
-    expenses: List["Expense"] = Relationship(back_populates="user")
+    categories: List["Category"] = Relationship(back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    incomes: List["Income"] = Relationship(back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    expenses: List["Expense"] = Relationship(back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    wallets: List["Wallet"] = Relationship(back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    goals: List["Goal"] = Relationship(back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"})

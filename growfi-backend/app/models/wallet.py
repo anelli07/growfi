@@ -1,5 +1,8 @@
-from typing import Optional
-from sqlmodel import SQLModel, Field
+from typing import Optional, TYPE_CHECKING
+from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from .user import User
 
 class Wallet(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -9,6 +12,7 @@ class Wallet(SQLModel, table=True):
     color_hex: Optional[str] = None
     currency: str = "KZT"
     user_id: int = Field(foreign_key="user.id")
+    user: "User" = Relationship(back_populates="wallets")
 
 class WalletCreate(SQLModel):
     name: str

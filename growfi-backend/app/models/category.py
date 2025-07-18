@@ -21,5 +21,5 @@ class Category(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     user: "User" = Relationship(back_populates="categories")
 
-    expenses: List["Expense"] = Relationship(back_populates="category")
-    incomes: List["Income"] = Relationship(back_populates="category")
+    expenses: List["Expense"] = Relationship(back_populates="category", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    incomes: List["Income"] = Relationship(back_populates="category", sa_relationship_kwargs={"cascade": "all, delete-orphan"})

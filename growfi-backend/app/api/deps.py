@@ -26,20 +26,17 @@ def get_db() -> Generator:
 def get_current_active_user(
     db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> models.User:
-    print(f"[DEBUG] get_current_active_user: token='{token[:40]}...' (len={len(token)})")
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data = TokenData(**payload)
     except (JWTError, ValidationError) as e:
-        print(f"[DEBUG] get_current_active_user: JWTError/ValidationError: {e}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
         )
     user = db.get(models.User, token_data.sub)
-    print(f"[DEBUG] get_current_active_user: user={getattr(user, 'id', None)}, email={getattr(user, 'email', None)}")
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:

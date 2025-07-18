@@ -9,6 +9,7 @@ class IncomesViewModel: ObservableObject {
     weak var walletsVM: WalletsViewModel? = nil // для обновления баланса кошелька
     weak var goalsVM: GoalsViewModel? = nil // для обновления целей
     weak var historyVM: HistoryViewModel? = nil // для обновления истории
+    weak var analyticsVM: AnalyticsViewModel? = nil // для обновления аналитики
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -26,7 +27,6 @@ class IncomesViewModel: ObservableObject {
                 self?.isLoading = false
                 switch result {
                 case .success(let incomes):
-                    print("[fetchIncomes] incomes:", incomes)
                     self?.incomes = incomes.sorted { $0.id < $1.id }
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -44,8 +44,11 @@ class IncomesViewModel: ObservableObject {
                 switch result {
                 case .success(let income):
                     self?.incomes.append(income)
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
-                    print("createIncome error:", err.localizedDescription)
+                    // Handle error silently
+                    break
                     self?.error = err.localizedDescription
                 }
             }
@@ -88,6 +91,8 @@ class IncomesViewModel: ObservableObject {
                     }
                     // Обновляем историю
                     self?.historyVM?.fetchTransactions()
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -104,6 +109,8 @@ class IncomesViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.incomes.removeAll { $0.id == id }
+                    // Обновляем аналитику
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }

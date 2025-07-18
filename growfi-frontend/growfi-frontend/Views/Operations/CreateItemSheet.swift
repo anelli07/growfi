@@ -39,97 +39,114 @@ struct CreateItemSheet: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Text(type == .wallet ? "create_wallet_title".localized : "create_title".localized)
-                    .font(.system(size: 20, weight: .semibold))
-                    .padding(.top, 16)
-                Spacer()
-                Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                    Image(systemName: "xmark")
-                        .foregroundColor(.blue)
+        ScrollView {
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Text(type == .wallet ? "create_wallet_title".localized : "create_title".localized)
+                        .font(.system(size: 20, weight: .semibold))
                         .padding(.top, 16)
+                    Spacer()
+                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.blue)
+                            .padding(.top, 16)
+                    }
                 }
-            }
-            Spacer().frame(height: 8)
-            VStack(spacing: 8) {
-                Text("icon".localized)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.gray)
-                IconColorPickerView(
-                    selectedIcon: $selectedIcon,
-                    selectedColor: $selectedColor,
-                    name: name,
-                    availableIcons: availableIcons,
-                    availableColors: availableColors
-                )
-            }
-            .padding(.bottom, 8)
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("name".localized)
-                        .font(.system(size: 16))
+                Spacer().frame(height: 8)
+                VStack(spacing: 8) {
+                    Text("icon".localized)
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.gray)
-                    TextField("enter_name".localized, text: $name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    IconColorPickerView(
+                        selectedIcon: $selectedIcon,
+                        selectedColor: $selectedColor,
+                        name: name,
+                        availableIcons: availableIcons,
+                        availableColors: availableColors
+                    )
                 }
-                if type == .goal {
+                .padding(.bottom, 8)
+                VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("goal_amount".localized)
+                        Text("name".localized)
                             .font(.system(size: 16))
                             .foregroundColor(.gray)
-                        TextField("0", text: $sum)
-                            .keyboardType(.decimalPad)
+                        TextField("enter_name".localized, text: $name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
-                } else if type == .wallet {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("wallet_amount_optional".localized)
-                            .font(.system(size: 16))
-                            .foregroundColor(.gray)
-                        TextField("0", text: $sum)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
-                }
-                if type == .goal || type == .wallet {
-                    HStack {
-                        Text("currency".localized)
-                            .font(.system(size: 16))
-                        Spacer()
-                        Picker("Валюта", selection: $selectedCurrency) {
-                            ForEach(availableCurrencies, id: \.self) { currency in
-                                Text(currency)
+                            .keyboardToolbar(title: "Готово") {
+                                hideKeyboard()
                             }
+                    }
+                    if type == .goal {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("goal_amount".localized)
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                            TextField("0", text: $sum)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardToolbar(title: "Готово") {
+                                    hideKeyboard()
+                                }
                         }
-                        .pickerStyle(.menu)
+                    } else if type == .wallet {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("wallet_amount_optional".localized)
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                            TextField("0", text: $sum)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardToolbar(title: "Готово") {
+                                    hideKeyboard()
+                                }
+                        }
+                    }
+                    if type == .goal || type == .wallet {
+                        HStack {
+                            Text("currency".localized)
+                                .font(.system(size: 16))
+                            Spacer()
+                            Picker("Валюта", selection: $selectedCurrency) {
+                                ForEach(availableCurrencies, id: \.self) { currency in
+                                    Text(currency)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                
+                // Кнопка сохранения всегда видна
+                Button(action: {
+                    let amount: Double = (type == .goal || type == .wallet) ? (Double(sum) ?? 0) : 0
+                    let finalName = name.isEmpty ? defaultName.localizedIfDefault : name
+                    onCreate(finalName, amount, selectedIcon, selectedColor.toHex, selectedCurrency)
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Text("save".localized)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(name.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(14)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
+                .disabled(name.isEmpty)
+                
+                // Дополнительный отступ для клавиатуры
+                Spacer(minLength: 100)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            Spacer()
-            Button(action: {
-                let amount: Double = (type == .goal || type == .wallet) ? (Double(sum) ?? 0) : 0
-                let finalName = name.isEmpty ? defaultName.localizedIfDefault : name
-                onCreate(finalName, amount, selectedIcon, selectedColor.toHex, selectedCurrency)
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Text("save".localized)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(name.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(14)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-            .disabled(name.isEmpty)
         }
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
+        .hideKeyboardOnTap()
     }
     
     // Добавляю вычисляемое свойство для дефолтного имени

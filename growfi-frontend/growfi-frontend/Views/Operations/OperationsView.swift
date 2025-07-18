@@ -66,7 +66,7 @@ struct OperationsView: View {
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
 
     var body: some View {
-        print("[OperationsView.body] expensesVM.expenses:", expensesVM.expenses.map { "\($0.id): \($0.amount)" })
+
         return ScrollView {
             VStack(spacing: 12) {
                 incomesSection
@@ -78,7 +78,7 @@ struct OperationsView: View {
             .padding(.horizontal, 8)
         }
         .onAppear {
-            print("[OperationsView] expensesVM.expenses:", expensesVM.expenses)
+    
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("error".localized), message: Text(alertMessage), dismissButton: .default(Text("ok".localized)))
@@ -88,7 +88,7 @@ struct OperationsView: View {
                 TransferSheet(type: type, amount: $transferAmount, date: $transferDate, comment: $transferComment) { amount, date, comment in
                     switch type {
                     case .incomeToWallet(let income, let wallet):
-                        print("[DEBUG] amount перед отправкой:", amount)
+                
                         guard amount > 0 else {
                             alertMessage = "Введите сумму больше 0"
                             showAlert = true
@@ -111,7 +111,7 @@ struct OperationsView: View {
                             comment: comment
                         )
                     case .walletToExpense(let wallet, let expense):
-                        print("[DEBUG] assignWalletToExpense: walletId=\(wallet.id), expenseId=\(expense.id), amount=\(amount)")
+                
                         walletsVM.assignWalletToExpense(
                             walletId: wallet.id,
                             expenseId: expense.id,
@@ -132,7 +132,7 @@ struct OperationsView: View {
                     switch type {
                     case .income:
                         let catId: Int? = categoriesVM.incomeCategories.first?.id
-                        print("[CreateIncome] categoryId:", catId as Any)
+                
                         incomesVM.createIncome(name: name, icon: icon ?? "dollarsign.circle.fill", color: color ?? "#00FF00", categoryId: catId)
                     case .wallet:
                         walletsVM.createWallet(name: name, balance: sum, currency: currency, icon: icon ?? "creditcard.fill", color: color ?? "#0000FF")
@@ -141,7 +141,7 @@ struct OperationsView: View {
                     case .expense:
                         let catId: Int? = categoriesVM.expenseCategories.first?.id
                         let walletId: Int? = walletsVM.wallets.first?.id
-                        print("[CreateExpense] categoryId:", catId as Any, "walletId:", walletId as Any)
+                
                         expensesVM.createExpense(name: name, icon: icon ?? "cart.fill", color: color ?? "#FF0000", categoryId: catId, walletId: walletId)
                     }
                     showCreateSheet = false

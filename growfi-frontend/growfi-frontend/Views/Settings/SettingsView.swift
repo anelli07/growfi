@@ -6,6 +6,8 @@ struct SettingsView: View {
     @ObservedObject var langManager = AppLanguageManager.shared
     var onLogout: () -> Void
     @State private var showLanguageSheet = false
+    @State private var showDeleteAccountAlert = false
+    @State private var isDeletingAccount = false
 
     var body: some View {
         NavigationView {
@@ -87,6 +89,30 @@ struct SettingsView: View {
                         .cornerRadius(16)
                     }
                     .padding(.top, 8)
+                    
+                    // Delete Account
+                    Button(action: { showDeleteAccountAlert = true }) {
+                        HStack {
+                            Spacer()
+                            if isDeletingAccount {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .foregroundColor(.red)
+                            } else {
+                                Text("delete_account".localized)
+                                    .foregroundColor(.red)
+                            }
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(16)
+                    }
+                    .disabled(isDeletingAccount)
+                    .padding(.top, 4)
+                    
+
+                    
                     Spacer(minLength: 24)
                 }
                 .padding(.horizontal, 16)
@@ -101,7 +127,40 @@ struct SettingsView: View {
                     }
                 } + [.cancel()])
             }
+            .alert("delete_account_title".localized, isPresented: $showDeleteAccountAlert) {
+                Button("delete_account".localized, role: .destructive) {
+                    deleteAccount()
+                }
+                Button("cancel".localized, role: .cancel) { }
+            } message: {
+                Text("delete_account_confirmation".localized)
+            }
             .onLanguageChange()
+        }
+    }
+    
+    private func deleteAccount() {
+        guard let token = UserDefaults.standard.string(forKey: "access_token") else { return }
+        
+        isDeletingAccount = true
+        
+        ApiService.shared.deleteAccount(token: token) { result in
+            DispatchQueue.main.async {
+                isDeletingAccount = false
+                
+                switch result {
+                case .success:
+                    // Очищаем все данные пользователя
+                    UserDefaults.standard.removeObject(forKey: "access_token")
+                    UserDefaults.standard.removeObject(forKey: "refresh_token")
+                    goalsVM.user = nil
+                    // Вызываем onLogout для перехода на экран авторизации
+                    onLogout()
+                case .failure(_):
+                    // Можно показать алерт с ошибкой
+                    break
+                }
+            }
         }
     }
 }
