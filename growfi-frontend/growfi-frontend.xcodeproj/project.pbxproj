@@ -417,7 +417,7 @@
 				CODE_SIGN_ENTITLEMENTS = "growfi-frontend/growfi-frontend.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = AHL9CR6C7F;
+				DEVELOPMENT_TEAM = DJDVY4P58A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_FILE[sdk=*]" = "growfi-frontend/Info.plist";
@@ -435,7 +435,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.growfi.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.growfi.app1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -456,7 +456,7 @@
 				CODE_SIGN_ENTITLEMENTS = "growfi-frontend/growfi-frontend.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = AHL9CR6C7F;
+				DEVELOPMENT_TEAM = DJDVY4P58A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_FILE[sdk=*]" = "growfi-frontend/Info.plist";
@@ -474,7 +474,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.growfi.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.growfi.app1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
