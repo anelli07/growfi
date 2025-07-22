@@ -4,8 +4,8 @@ import GoogleSignInSwift
 
 class ApiService {
     static let shared = ApiService()
-    private let baseURL = "http://127.0.0.1:8000/api/v1"
-//    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
+//    private let baseURL = "http://127.0.0.1:8000/api/v1"
+    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
     private init() {}
 
     // MARK: - Авторизация
@@ -215,18 +215,23 @@ class ApiService {
     }
 
     func loginWithApple(idToken: String, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/auth/apple") else { return }
+        print("[ApiService] loginWithApple called, idToken: \(idToken.prefix(40))...")
+        guard let url = URL(string: "\(baseURL)/auth/apple") else { print("[ApiService] Invalid URL"); return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body: [String: Any] = ["token": idToken]
+        print("[ApiService] loginWithApple body: \(body)")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
+            if let error = error { print("[ApiService] error: \(error)"); completion(.failure(error)); return }
+            guard let data = data else { print("[ApiService] no data"); completion(.failure(NSError(domain: "No data", code: 0))); return }
+            print("[ApiService] got data, response: \(String(data: data, encoding: .utf8) ?? "nil")")
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let token = json["access_token"] as? String {
+                print("[ApiService] access_token: \(token.prefix(20))...")
                 completion(.success(token))
             } else {
+                print("[ApiService] Invalid response")
                 completion(.failure(NSError(domain: "Invalid response", code: 0)))
             }
         }.resume()

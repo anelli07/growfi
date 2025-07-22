@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     var onLogin: (() -> Void)? = nil
@@ -140,9 +141,34 @@ struct LoginView: View {
 
                         // Apple Sign In Button
                         if #available(iOS 13.0, *) {
-                            AppleSignInButton {
-                                // TODO: Вызвать viewModel.loginWithApple или аналогичный метод
-                            }
+                            SignInWithAppleButton(
+                                .signIn,
+                                onRequest: { request in
+                                    request.requestedScopes = [.fullName, .email]
+                                },
+                                onCompletion: { result in
+                                print("Apple button tapped")
+                                    switch result {
+                                    case .success(let authResults):
+                                        if let appleIDCredential = authResults.credential as? ASAuthorizationAppleIDCredential,
+                                           let identityToken = appleIDCredential.identityToken,
+                                           let idTokenString = String(data: identityToken, encoding: .utf8) {
+                                            print("Apple ID Token: \(idTokenString)")
+                                            viewModel.loginWithApple(idToken: idTokenString) {
+                                                onLogin?()
+                                            }
+                                        } else {
+                                            print("Apple ID token error")
+                                            viewModel.error = "Apple ID token error"
+                                        }
+                                    case .failure(let error):
+                                        viewModel.error = error.localizedDescription
+                                    }
+                                }
+                            )
+                            .signInWithAppleButtonStyle(.black)
+                            .frame(height: 50)
+                            .cornerRadius(8)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 32)
                             .padding(.top, 8)

@@ -35,6 +35,7 @@ struct AuthView: View {
                 TextField("email".localized, text: $vm.email)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
+                    .foregroundColor(.black)
                     .padding(.vertical, 18)
                     .padding(.horizontal, 16)
                     .background(Color.white)
@@ -42,8 +43,10 @@ struct AuthView: View {
                 HStack {
                     if showPassword {
                         TextField("password".localized, text: $vm.password)
+                            .foregroundColor(.black)
                     } else {
                         SecureField("password".localized, text: $vm.password)
+                            .foregroundColor(.black)
                     }
                     Button(action: {
                         showPassword.toggle()
@@ -100,65 +103,66 @@ struct AuthView: View {
             .foregroundColor(.green)
             .font(.headline)
             .padding(.bottom, 18)
-            HStack {
-                Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
-                Text("or".localized).foregroundColor(.gray)
-                Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
-            }
-            .padding(.horizontal, 28)
-            .padding(.bottom, 18)
-            Button(action: {
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let rootVC = windowScene.windows.first?.rootViewController {
-                    vm.loginWithGoogle(presentingViewController: rootVC) {
-                        onLogin?()
-                    }
-                }
-            }) {
-                if vm.isGoogleLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                } else {
-                    HStack(spacing: 10) {
-                        Image(systemName: "globe").foregroundColor(Color.green)
-                        Text("continue_with_google".localized).font(.headline).foregroundColor(Color.green)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray4), lineWidth: 1))
-                }
-            }
-            .padding(.horizontal, 28)
+            // HStack {
+            //     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
+            //     Text("or".localized).foregroundColor(.gray)
+            //     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
+            // }
+            // .padding(.horizontal, 28)
+            // .padding(.bottom, 18)
+            // Button(action: {
+            //     if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+            //        let rootVC = windowScene.windows.first?.rootViewController {
+            //         vm.loginWithGoogle(presentingViewController: rootVC) {
+            //             onLogin?()
+            //         }
+            //     }
+            // }) {
+            //     if vm.isGoogleLoading {
+            //         ProgressView()
+            //             .frame(maxWidth: .infinity)
+            //             .frame(height: 54)
+            //     } else {
+            //         HStack(spacing: 10) {
+            //             Image(systemName: "globe").foregroundColor(Color.green)
+            //             Text("continue_with_google".localized).font(.headline).foregroundColor(Color.green)
+            //         }
+            //         .frame(maxWidth: .infinity)
+            //         .frame(height: 54)
+            //         .background(Color.white)
+            //         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray4), lineWidth: 1))
+            //     }
+            // }
+            // .padding(.horizontal, 28)
             
             // Кастомная Apple Sign In Button
-            Button(action: {
-                let provider = ASAuthorizationAppleIDProvider()
-                let request = provider.createRequest()
-                request.requestedScopes = [.fullName, .email]
-                let controller = ASAuthorizationController(authorizationRequests: [request])
-                let coordinator = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
-                controller.delegate = coordinator
-                controller.presentationContextProvider = coordinator
-                controller.performRequests()
-            }) {
-                HStack(spacing: 10) {
-                    Image(systemName: "applelogo").font(.title2)
-                    Text("continue_with_apple".localized).font(.headline)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .background(Color.black)
-                .foregroundColor(.white)
-                .cornerRadius(16)
-            }
-            .padding(.horizontal, 28)
-            .padding(.top, 8)
+            // Button(action: {
+            //     let provider = ASAuthorizationAppleIDProvider()
+            //     let request = provider.createRequest()
+            //     request.requestedScopes = [.fullName, .email]
+            //     let controller = ASAuthorizationController(authorizationRequests: [request])
+            //     let coordinator = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
+            //     controller.delegate = coordinator
+            //     controller.presentationContextProvider = coordinator
+            //     controller.performRequests()
+            // }) {
+            //     HStack(spacing: 10) {
+            //         Image(systemName: "applelogo").font(.title2)
+            //         Text("continue_with_apple".localized).font(.headline)
+            //     }
+            //     .frame(maxWidth: .infinity)
+            //     .frame(height: 54)
+            //     .background(Color.black)
+            //     .foregroundColor(.white)
+            //     .cornerRadius(16)
+            // }
+            // .padding(.horizontal, 28)
+            // .padding(.top, 8)
             
             Spacer()
         }
         .background(Color.white.ignoresSafeArea())
+        .preferredColorScheme(.light)
         .alert("email_already_exists".localized, isPresented: $vm.showEmailExistsAlert) {
             Button("resend_verification".localized) {
                 vm.resendCodeForExistingEmail()

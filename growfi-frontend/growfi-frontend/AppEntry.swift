@@ -102,21 +102,28 @@ struct AppEntry: View {
                 case .splash:
                     SplashView()
                         .transition(.opacity)
-                                .onAppear {
-            determineInitialScreen()
-            setupNotifications()
-        }
+                        .onAppear {
+                            print("[AppEntry] SplashView onAppear!")
+                            determineInitialScreen()
+                            setupNotifications()
+                        }
                 case .welcome:
                     WelcomeView(onLanguageSelected: {
                         withAnimation { rootScreen = .auth }
                     })
                     .transition(.opacity)
+                    .onAppear {
+                        print("[AppEntry] WelcomeView onAppear!")
+                    }
                 case .auth:
                     AuthView(onLogin: {
                         withAnimation { rootScreen = .main }
                         historyVM.fetchTransactions()
                     }, goalsViewModel: goalsViewModel)
                     .transition(.opacity)
+                    .onAppear {
+                        print("[AppEntry] AuthView onAppear!")
+                    }
                 case .main:
                     ContentView(onLogout: { 
                         withAnimation { handleLogout() } 
@@ -129,6 +136,7 @@ struct AppEntry: View {
                         .environmentObject(historyVM)
                         .environmentObject(analyticsVM)
                         .onAppear {
+                            print("[AppEntry] ContentView onAppear!")
                             incomesVM.walletsVM = walletsVM
                             walletsVM.expensesVM = expensesVM
                             walletsVM.goalsVM = goalsViewModel
@@ -154,10 +162,14 @@ struct AppEntry: View {
             }
         }
         .animation(.easeInOut, value: rootScreen)
+        .onAppear {
+            print("[AppEntry] AppEntry onAppear!")
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("LogoutDueTo401"))) { _ in
             // Автоматический выход при 401 ошибке
             handleLogout()
         }
+        .preferredColorScheme(.light)
     }
 } 
 

@@ -81,6 +81,22 @@ class LoginViewModel: ObservableObject {
         }
     }
 
+    func loginWithApple(idToken: String, onSuccess: @escaping () -> Void) {
+        isLoading = true
+        ApiService.shared.loginWithApple(idToken: idToken) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success(let jwt):
+                    UserDefaults.standard.set(jwt, forKey: "access_token")
+                    onSuccess()
+                case .failure(let err):
+                    self?.error = err.localizedDescription
+                }
+            }
+        }
+    }
+
     func refreshToken(completion: @escaping (Bool) -> Void) {
         guard let refresh = UserDefaults.standard.string(forKey: "refresh_token") else { completion(false); return }
         ApiService.shared.refreshToken(refreshToken: refresh) { result in

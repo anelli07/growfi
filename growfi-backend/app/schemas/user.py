@@ -11,6 +11,7 @@ class UserBase(SQLModel):
     is_active: bool = Field(default=True)
     is_superuser: bool = Field(default=False)
     full_name: Optional[str] = None
+    apple_id: Optional[str] = None
 
 
 # Properties to receive via API on creation
@@ -18,6 +19,7 @@ class UserCreate(SQLModel):
     email: EmailStr
     password: str
     full_name: Optional[str] = None
+    apple_id: Optional[str] = None
 
     @validator("password")
     def validate_password(cls, v, values, **kwargs):
@@ -39,10 +41,12 @@ class UserCreate(SQLModel):
 # Properties to receive via API on update
 class UserUpdate(UserBase):
     password: Optional[str] = None
+    apple_id: Optional[str] = None
 
 
 class UserInDBBase(UserBase):
     id: Optional[int] = Field(default=None, primary_key=True)
+    apple_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -57,6 +61,7 @@ class User(UserInDBBase):
 class UserInDB(UserInDBBase):
     hashed_password: Optional[str] = None
     google_id: Optional[str] = Field(default=None, unique=True, index=True)
+    apple_id: Optional[str] = None
 
 
 class PasswordResetRequest(SQLModel):

@@ -214,25 +214,21 @@ def auth_apple(
     Authenticate with Apple.
     """
     try:
-        # В реальном приложении здесь нужно валидировать Apple ID token
-        # Для демонстрации используем простую проверку
-        # В продакшене нужно использовать Apple's public keys для валидации
         import jwt
         from jwt.exceptions import InvalidTokenError
-        
-        # Декодируем токен без валидации (только для демонстрации)
-        # В продакшене нужно валидировать с Apple's public keys
+
         token_data = jwt.decode(apple_token.token, options={"verify_signature": False})
-        
+
         apple_id = token_data.get("sub")
         email = token_data.get("email")
         full_name = token_data.get("name")
-        
+
         if not apple_id:
             raise HTTPException(
                 status_code=403, detail="Invalid Apple token: missing sub"
             )
-            
+        print(f"Apple login: apple_id={apple_id}, email={email}, full_name={full_name}")
+
     except (InvalidTokenError, Exception) as e:
         raise HTTPException(
             status_code=403, detail=f"Could not validate Apple credentials: {str(e)}"
@@ -240,60 +236,59 @@ def auth_apple(
 
     user = crud.user.get_by_apple_id(db, apple_id=apple_id)
     if not user:
-        user = crud.user.get_by_email(db, email=email)
-        if user:
-            raise HTTPException(
-                status_code=400,
-                detail="A user with this email already exists. Please log in with your password to link your Apple account.",
+        # Если email есть — создаём нового пользователя
+        if email:
+            user = crud.user.create_with_apple(
+                db, full_name=full_name, email=email, apple_id=apple_id
             )
-        user = crud.user.create_with_apple(
-            db, full_name=full_name, email=email, apple_id=apple_id
-        )
-        # ДЕФОЛТНЫЕ КОШЕЛЬКИ
-        wallet1 = crud.crud_wallet.create_with_user(db, WalletCreate(name="Карта", balance=0, icon_name="card", color_hex="#4F8A8B", currency="KZT"), user.id)
-        wallet2 = crud.crud_wallet.create_with_user(db, WalletCreate(name="Наличные", balance=0, icon_name="cash", color_hex="#F9B208", currency="KZT"), user.id)
-        # ДЕФОЛТНЫЕ КАТЕГОРИИ
-        cat_income1 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Зарплата", type=CategoryType.INCOME), user=user)
-        cat_expense1 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Еда", type=CategoryType.EXPENSE), user=user)
-        cat_expense2 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Транспорт", type=CategoryType.EXPENSE), user=user)
-        cat_expense3 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Продукты", type=CategoryType.EXPENSE), user=user)
-        cat_expense4 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Развлечения", type=CategoryType.EXPENSE), user=user)
-        cat_expense5 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Здоровье", type=CategoryType.EXPENSE), user=user)
-        cat_expense6 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Связь", type=CategoryType.EXPENSE), user=user)
-        cat_expense7 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Путешествия", type=CategoryType.EXPENSE), user=user)
-        cat_expense8 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Одежда", type=CategoryType.EXPENSE), user=user)
-        cat_expense9 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Красота", type=CategoryType.EXPENSE), user=user)
-        # ДЕФОЛТНЫЕ ДОХОДЫ
-        crud.income.create_with_user(db, obj_in=IncomeCreate(
-            name="Зарплата",
-            icon="dollarsign.circle.fill",
-            color="#00FF00",
-            amount=0,
-            transaction_date=date.today(),
-            category_id=cat_income1.id
-        ), user=user)
-        # ДЕФОЛТНЫЕ РАСХОДЫ
-        expense_templates = [
-            ("Еда", "cart.fill", "#FF0000", cat_expense1.id),
-            ("Транспорт", "car.fill", "#00FF00", cat_expense2.id),
-            ("Продукты", "cart.fill", "#00FF00", cat_expense3.id),
-            ("Развлечения", "gamecontroller.fill", "#00FF00", cat_expense4.id),
-            ("Здоровье", "cross.case.fill", "#00FF00", cat_expense5.id),
-            ("Связь", "phone.fill", "#00FF00", cat_expense6.id),
-            ("Путешествия", "airplane", "#00FF00", cat_expense7.id),
-            ("Одежда", "tshirt.fill", "#00FF00", cat_expense8.id),
-            ("Красота", "scissors", "#00FF00", cat_expense9.id),
-        ]
-        for name, icon, color, category_id in expense_templates:
-            crud.expense.create_with_user(db, obj_in=ExpenseCreate(
-                name=name,
-                icon=icon,
-                color=color,
+            # ... (создание кошельков, категорий и т.д. как раньше)
+            wallet1 = crud.crud_wallet.create_with_user(db, WalletCreate(name="Карта", balance=0, icon_name="card", color_hex="#4F8A8B", currency="KZT"), user.id)
+            wallet2 = crud.crud_wallet.create_with_user(db, WalletCreate(name="Наличные", balance=0, icon_name="cash", color_hex="#F9B208", currency="KZT"), user.id)
+            cat_income1 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Зарплата", type=CategoryType.INCOME), user=user)
+            cat_expense1 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Еда", type=CategoryType.EXPENSE), user=user)
+            cat_expense2 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Транспорт", type=CategoryType.EXPENSE), user=user)
+            cat_expense3 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Продукты", type=CategoryType.EXPENSE), user=user)
+            cat_expense4 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Развлечения", type=CategoryType.EXPENSE), user=user)
+            cat_expense5 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Здоровье", type=CategoryType.EXPENSE), user=user)
+            cat_expense6 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Связь", type=CategoryType.EXPENSE), user=user)
+            cat_expense7 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Путешествия", type=CategoryType.EXPENSE), user=user)
+            cat_expense8 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Одежда", type=CategoryType.EXPENSE), user=user)
+            cat_expense9 = crud.category.create_with_user(db, obj_in=CategoryCreate(name="Красота", type=CategoryType.EXPENSE), user=user)
+            crud.income.create_with_user(db, obj_in=IncomeCreate(
+                name="Зарплата",
+                icon="dollarsign.circle.fill",
+                color="#00FF00",
                 amount=0,
                 transaction_date=date.today(),
-                category_id=category_id,
-                wallet_id=wallet1.id
+                category_id=cat_income1.id
             ), user=user)
+            expense_templates = [
+                ("Еда", "cart.fill", "#FF0000", cat_expense1.id),
+                ("Транспорт", "car.fill", "#00FF00", cat_expense2.id),
+                ("Продукты", "cart.fill", "#00FF00", cat_expense3.id),
+                ("Развлечения", "gamecontroller.fill", "#00FF00", cat_expense4.id),
+                ("Здоровье", "cross.case.fill", "#00FF00", cat_expense5.id),
+                ("Связь", "phone.fill", "#00FF00", cat_expense6.id),
+                ("Путешествия", "airplane", "#00FF00", cat_expense7.id),
+                ("Одежда", "tshirt.fill", "#00FF00", cat_expense8.id),
+                ("Красота", "scissors", "#00FF00", cat_expense9.id),
+            ]
+            for name, icon, color, category_id in expense_templates:
+                crud.expense.create_with_user(db, obj_in=ExpenseCreate(
+                    name=name,
+                    icon=icon,
+                    color=color,
+                    amount=0,
+                    transaction_date=date.today(),
+                    category_id=category_id,
+                    wallet_id=wallet1.id
+                ), user=user)
+        else:
+            # Если email нет — не можем создать нового пользователя, возвращаем ошибку
+            raise HTTPException(
+                status_code=400,
+                detail="Apple ID не содержит email. Попробуйте удалить GrowFi из настройках Apple ID и войти заново.",
+            )
 
     return {
         "access_token": security.create_access_token(user.id),

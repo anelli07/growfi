@@ -38,5 +38,9 @@
 	<string>https://docs.google.com/document/d/1uNAUnFUbZJ9EOkoUymDY1Nl8iPszRx03k_2kCKRMO6I/edit?tab=t.0</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>GrowFi использует уведомления для напоминаний о целях, ежедневных тратах и финансовых советах</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
 </dict>
 </plist>
