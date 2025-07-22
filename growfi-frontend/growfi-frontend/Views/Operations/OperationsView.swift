@@ -128,20 +128,31 @@ struct OperationsView: View {
         .id(AppLanguageManager.shared.currentLanguage)
         .sheet(isPresented: $showCreateSheet) {
             if let type = createType {
-                CreateItemSheet(type: type) { name, sum, icon, color, currency in
+                CreateItemSheet(type: type) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
                     switch type {
                     case .income:
                         let catId: Int? = categoriesVM.incomeCategories.first?.id
-                
                         incomesVM.createIncome(name: name, icon: icon ?? "dollarsign.circle.fill", color: color ?? "#00FF00", categoryId: catId)
                     case .wallet:
                         walletsVM.createWallet(name: name, balance: sum, currency: currency, icon: icon ?? "creditcard.fill", color: color ?? "#0000FF")
                     case .goal:
-                        viewModel.createGoal(name: name, targetAmount: sum, currency: currency, icon: icon ?? "leaf.circle.fill", color: color ?? "#00FF00")
+                        viewModel.createGoal(
+                            name: name,
+                            targetAmount: sum,
+                            currentAmount: initial,
+                            currency: currency,
+                            icon: icon ?? "leaf.circle.fill",
+                            color: color ?? "#00FF00",
+                            planPeriod: planPeriod,
+                            planAmount: planAmount,
+                            reminderPeriod: reminderPeriod,
+                            selectedWeekday: selectedWeekday,
+                            selectedMonthDay: selectedMonthDay,
+                            selectedTime: selectedTime
+                        )
                     case .expense:
                         let catId: Int? = categoriesVM.expenseCategories.first?.id
                         let walletId: Int? = walletsVM.wallets.first?.id
-                
                         expensesVM.createExpense(name: name, icon: icon ?? "cart.fill", color: color ?? "#FF0000", categoryId: catId, walletId: walletId)
                     }
                     showCreateSheet = false

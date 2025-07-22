@@ -4,8 +4,8 @@ import GoogleSignInSwift
 
 class ApiService {
     static let shared = ApiService()
-//    private let baseURL = "http://127.0.0.1:8000/api/v1"
-    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
+    private let baseURL = "http://127.0.0.1:8000/api/v1"
+//    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
     private init() {}
 
     // MARK: - Авторизация
@@ -360,20 +360,26 @@ class ApiService {
         }.resume()
     }
 
-    func createGoal(name: String, targetAmount: Double, currency: String, icon: String, color: String, token: String, completion: @escaping (Result<Goal, Error>) -> Void) {
+    func createGoal(name: String, targetAmount: Double, currentAmount: Double, currency: String, icon: String, color: String, reminderPeriod: String? = nil, selectedWeekday: Int? = nil, selectedMonthDay: Int? = nil, selectedTime: String? = nil, token: String, completion: @escaping (Result<Goal, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/goals/") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = [
+        let body: [String: Any?] = [
             "name": name,
             "target_amount": targetAmount,
+            "current_amount": currentAmount,
             "currency": currency,
             "icon": icon,
-            "color": color
+            "color": color,
+            "reminder_period": reminderPeriod,
+            "selected_weekday": selectedWeekday,
+            "selected_month_day": selectedMonthDay,
+            "selected_time": selectedTime
         ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        print("createGoal body:", body)
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body.compactMapValues { $0 })
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
@@ -386,22 +392,34 @@ class ApiService {
         }.resume()
     }
 
-    func updateGoal(goal: Goal, currency: String, icon: String, color: String, token: String, completion: @escaping (Result<Goal, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/goals/\(goal.id)/") else { return }
+    func updateGoal(goal: Goal, icon: String, color: String, token: String, completion: @escaping (Result<Goal, Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/goals/\(goal.id)") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = [
+        let body: [String: Any?] = [
             "name": goal.name,
             "target_amount": goal.target_amount,
-            "currency": currency,
             "icon": icon,
             "color": color,
-            "current_amount": goal.current_amount
+            "current_amount": goal.current_amount,
+            "reminder_period": goal.reminderPeriod,
+            "selected_weekday": goal.selectedWeekday,
+            "selected_month_day": goal.selectedMonthDay,
+            "selected_time": goal.selectedTime
         ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        print("updateGoal body:", body)
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body.compactMapValues { $0 })
         URLSession.shared.dataTask(with: request) { data, response, error in
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("LogoutDueTo401"), object: nil)
+                }
+                completion(.failure(NSError(domain: "Unauthorized", code: 401)))
+                return
+            }
+
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
             do {

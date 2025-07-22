@@ -16,4 +16,9 @@ class Goal(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     user: "User" = Relationship(back_populates="goals")
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow) 
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # --- Новые поля для уведомлений ---
+    reminder_period: Optional[str] = Field(default=None, nullable=True)  # 'week', 'month', None
+    selected_weekday: Optional[int] = Field(default=None, nullable=True) # 1-7
+    selected_month_day: Optional[int] = Field(default=None, nullable=True) # 1-31
+    selected_time: Optional[str] = Field(default=None, nullable=True) # '09:00' 

@@ -20,8 +20,8 @@ struct GoalsCarouselView: View {
                     .padding(.top, 6) // немного воздуха между заголовками
                 
                 if viewModel.goals.isEmpty {
-                    EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency in
-                        viewModel.createGoal(name: name, targetAmount: sum, currency: currency.isEmpty ? "₸" : currency, icon: icon.isEmpty ? "leaf.circle.fill" : icon, color: color.isEmpty ? "#00FF00" : color)
+                    EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
+                        viewModel.createGoal(name: name, targetAmount: sum, currentAmount: initial, currency: currency.isEmpty ? "₸" : currency, icon: icon?.isEmpty == false ? icon! : "leaf.circle.fill", color: color?.isEmpty == false ? color! : "#00FF00", planPeriod: planPeriod, planAmount: planAmount, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
                         showCreateGoalSheet = false
                     }
                 } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
@@ -132,7 +132,7 @@ struct TodayExpenseView: View {
 
 struct EmptyGoalView: View {
     @Binding var showCreateGoalSheet: Bool
-    var onCreate: (String, Double, String, String, String) -> Void
+    var onCreate: (String, Double, String?, String?, String, Double, PlanPeriod?, Double?, PlanPeriod?, Int?, Int?, Date?) -> Void
     var body: some View {
         VStack(spacing: 10) {
             Image("plant_stage_0")
@@ -162,8 +162,8 @@ struct EmptyGoalView: View {
         }
         .padding(.top, 8)
         .sheet(isPresented: $showCreateGoalSheet) {
-            CreateItemSheet(type: .goal) { name, sum, icon, color, currency in
-                onCreate(name, sum, "", "", "")
+            CreateItemSheet(type: .goal) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
+                onCreate(name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime)
             }
         }
         .onLanguageChange()

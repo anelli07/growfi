@@ -70,16 +70,24 @@ class GoalsViewModel: ObservableObject {
         }
     }
 
-    func createGoal(name: String, targetAmount: Double, currency: String = "₸", icon: String = "leaf.circle.fill", color: String = "#00FF00") {
+    func createGoal(name: String, targetAmount: Double, currentAmount: Double, currency: String = "₸", icon: String = "leaf.circle.fill", color: String = "#00FF00", planPeriod: PlanPeriod? = nil, planAmount: Double? = nil, reminderPeriod: PlanPeriod? = nil, selectedWeekday: Int? = nil, selectedMonthDay: Int? = nil, selectedTime: Date? = nil) {
+        print("createGoal debug:", reminderPeriod?.rawValue as Any, selectedWeekday as Any, selectedMonthDay as Any, selectedTime as Any)
         guard let token = token else { return }
         isLoading = true
-        ApiService.shared.createGoal(name: name, targetAmount: targetAmount, currency: currency, icon: icon, color: color, token: token) { [weak self] result in
+        // Создаём Goal локально с планом и настройками уведомлений
+        ApiService.shared.createGoal(name: name, targetAmount: targetAmount, currentAmount: currentAmount, currency: currency, icon: icon, color: color, reminderPeriod: reminderPeriod?.rawValue, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime != nil ? timeString(selectedTime!) : nil, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success(let goal):
+                case .success(var goal):
+                    goal.planPeriod = planPeriod
+                    goal.planAmount = planAmount
+                    goal.reminderPeriod = reminderPeriod?.rawValue
+                    goal.selectedWeekday = selectedWeekday
+                    goal.selectedMonthDay = selectedMonthDay
+                    goal.selectedTime = selectedTime != nil ? self?.timeString(selectedTime!) : nil
                     self?.goals.append(goal)
-                    // Обновляем аналитику
+                    NotificationManager.shared.schedulePersonalGoalReminder(goal: goal)
                     self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -88,10 +96,17 @@ class GoalsViewModel: ObservableObject {
         }
     }
 
-    func updateGoal(goal: Goal, currency: String = "₸", icon: String = "leaf.circle.fill", color: String = "#00FF00") {
+    func updateGoal(goal: Goal, icon: String = "leaf.circle.fill", color: String = "#00FF00", planPeriod: PlanPeriod? = nil, planAmount: Double? = nil, reminderPeriod: PlanPeriod? = nil, selectedWeekday: Int? = nil, selectedMonthDay: Int? = nil, selectedTime: Date? = nil) {
         guard let token = token else { return }
         isLoading = true
-        ApiService.shared.updateGoal(goal: goal, currency: currency, icon: icon, color: color, token: token) { [weak self] result in
+        var updatedGoal = goal
+        updatedGoal.planPeriod = planPeriod
+        updatedGoal.planAmount = planAmount
+        updatedGoal.reminderPeriod = reminderPeriod?.rawValue
+        updatedGoal.selectedWeekday = selectedWeekday
+        updatedGoal.selectedMonthDay = selectedMonthDay
+        updatedGoal.selectedTime = selectedTime != nil ? timeString(selectedTime!) : nil
+        ApiService.shared.updateGoal(goal: updatedGoal, icon: icon, color: color, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
@@ -99,6 +114,7 @@ class GoalsViewModel: ObservableObject {
                     if let idx = self?.goals.firstIndex(where: { $0.id == updatedGoal.id }) {
                         self?.goals[idx] = updatedGoal
                     }
+                    NotificationManager.shared.schedulePersonalGoalReminder(goal: updatedGoal)
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -254,13 +270,20 @@ class GoalsViewModel: ObservableObject {
     func deleteIncome(id: Int) {
         incomes.removeAll { $0.id == id }
     }
-    func updateGoal(id: Int, name: String, amount: Double) {
+    func updateGoal(id: Int, name: String, amount: Double, targetAmount: Double) {
         if let idx = goals.firstIndex(where: { $0.id == id }) {
             var goal = goals[idx]
             goal.name = name
             goal.current_amount = amount
+            goal.target_amount = targetAmount
             goals[idx] = goal
         }
     }
     // Удаляю методы updateExpense и deleteExpense, связанные с expenses
+
+    private func timeString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
 } 

@@ -36,5 +36,7 @@
 	</dict>
 	<key>NSPrivacyPolicyURL</key>
 	<string>https://docs.google.com/document/d/1uNAUnFUbZJ9EOkoUymDY1Nl8iPszRx03k_2kCKRMO6I/edit?tab=t.0</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>GrowFi использует уведомления для напоминаний о целях, ежедневных тратах и финансовых советах</string>
 </dict>
 </plist>

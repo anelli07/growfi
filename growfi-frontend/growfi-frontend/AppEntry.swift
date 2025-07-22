@@ -42,6 +42,7 @@ struct AppEntry: View {
     @StateObject private var categoriesVM = CategoriesViewModel()
     @StateObject private var historyVM = HistoryViewModel()
     @StateObject private var analyticsVM = AnalyticsViewModel()
+    @StateObject private var notificationManager = NotificationManager.shared
 
     private func resetAllViewModels() {
         goalsViewModel.user = nil
@@ -58,8 +59,6 @@ struct AppEntry: View {
         let hasLaunched = UserDefaults.standard.bool(forKey: "has_launched_before")
         let accessToken = UserDefaults.standard.string(forKey: "access_token")
         
-
-        
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { // splash задержка
             if !hasLaunched {
                 // Первый запуск: Loading → Welcome → Auth → ContentView
@@ -72,6 +71,13 @@ struct AppEntry: View {
                 // Есть токен: Loading → ContentView
                 rootScreen = .main
             }
+        }
+    }
+    
+    private func setupNotifications() {
+        // Запрашиваем разрешение на уведомления при первом входе
+        if UserDefaults.standard.bool(forKey: "has_launched_before") {
+            notificationManager.requestAuthorization()
         }
     }
 
@@ -96,9 +102,10 @@ struct AppEntry: View {
                 case .splash:
                     SplashView()
                         .transition(.opacity)
-                        .onAppear {
-                            determineInitialScreen()
-                        }
+                                .onAppear {
+            determineInitialScreen()
+            setupNotifications()
+        }
                 case .welcome:
                     WelcomeView(onLanguageSelected: {
                         withAnimation { rootScreen = .auth }

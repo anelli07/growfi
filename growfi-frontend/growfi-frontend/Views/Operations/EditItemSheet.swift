@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation // для PlanPeriod
 
 struct EditItemSheet: View {
     let item: OperationsView.EditableItem
@@ -13,6 +14,15 @@ struct EditItemSheet: View {
     @State private var showDeleteAlert = false
     @State private var selectedIcon: String = "creditcard.fill"
     @State private var selectedColor: Color = .blue
+    @State private var reminderPeriod: PlanPeriod? = nil
+    @State private var selectedWeekday: Int = 2 // 2 = Monday
+    @State private var selectedMonthDay: Int = 1
+    @State private var selectedTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var showWeekdayPicker = false
+    @State private var showMonthDayPicker = false
+    @State private var showTimePicker = false
+    @State private var targetAmount: String = ""
+    @State private var currentAmount: String = ""
     let availableIcons = [
         "creditcard.fill", "banknote", "dollarsign.circle.fill", "wallet.pass.fill", "cart.fill", "gift.fill", "airplane", "car.fill", "cross.case.fill", "tshirt.fill", "scissors", "gamecontroller.fill", "cup.and.saucer.fill", "fork.knife", "phone.fill", "house.fill", "building.2.fill", "bag.fill", "star.fill", "questionmark.circle", "lipstick", "paintbrush.fill"
     ]
@@ -24,11 +34,43 @@ struct EditItemSheet: View {
         self.onClose = onClose
         
         // Инициализируем @State переменные в зависимости от типа элемента
-        let (name, sum, icon, color) = Self.getInitialValues(for: item)
-        _name = State(initialValue: name)
-        _sum = State(initialValue: sum)
-        _selectedIcon = State(initialValue: icon)
-        _selectedColor = State(initialValue: color)
+        switch item {
+        case .goal(let g):
+            _name = State(initialValue: g.name.localizedIfDefault)
+            _targetAmount = State(initialValue: String(Int(g.target_amount)))
+            _currentAmount = State(initialValue: String(Int(g.current_amount)))
+            _selectedIcon = State(initialValue: g.icon)
+            _selectedColor = State(initialValue: Color(hex: g.color))
+            _reminderPeriod = State(initialValue: PlanPeriod(rawValue: g.reminderPeriod ?? ""))
+            _selectedWeekday = State(initialValue: g.selectedWeekday ?? 2)
+            _selectedMonthDay = State(initialValue: g.selectedMonthDay ?? 1)
+            if let timeString = g.selectedTime {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "HH:mm"
+                let date = formatter.date(from: timeString) ?? Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date())!
+                _selectedTime = State(initialValue: date)
+            } else {
+                _selectedTime = State(initialValue: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date())!)
+            }
+        case .wallet(let w):
+            _name = State(initialValue: w.name.localizedIfDefault)
+            _targetAmount = State(initialValue: String(Int(w.balance)))
+            _currentAmount = State(initialValue: "")
+            _selectedIcon = State(initialValue: "creditcard.fill")
+            _selectedColor = State(initialValue: .blue)
+        case .income(let i):
+            _name = State(initialValue: i.name.localizedIfDefault)
+            _targetAmount = State(initialValue: "")
+            _currentAmount = State(initialValue: "")
+            _selectedIcon = State(initialValue: "dollarsign.circle.fill")
+            _selectedColor = State(initialValue: .green)
+        case .expense(let e):
+            _name = State(initialValue: e.name.localizedIfDefault)
+            _targetAmount = State(initialValue: "")
+            _currentAmount = State(initialValue: "")
+            _selectedIcon = State(initialValue: "cart.fill")
+            _selectedColor = State(initialValue: .red)
+        }
     }
     
     private static func getInitialValues(for item: OperationsView.EditableItem) -> (String, String, String, Color) {
@@ -87,29 +129,77 @@ struct EditItemSheet: View {
                                 hideKeyboard()
                             }
                     }
-                    if case .wallet = item {
+                    if case .goal = item {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Amount".localized)
+                            Text("Amount".localized) // Target amount
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.gray)
-                            TextField("0", text: $sum)
+                            TextField("0", text: $targetAmount)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardToolbar(title: "Готово") {
                                     hideKeyboard()
                                 }
-                        }
-                    } else if case .goal = item {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Amount".localized)
+                            Text("already_saved_amount".localized)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.gray)
-                            TextField("0", text: $sum)
+                            TextField("already_saved_amount_placeholder".localized, text: $currentAmount)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardToolbar(title: "Готово") {
                                     hideKeyboard()
                                 }
+                                .onLanguageChange()
+                            // Новый блок: выбор напоминания
+                            Text("Напоминать о взносе")
+                                .font(.system(size: 14, weight: .medium))
+                                .padding(.top, 8)
+                            Picker("Периодичность напоминания", selection: $reminderPeriod) {
+                                Text("Не напоминать").tag(Optional<PlanPeriod>.none)
+                                Text("Еженедельно").tag(Optional(PlanPeriod.week))
+                                Text("Ежемесячно").tag(Optional(PlanPeriod.month))
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .onChange(of: reminderPeriod) {
+                                if reminderPeriod == nil {
+                                    selectedWeekday = 2
+                                    selectedMonthDay = 1
+                                    selectedTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+                                }
+                            }
+                            if reminderPeriod == .week {
+                                HStack(spacing: 12) {
+                                    Button(action: { showWeekdayPicker = true }) {
+                                        Text("reminder_day".localized + ": " + weekdayName(selectedWeekday))
+                                            .padding(8)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(8)
+                                    }
+                                    Button(action: { showTimePicker = true }) {
+                                        Text("reminder_time".localized + ": " + timeString(selectedTime))
+                                            .padding(8)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(8)
+                                    }
+                                }
+                                .onLanguageChange()
+                            } else if reminderPeriod == .month {
+                                HStack(spacing: 12) {
+                                    Button(action: { showMonthDayPicker = true }) {
+                                        Text("reminder_month_day".localized + ": " + String(selectedMonthDay))
+                                            .padding(8)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(8)
+                                    }
+                                    Button(action: { showTimePicker = true }) {
+                                        Text("reminder_time".localized + ": " + timeString(selectedTime))
+                                            .padding(8)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(8)
+                                    }
+                                }
+                                .onLanguageChange()
+                            }
                         }
                     }
                     HStack {
@@ -126,7 +216,20 @@ struct EditItemSheet: View {
                 
                 // Кнопка сохранения всегда видна
                 Button(action: {
-                    saveChanges()
+                    if case .goal(let g) = item {
+                        let tAmount = Double(targetAmount) ?? g.target_amount
+                        let cAmount = Double(currentAmount) ?? g.current_amount
+                        // Создаём обновлённую цель
+                        var updatedGoal = g
+                        updatedGoal.name = name
+                        updatedGoal.target_amount = tAmount
+                        updatedGoal.current_amount = cAmount
+                        updatedGoal.icon = selectedIcon
+                        updatedGoal.color = selectedColor.toHex ?? g.color
+                        viewModel.updateGoal(goal: updatedGoal, icon: updatedGoal.icon, color: updatedGoal.color, planPeriod: reminderPeriod, planAmount: nil, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
+                    } else {
+                        saveChanges()
+                    }
                     onClose()
                     presentationMode.wrappedValue.dismiss()
                 }) {
@@ -150,6 +253,44 @@ struct EditItemSheet: View {
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
         .hideKeyboardOnTap()
+        .sheet(isPresented: $showWeekdayPicker) {
+            VStack {
+                Text("Выберите день недели").font(.headline).padding()
+                Picker("День недели", selection: $selectedWeekday) {
+                    ForEach(1...7, id: \.self) { i in
+                        Text(weekdayName(i)).tag(i)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(WheelPickerStyle())
+                Button("Готово") { showWeekdayPicker = false }.padding()
+            }
+            .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showMonthDayPicker) {
+            VStack {
+                Text("Выберите число месяца").font(.headline).padding()
+                Picker("Число месяца", selection: $selectedMonthDay) {
+                    ForEach(1...31, id: \.self) { i in
+                        Text("\(i)").tag(i)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(WheelPickerStyle())
+                Button("Готово") { showMonthDayPicker = false }.padding()
+            }
+            .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showTimePicker) {
+            VStack {
+                Text("Выберите время").font(.headline).padding()
+                DatePicker("Время", selection: $selectedTime, displayedComponents: .hourAndMinute)
+                    .datePickerStyle(WheelDatePickerStyle())
+                    .labelsHidden()
+                Button("Готово") { showTimePicker = false }.padding()
+            }
+            .presentationDetents([.medium])
+        }
         .alert(isPresented: $showDeleteAlert) {
             Alert(
                 title: Text("Delete".localized),
@@ -175,14 +316,15 @@ struct EditItemSheet: View {
     
     private func saveChanges() {
         let amount = Double(sum) ?? 0
+        let tAmount = Double(targetAmount) ?? 0
         switch item {
-        case .wallet(let w): 
+        case .wallet(let w):
             walletsVM.updateWallet(id: w.id, name: name, balance: amount, icon: selectedIcon, color: selectedColor.toHex ?? "#000000")
-        case .income(let i): 
+        case .income(let i):
             viewModel.updateIncome(id: i.id, name: name, amount: 0) // не трогаем сумму
-        case .goal(let g): 
-            viewModel.updateGoal(id: g.id, name: name, amount: amount)
-        case .expense(let e): 
+        case .goal(let g):
+            viewModel.updateGoal(id: g.id, name: name, amount: amount, targetAmount: tAmount)
+        case .expense(let e):
             expensesVM.updateExpense(id: e.id, name: name, icon: selectedIcon, color: selectedColor.toHex ?? "#000000", description: "")
         }
     }
@@ -198,4 +340,24 @@ struct EditItemSheet: View {
             expensesVM.deleteExpense(id: e.id)
         }
     }
-} 
+    
+    // Helper функции для форматирования
+    private func weekdayName(_ i: Int) -> String {
+        let calendar = Calendar.current
+        let locale = Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue)
+        var components = DateComponents()
+        components.weekday = i
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.dateFormat = "EEEE"
+        let date = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .nextTimePreservingSmallerComponents) ?? Date()
+        return formatter.string(from: date).capitalized
+    }
+    
+    private func timeString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue)
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}

@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var showDeleteAccountAlert = false
     @State private var isDeletingAccount = false
     @State private var showAccountDeletedAlert = false
+    @StateObject private var notificationManager = NotificationManager.shared
 
     var body: some View {
         NavigationView {
@@ -72,6 +73,38 @@ struct SettingsView: View {
                     }
                     .background(Color(.systemGray6))
                     .cornerRadius(16)
+                    
+                    // Уведомления
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("notifications".localized)
+                                .font(.headline)
+                            Spacer()
+                            if notificationManager.isAuthorized {
+                                Image(systemName: "bell.fill")
+                                    .foregroundColor(.green)
+                            } else {
+                                Image(systemName: "bell.slash")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        if !notificationManager.isAuthorized {
+                            Button("enable_notifications".localized) {
+                                notificationManager.requestAuthorization()
+                            }
+                            .foregroundColor(.blue)
+                            .font(.subheadline)
+                        } else {
+                            Toggle("notifications".localized, isOn: Binding(
+                                get: { notificationManager.isSystemNotificationsEnabled },
+                                set: { notificationManager.isSystemNotificationsEnabled = $0 }
+                            ))
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(16)
+                    
                     // Logout
                     Button(action: {
                         loginVM.logout {

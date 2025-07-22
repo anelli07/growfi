@@ -7,15 +7,26 @@ class GoalBase(BaseModel):
     currency: str
     icon: str
     color: str
+    # Новые поля для уведомлений
+    reminder_period: Optional[str] = None
+    selected_weekday: Optional[int] = None
+    selected_month_day: Optional[int] = None
+    selected_time: Optional[str] = None
 
 class GoalCreate(GoalBase):
-    pass
+    current_amount: float = 0
 
 class GoalUpdate(BaseModel):
     name: Optional[str] = None
     target_amount: Optional[float] = None
+    current_amount: Optional[float] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    # Новые поля для уведомлений
+    reminder_period: Optional[str] = None
+    selected_weekday: Optional[int] = None
+    selected_month_day: Optional[int] = None
+    selected_time: Optional[str] = None
 
 class Goal(GoalBase):
     id: int
