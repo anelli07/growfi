@@ -18,3 +18,4 @@ class GoogleToken(SQLModel):
 
 class AppleToken(SQLModel):
     token: str
+    full_name: Optional[str] = None

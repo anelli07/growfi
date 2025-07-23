@@ -5,6 +5,7 @@ struct AuthView: View {
     @StateObject private var vm: AuthViewModel
     var onLogin: (() -> Void)? = nil
     @State private var showPassword = false
+    @State private var appleSignInCoordinator: AppleSignInCoordinator? = nil
 
     init(onLogin: (() -> Void)? = nil, goalsViewModel: GoalsViewModel) {
         _vm = StateObject(wrappedValue: AuthViewModel(goalsViewModel: goalsViewModel))
@@ -74,11 +75,11 @@ struct AuthView: View {
             }
             Button(action: {
                 if vm.isLogin {
-                    vm.login { success in
-                        if success { onLogin?() }
+                    vm.login {
+                        onLogin?()
                     }
                 } else {
-                    vm.register { _ in }
+                    vm.register()
                 }
             }) {
                 if vm.isLoading {
@@ -103,66 +104,71 @@ struct AuthView: View {
             .foregroundColor(.green)
             .font(.headline)
             .padding(.bottom, 18)
-            // HStack {
-            //     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
-            //     Text("or".localized).foregroundColor(.gray)
-            //     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
-            // }
-            // .padding(.horizontal, 28)
-            // .padding(.bottom, 18)
-            // Button(action: {
-            //     if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-            //        let rootVC = windowScene.windows.first?.rootViewController {
-            //         vm.loginWithGoogle(presentingViewController: rootVC) {
-            //             onLogin?()
-            //         }
-            //     }
-            // }) {
-            //     if vm.isGoogleLoading {
-            //         ProgressView()
-            //             .frame(maxWidth: .infinity)
-            //             .frame(height: 54)
-            //     } else {
-            //         HStack(spacing: 10) {
-            //             Image(systemName: "globe").foregroundColor(Color.green)
-            //             Text("continue_with_google".localized).font(.headline).foregroundColor(Color.green)
-            //         }
-            //         .frame(maxWidth: .infinity)
-            //         .frame(height: 54)
-            //         .background(Color.white)
-            //         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray4), lineWidth: 1))
-            //     }
-            // }
-            // .padding(.horizontal, 28)
+            HStack {
+                Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
+                Text("or".localized).foregroundColor(.gray)
+                Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
+            }
+            .padding(.horizontal, 28)
+            .padding(.bottom, 18)
+            Button(action: {
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let rootVC = windowScene.windows.first?.rootViewController {
+                    vm.loginWithGoogle(presentingViewController: rootVC) {
+                        onLogin?()
+                    }
+                }
+            }) {
+                if vm.isGoogleLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                } else {
+                    HStack(spacing: 10) {
+                        Image(systemName: "globe").foregroundColor(Color.green)
+                        Text("continue_with_google".localized).font(.headline).foregroundColor(Color.green)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray4), lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 28)
             
             // Кастомная Apple Sign In Button
-            // Button(action: {
-            //     let provider = ASAuthorizationAppleIDProvider()
-            //     let request = provider.createRequest()
-            //     request.requestedScopes = [.fullName, .email]
-            //     let controller = ASAuthorizationController(authorizationRequests: [request])
-            //     let coordinator = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
-            //     controller.delegate = coordinator
-            //     controller.presentationContextProvider = coordinator
-            //     controller.performRequests()
-            // }) {
-            //     HStack(spacing: 10) {
-            //         Image(systemName: "applelogo").font(.title2)
-            //         Text("continue_with_apple".localized).font(.headline)
-            //     }
-            //     .frame(maxWidth: .infinity)
-            //     .frame(height: 54)
-            //     .background(Color.black)
-            //     .foregroundColor(.white)
-            //     .cornerRadius(16)
-            // }
-            // .padding(.horizontal, 28)
-            // .padding(.top, 8)
+            Button(action: {
+                print("[DEBUG] AppleID button tapped")
+                let provider = ASAuthorizationAppleIDProvider()
+                let request = provider.createRequest()
+                request.requestedScopes = [.fullName, .email]
+                let controller = ASAuthorizationController(authorizationRequests: [request])
+                let coordinator = AppleSignInCoordinator(vm: vm, onLogin: onLogin)
+                controller.delegate = coordinator
+                controller.presentationContextProvider = coordinator
+                self.appleSignInCoordinator = coordinator
+                controller.performRequests()
+            }) {
+                HStack(spacing: 10) {
+                    Image(systemName: "applelogo").font(.title2)
+                    Text("continue_with_apple".localized).font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(Color.black)
+                .foregroundColor(.white)
+                .cornerRadius(16)
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, 8)
             
             Spacer()
         }
         .background(Color.white.ignoresSafeArea())
         .preferredColorScheme(.light)
+        .onAppear {
+            print("[DEBUG] AuthView onAppear!")
+        }
         .alert("email_already_exists".localized, isPresented: $vm.showEmailExistsAlert) {
             Button("resend_verification".localized) {
                 vm.resendCodeForExistingEmail()
@@ -205,15 +211,21 @@ class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate, ASAut
         return ASPresentationAnchor()
     }
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        print("[DEBUG] AppleSignInCoordinator didCompleteWithAuthorization")
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
            let identityToken = appleIDCredential.identityToken,
            let idTokenString = String(data: identityToken, encoding: .utf8) {
-            vm.loginWithApple(idToken: idTokenString) {
+            print("[DEBUG] AppleID identityToken: \(idTokenString.prefix(40))...")
+            let fullName = appleIDCredential.fullName?.formatted()
+            vm.loginWithApple(idToken: idTokenString, fullName: fullName) {
                 self.onLogin?()
             }
+        } else {
+            print("[DEBUG] AppleID identityToken is nil")
         }
     }
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        print("[DEBUG] AppleSignInCoordinator didCompleteWithError: \(error.localizedDescription)")
         vm.error = error.localizedDescription
     }
 } 

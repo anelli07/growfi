@@ -1,6 +1,10 @@
 from typing import List, Optional
 from pydantic import EmailStr
 from pydantic_settings import BaseSettings
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 
 class Settings(BaseSettings):
@@ -37,6 +41,11 @@ class Settings(BaseSettings):
     EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 48
     EMAIL_TEMPLATES_DIR: str = "/app/templates/email"
     MAIL_CONSOLE: Optional[bool] = False
+
+    AZURE_OPENAI_API_KEY: str = ""
+    AZURE_OPENAI_ENDPOINT: str = ""
+    AZURE_OPENAI_MODEL: str = ""
+    AZURE_OPENAI_API_VERSION: str = ""
 
     class Config:
         case_sensitive = True

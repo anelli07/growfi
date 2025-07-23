@@ -4,34 +4,31 @@ import GoogleSignInSwift
 
 class ApiService {
     static let shared = ApiService()
-//    private let baseURL = "http://127.0.0.1:8000/api/v1"
-    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
+    
+    // Временно используем локальный сервер для тестирования
+    private let baseURL = "http://localhost:8000/api/v1"
+//    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
     private init() {}
 
     // MARK: - Авторизация
-    func login(email: String, password: String, completion: @escaping (Result<(String, String), Error>) -> Void) {
+    func login(email: String, password: String, completion: @escaping (Result<String, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/auth/login") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        let bodyString = "username=\(email)&password=\(password)"
-        request.httpBody = bodyString.data(using: .utf8)
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        let body = "username=\(email)&password=\(password)"
+        request.httpBody = body.data(using: .utf8)
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                completion(.failure(NSError(domain: "Проблемы с сетью", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]))); return
-            }
-            guard let data = data else {
-                completion(.failure(NSError(domain: "Нет данных от сервера", code: 0)));
-                return
-            }
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let access = json["access_token"] as? String,
                let refresh = json["refresh_token"] as? String {
-                completion(.success((access, refresh)))
-            } else if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let detail = json["detail"] as? String {
-                completion(.failure(NSError(domain: "Ошибка", code: 0, userInfo: [NSLocalizedDescriptionKey: detail])))
+                // Сохраняем refresh_token
+                UserDefaults.standard.set(refresh, forKey: "refresh_token")
+                completion(.success(access))
             } else {
-                completion(.failure(NSError(domain: "Неверный ответ сервера", code: 0)))
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
             }
         }.resume()
     }
@@ -187,15 +184,15 @@ class ApiService {
     // MARK: - Google Auth (заглушка)
     func loginWithGoogle(presentingViewController: UIViewController, completion: @escaping (Result<String, Error>) -> Void) {
         GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { result, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            guard let idToken = result?.user.idToken?.tokenString else {
-                completion(.failure(NSError(domain: "Нет idToken", code: 0)))
-                return
-            }
-            // Отправляем idToken на бэкенд
+            if let error = error { completion(.failure(error)); return }
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString else { completion(.failure(NSError(domain: "No ID token", code: 0))); return }
+            
+            // Сохраняем google_id
+            let googleId = user.userID
+            UserDefaults.standard.set(googleId, forKey: "google_id")
+            print("[ApiService] Saved google_id: \(googleId)")
+            
             guard let url = URL(string: "\(self.baseURL)/auth/google") else { return }
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
@@ -205,8 +202,12 @@ class ApiService {
             URLSession.shared.dataTask(with: request) { data, response, error in
                 if let error = error { completion(.failure(error)); return }
                 guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let token = json["access_token"] as? String {
-                    completion(.success(token))
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let access = json["access_token"] as? String,
+                   let refresh = json["refresh_token"] as? String {
+                    // Сохраняем refresh_token
+                    UserDefaults.standard.set(refresh, forKey: "refresh_token")
+                    completion(.success(access))
                 } else {
                     completion(.failure(NSError(domain: "Invalid response", code: 0)))
                 }
@@ -214,24 +215,36 @@ class ApiService {
         }
     }
 
-    func loginWithApple(idToken: String, completion: @escaping (Result<String, Error>) -> Void) {
-        print("[ApiService] loginWithApple called, idToken: \(idToken.prefix(40))...")
+    func loginWithApple(idToken: String, fullName: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
+        print("[ApiService] loginWithApple called, idToken: \(idToken.prefix(40))... fullName: \(fullName ?? "nil")")
         guard let url = URL(string: "\(baseURL)/auth/apple") else { print("[ApiService] Invalid URL"); return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["token": idToken]
+        var body: [String: Any] = ["token": idToken]
+        if let fullName = fullName { body["full_name"] = fullName }
         print("[ApiService] loginWithApple body: \(body)")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error { print("[ApiService] error: \(error)"); completion(.failure(error)); return }
-            guard let data = data else { print("[ApiService] no data"); completion(.failure(NSError(domain: "No data", code: 0))); return }
+            if let error = error { print("[ApiService] loginWithApple error: \(error)"); completion(.failure(error)); return }
+            guard let data = data else { print("[ApiService] loginWithApple no data"); completion(.failure(NSError(domain: "No data", code: 0))); return }
             print("[ApiService] got data, response: \(String(data: data, encoding: .utf8) ?? "nil")")
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let token = json["access_token"] as? String {
-                print("[ApiService] access_token: \(token.prefix(20))...")
-                completion(.success(token))
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let access = json["access_token"] as? String,
+               let refresh = json["refresh_token"] as? String {
+                print("[ApiService] access_token: \(access.prefix(40))...")
+                // Сохраняем refresh_token и apple_id
+                UserDefaults.standard.set(refresh, forKey: "refresh_token")
+                // Извлекаем apple_id из idToken (userIdentifier)
+                if let tokenData = idToken.data(using: .utf8),
+                   let tokenDict = try? JSONSerialization.jsonObject(with: tokenData) as? [String: Any],
+                   let sub = tokenDict["sub"] as? String {
+                    UserDefaults.standard.set(sub, forKey: "apple_id")
+                    print("[ApiService] Saved apple_id: \(sub)")
+                }
+                completion(.success(access))
             } else {
-                print("[ApiService] Invalid response")
+                print("[ApiService] loginWithApple invalid response")
                 completion(.failure(NSError(domain: "Invalid response", code: 0)))
             }
         }.resume()
@@ -906,10 +919,65 @@ class ApiService {
     
     // MARK: - Удаление аккаунта
     func deleteAccount(token: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/users/me") else { return }
+        guard let url = URL(string: "\(baseURL)/auth/delete-account") else { return }
         var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Получаем refresh_token и apple_id
+        let refreshToken = UserDefaults.standard.string(forKey: "refresh_token") ?? ""
+        let appleId = UserDefaults.standard.string(forKey: "apple_id")
+        let googleId = UserDefaults.standard.string(forKey: "google_id")
+        
+        print("[ApiService] deleteAccount - refreshToken: \(refreshToken.prefix(20))...")
+        print("[ApiService] deleteAccount - appleId: \(appleId ?? "nil")")
+        print("[ApiService] deleteAccount - googleId: \(googleId ?? "nil")")
+        
+        var body: [String: Any] = ["refresh_token": refreshToken]
+        if let appleId = appleId, !appleId.isEmpty {
+            body["apple_id"] = appleId
+        }
+        if let googleId = googleId, !googleId.isEmpty {
+            body["google_id"] = googleId
+        }
+        
+        print("[ApiService] deleteAccount - body: \(body)")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            print("[ApiService] deleteAccount - response status: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            if let data = data {
+                print("[ApiService] deleteAccount - response data: \(String(data: data, encoding: .utf8) ?? "nil")")
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("LogoutDueTo401"), object: nil)
+                }
+                completion(.failure(NSError(domain: "Unauthorized", code: 401)))
+                return
+            }
+            
+            if let error = error { 
+                print("[ApiService] deleteAccount - error: \(error)")
+                completion(.failure(error)); 
+                return 
+            }
+            completion(.success(()))
+        }.resume()
+    }
+
+    // MARK: - AI Service
+    func processAIMessage(message: String, token: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/ai/process-message") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = ["message": message]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
                 DispatchQueue.main.async {
@@ -920,7 +988,39 @@ class ApiService {
             }
             
             if let error = error { completion(.failure(error)); return }
-            completion(.success(()))
+            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
+            
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                completion(.success(json))
+            } else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+            }
+        }.resume()
+    }
+    
+    func analyzeExpenses(token: String, period: String = "month", completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/ai/analyze-expenses?period=\(period)") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("LogoutDueTo401"), object: nil)
+                }
+                completion(.failure(NSError(domain: "Unauthorized", code: 401)))
+                return
+            }
+            
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
+            
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                completion(.success(json))
+            } else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+            }
         }.resume()
     }
 } 

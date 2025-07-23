@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 # from .endpoints import users, auth, ...
 
-from app.api.v1.endpoints import auth, user, category, income, expense, dashboard, goal, wallet, transactions
+from app.api.v1.endpoints import auth, user, category, income, expense, dashboard, goal, wallet, transactions, ai
 from app.api.v1.endpoints.expense import main_router as transactions_router
 
 api_router = APIRouter()
@@ -15,4 +15,5 @@ api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboar
 api_router.include_router(goal.router, prefix="/goals", tags=["goals"])
 api_router.include_router(wallet.router, prefix="/wallet", tags=["wallet"])
 api_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
+api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 # api_router.include_router(users.router, prefix="/users", tags=["users"])

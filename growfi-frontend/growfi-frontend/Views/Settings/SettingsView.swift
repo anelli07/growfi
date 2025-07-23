@@ -174,6 +174,8 @@ struct SettingsView: View {
                     // Очищаем все данные пользователя
                     UserDefaults.standard.removeObject(forKey: "access_token")
                     UserDefaults.standard.removeObject(forKey: "refresh_token")
+                    UserDefaults.standard.removeObject(forKey: "apple_id")
+                    UserDefaults.standard.removeObject(forKey: "google_id")
                     goalsVM.user = nil
                     // Вызываем onLogout для перехода на экран авторизации
                     onLogout()

@@ -1,5 +1,5 @@
-from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from sqlmodel import Session
@@ -7,6 +7,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from pydantic import BaseModel, EmailStr
 from datetime import date
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app import crud, schemas
 from app.api import deps
@@ -116,9 +118,15 @@ def login(
     elif not user.is_email_verified:
         raise HTTPException(status_code=400, detail="Email не подтверждён")
 
+    access_token = security.create_access_token(user.id)
+    refresh_token = security.create_refresh_token(user.id)
+    user.refresh_token = refresh_token
+    db.add(user)
+    db.commit()
+
     return {
-        "access_token": security.create_access_token(user.id),
-        "refresh_token": security.create_refresh_token(user.id),
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 
@@ -198,10 +206,13 @@ def auth_google(
                 category_id=category_id,
                 wallet_id=wallet1.id
             ), user=user)
-
+    refresh_token = security.create_refresh_token(user.id)
+    user.refresh_token = refresh_token
+    db.add(user)
+    db.commit()
     return {
         "access_token": security.create_access_token(user.id),
-        "refresh_token": security.create_refresh_token(user.id),
+        "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 
@@ -221,7 +232,8 @@ def auth_apple(
 
         apple_id = token_data.get("sub")
         email = token_data.get("email")
-        full_name = token_data.get("name")
+        # full_name из токена не используем, только из body
+        full_name = apple_token.full_name or token_data.get("name")
 
         if not apple_id:
             raise HTTPException(
@@ -283,16 +295,13 @@ def auth_apple(
                     category_id=category_id,
                     wallet_id=wallet1.id
                 ), user=user)
-        else:
-            # Если email нет — не можем создать нового пользователя, возвращаем ошибку
-            raise HTTPException(
-                status_code=400,
-                detail="Apple ID не содержит email. Попробуйте удалить GrowFi из настройках Apple ID и войти заново.",
-            )
-
+    refresh_token = security.create_refresh_token(user.id)
+    user.refresh_token = refresh_token
+    db.add(user)
+    db.commit()
     return {
         "access_token": security.create_access_token(user.id),
-        "refresh_token": security.create_refresh_token(user.id),
+        "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 
@@ -405,3 +414,70 @@ def reset_password(
     if not ok:
         raise HTTPException(status_code=400, detail="Неверный или истёкший токен")
     return {"message": "Пароль успешно сброшен"}
+
+class DeleteAccountRequest(BaseModel):
+    refresh_token: str
+    apple_id: Optional[str] = None
+    google_id: Optional[str] = None
+
+@router.post("/delete-account")
+def delete_account(
+    *, db: Session = Depends(deps.get_db), data: DeleteAccountRequest
+) -> Any:
+    """
+    Удалить аккаунт пользователя и все связанные данные (каскадно)
+    """
+    print(f"[DELETE_ACCOUNT] Received request with data: {data}")
+    print(f"[DELETE_ACCOUNT] refresh_token: {data.refresh_token[:20]}...")
+    print(f"[DELETE_ACCOUNT] apple_id: {data.apple_id}")
+    print(f"[DELETE_ACCOUNT] google_id: {data.google_id}")
+    
+    user = db.query(crud.user.model).filter_by(refresh_token=data.refresh_token).first()
+    print(f"[DELETE_ACCOUNT] Found user by refresh_token: {user.id if user else None}")
+    
+    if not user and data.apple_id:
+        user = db.query(crud.user.model).filter_by(apple_id=data.apple_id).first()
+        print(f"[DELETE_ACCOUNT] Found user by apple_id: {user.id if user else None}")
+    
+    if not user and data.google_id:
+        user = db.query(crud.user.model).filter_by(google_id=data.google_id).first()
+        print(f"[DELETE_ACCOUNT] Found user by google_id: {user.id if user else None}")
+    
+    if not user:
+        print(f"[DELETE_ACCOUNT] No user found with any method")
+        raise HTTPException(status_code=401, detail="Invalid refresh token, apple_id, or google_id")
+    
+    user_id = user.id
+    print(f"[DELETE_ACCOUNT] Deleting user ID: {user_id}")
+    
+    # Принудительно удаляем все данные пользователя через SQL
+    try:
+        # Удаляем транзакции
+        db.execute(text('DELETE FROM expense WHERE user_id = :user_id'), {'user_id': user_id})
+        db.execute(text('DELETE FROM income WHERE user_id = :user_id'), {'user_id': user_id})
+        
+        # Удаляем цели
+        db.execute(text('DELETE FROM goal WHERE user_id = :user_id'), {'user_id': user_id})
+        
+        # Удаляем кошельки
+        db.execute(text('DELETE FROM wallet WHERE user_id = :user_id'), {'user_id': user_id})
+        
+        # Удаляем категории
+        db.execute(text('DELETE FROM category WHERE user_id = :user_id'), {'user_id': user_id})
+        
+        # Удаляем пользователя
+        db.execute(text('DELETE FROM "user" WHERE id = :user_id'), {'user_id': user_id})
+        
+        # Удаляем orphaned данные
+        db.execute(text('DELETE FROM expense WHERE user_id NOT IN (SELECT id FROM "user") OR wallet_id IS NULL OR category_id IS NULL'))
+        db.execute(text('DELETE FROM income WHERE user_id NOT IN (SELECT id FROM "user") OR wallet_id IS NULL OR category_id IS NULL'))
+        
+        db.commit()
+        print(f"[DELETE_ACCOUNT] Successfully deleted user {user_id} and all related data")
+        
+    except Exception as e:
+        db.rollback()
+        print(f"[DELETE_ACCOUNT] Error deleting user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")
+    
+    return {"message": "Account and all related data deleted"}

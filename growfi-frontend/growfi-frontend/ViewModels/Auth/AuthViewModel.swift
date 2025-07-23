@@ -30,26 +30,22 @@ class AuthViewModel: ObservableObject {
         self.goalsViewModel = goalsViewModel
     }
     // MARK: - Auth
-    func login(completion: @escaping (Bool) -> Void) {
+    func login(completion: (() -> Void)? = nil) {
         error = nil; isLoading = true
         ApiService.shared.login(email: email, password: password) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success(let (access, refresh)):
+                case .success(let access):
                     UserDefaults.standard.set(access, forKey: "access_token")
-                    UserDefaults.standard.set(refresh, forKey: "refresh_token")
-                    self?.clearFields()
-                    self?.goalsViewModel.fetchUser()
-                    completion(true)
+                    completion?()
                 case .failure(let err):
                     self?.error = err.localizedDescription
-                    completion(false)
                 }
             }
         }
     }
-    func register(completion: @escaping (Bool) -> Void) {
+    func register(completion: (() -> Void)? = nil) {
         error = nil; isLoading = true
         ApiService.shared.register(email: email, password: password, fullName: fullName) { [weak self] result in
             DispatchQueue.main.async {
@@ -57,7 +53,7 @@ class AuthViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.showVerifyScreen = true
-                    completion(true)
+                    completion?()
                 case .failure(let err):
                     // Проверяем, является ли ошибка связанной с существующим email
                     if err.localizedDescription.contains("already exists") || err.localizedDescription.contains("уже существует") {
@@ -67,7 +63,6 @@ class AuthViewModel: ObservableObject {
                     } else {
                         self?.error = err.localizedDescription
                     }
-                    completion(false)
                 }
             }
         }
@@ -82,11 +77,9 @@ class AuthViewModel: ObservableObject {
                     self?.showVerifyScreen = false
                     self?.isLogin = true
                     // Автоматический логин после подтверждения
-                    self?.login { loginSuccess in
-                        if loginSuccess {
-                            self?.goalsViewModel.fetchUser()
-                        }
-                        completion(loginSuccess) // <--- onSuccess вызовется только если loginSuccess
+                    self?.login {
+                        self?.goalsViewModel.fetchUser()
+                        completion(true)
                     }
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -168,9 +161,9 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    func loginWithApple(idToken: String, onSuccess: @escaping () -> Void) {
+    func loginWithApple(idToken: String, fullName: String? = nil, onSuccess: @escaping () -> Void) {
         isAppleLoading = true
-        ApiService.shared.loginWithApple(idToken: idToken) { [weak self] result in
+        ApiService.shared.loginWithApple(idToken: idToken, fullName: fullName) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isAppleLoading = false
                 switch result {

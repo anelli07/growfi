@@ -19,10 +19,9 @@ class LoginViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
-                case .success(let (access, refresh)):
+                case .success(let access):
                     UserDefaults.standard.set(access, forKey: "access_token")
-                    UserDefaults.standard.set(refresh, forKey: "refresh_token")
-                    self?.isLoggedIn = true
+                    self?.clearFields()
                     onSuccess()
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -122,5 +121,11 @@ class LoginViewModel: ObservableObject {
                 onComplete?()
             }
         }
+    }
+    
+    func clearFields() {
+        email = ""
+        password = ""
+        error = nil
     }
 } 

@@ -11,78 +11,87 @@ struct GoalsCarouselView: View {
     @State private var showCreateGoalSheet = false
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 4) {
-                GreetingView(userName: viewModel.userName)
+        ZStack(alignment: .bottom) {
+            ScrollView {
+                VStack(spacing: 4) {
+                    GreetingView(userName: viewModel.userName)
                                 .padding(.top, 12) // чёткий отступ сверху
                                 .padding(.bottom, 10) // ≈ 0.5 см
-                TodayExpenseView(todayExpense: viewModel.todayExpense)
-                    .padding(.top, 6) // немного воздуха между заголовками
-                
-                if viewModel.goals.isEmpty {
-                    EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
-                        viewModel.createGoal(name: name, targetAmount: sum, currentAmount: initial, currency: currency.isEmpty ? "₸" : currency, icon: icon?.isEmpty == false ? icon! : "leaf.circle.fill", color: color?.isEmpty == false ? color! : "#00FF00", planPeriod: planPeriod, planAmount: planAmount, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
-                        showCreateGoalSheet = false
-                    }
-                } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
-                    SingleGoalView(goal: goal)
-                } else {
-
-                    CarouselView(items: viewModel.goals, selectedIndex: $viewModel.selectedGoalIndex) { goal, isActive in
-                        VStack(spacing: 2) {
-                            Image("plant_stage_\(goal.growthStage)")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: isActive ? 180 : 120, height: isActive ? 180 : 120)
-                                .shadow(color: .black.opacity(isActive ? 0.15 : 0), radius: 8, x: 0, y: 4)
-                            Text(goal.name.localizedIfDefault)
-                                .font(isActive ? .headline : .subheadline)
-                                .foregroundColor(isActive ? .primary : .gray)
-                                .lineLimit(1)
-                                .frame(width: isActive ? 120 : 80)
-                            Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                            ProgressView(value: goal.current_amount, total: goal.target_amount)
-                                .accentColor(Color.green)
-                                .frame(width: isActive ? 120 : 80)
-                                .padding(.bottom, 0)
+                    TodayExpenseView(todayExpense: viewModel.todayExpense)
+                        .padding(.top, 6) // немного воздуха между заголовками
+                    
+                    if viewModel.goals.isEmpty {
+                        EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
+                            viewModel.createGoal(name: name, targetAmount: sum, currentAmount: initial, currency: currency.isEmpty ? "₸" : currency, icon: icon?.isEmpty == false ? icon! : "leaf.circle.fill", color: color?.isEmpty == false ? color! : "#00FF00", planPeriod: planPeriod, planAmount: planAmount, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
+                            showCreateGoalSheet = false
                         }
-                    }
-                    .frame(height: 260)
-                    .padding(.top, 12)
+                    } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
+                        SingleGoalView(goal: goal)
+                    } else {
 
+                        CarouselView(items: viewModel.goals, selectedIndex: $viewModel.selectedGoalIndex) { goal, isActive in
+                            VStack(spacing: 2) {
+                                Image("plant_stage_\(goal.growthStage)")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: isActive ? 180 : 120, height: isActive ? 180 : 120)
+                                    .shadow(color: .black.opacity(isActive ? 0.15 : 0), radius: 8, x: 0, y: 4)
+                                Text(goal.name.localizedIfDefault)
+                                    .font(isActive ? .headline : .subheadline)
+                                    .foregroundColor(isActive ? .primary : .gray)
+                                    .lineLimit(1)
+                                    .frame(width: isActive ? 120 : 80)
+                                Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                ProgressView(value: goal.current_amount, total: goal.target_amount)
+                                    .accentColor(Color.green)
+                                    .frame(width: isActive ? 120 : 80)
+                                    .padding(.bottom, 0)
+                            }
+                        }
+                        .frame(height: 260)
+                        .padding(.top, 12)
+
+                    }
+                    
+                    Spacer(minLength: 4)
+                    
+                    if viewModel.goals.count > 1,
+                       let goal = viewModel.goals[safe: viewModel.selectedGoalIndex] {
+                        GoalDetailsView(goal: goal)
+                    }
+                    
+                    LastTransactionsView(
+                        onShowHistory: { selectedTab = 0 },
+                        todayTransactions: viewModel.todayTransactions
+                    )
+                    .id(AppLanguageManager.shared.currentLanguage)
+                    .padding(.horizontal)
+                    .padding(.top, 24)
+                    .padding(.bottom, 16)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(14)
+                    
+                    Spacer().frame(height: 20)
+                    
+                    SearchBar(
+                        placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
+                        text: .constant("")
+                        , iconName: "поисковик"
+                        , iconOnRight: true
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showAIChat = true
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 24)
+                    .frame(height: 44)
+                    .sheet(isPresented: $showAIChat) {
+                        AIChatView()
+                    }
                 }
-                
-                Spacer(minLength: 4)
-                
-                if viewModel.goals.count > 1,
-                   let goal = viewModel.goals[safe: viewModel.selectedGoalIndex] {
-                    GoalDetailsView(goal: goal)
-                }
-                
-                LastTransactionsView(
-                    onShowHistory: { selectedTab = 0 },
-                    todayTransactions: viewModel.todayTransactions
-                )
-                .id(AppLanguageManager.shared.currentLanguage)
-                .padding(.horizontal)
-                .padding(.top, 24)
-                .padding(.bottom, 16)
-                .background(Color(.systemGray6))
-                .cornerRadius(14)
-                
-                // SearchBar(
-                //     placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
-                //     text: .constant("")
-                // )
-                // .onTapGesture { showAIChat = true }
-                // .padding(.horizontal)
-                // .padding(.bottom, 32)
-                // .frame(height: 44)
-                // .sheet(isPresented: $showAIChat) {
-                //     AIChatView()
-                // }
             }
         }
         .onAppear {

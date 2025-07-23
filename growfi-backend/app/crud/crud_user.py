@@ -134,5 +134,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db.refresh(user)
         return True
 
+    def delete_by_id(self, db: Session, user_id: int) -> None:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            # Force-load все связи для ORM-каскада
+            _ = user.wallets, user.goals, user.categories, user.expenses, user.incomes
+            db.delete(user)
+            db.commit()
+
 
 user = CRUDUser(User)
