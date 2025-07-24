@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AnalyticsView: View {
-    @StateObject private var viewModel = AnalyticsViewModel()
+    @EnvironmentObject var viewModel: AnalyticsViewModel
     @State private var showPeriodPicker = false
 
     var body: some View {

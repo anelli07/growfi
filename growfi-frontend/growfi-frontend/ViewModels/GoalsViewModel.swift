@@ -22,7 +22,8 @@ class GoalsViewModel: ObservableObject {
             color: "#00FF00",
             wallet_name: "Карта",
             wallet_icon: "💳",
-            wallet_color: "#0000FF"
+            wallet_color: "#0000FF",
+            goal_id: nil
         )
     ]
     // Удаляю expenses и все методы, связанные с расходами
@@ -131,8 +132,8 @@ class GoalsViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.goals.removeAll { $0.id == goalId }
-                    // Обновляем аналитику
-                    self?.analyticsVM?.fetchTransactions()
+                    // История и аналитика не обновляются при удалении элементов
+                    // Пользователь может удалить транзакции в истории вручную
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -188,7 +189,8 @@ class GoalsViewModel: ObservableObject {
             color: wallet.colorHex ?? "#0000FF",
             wallet_name: wallet.name,
             wallet_icon: wallet.iconName,
-            wallet_color: wallet.colorHex
+            wallet_color: wallet.colorHex,
+            goal_id: nil
         )
         // Удаляю все transactions.append(tx), removeAll, и т.д. в transferWalletToGoal, transferWalletToExpense, transferIncomeToWallet и других местах
     }
@@ -212,7 +214,8 @@ class GoalsViewModel: ObservableObject {
             color: goal.color,
             wallet_name: wallet.name,
             wallet_icon: wallet.iconName,
-            wallet_color: wallet.colorHex
+            wallet_color: wallet.colorHex,
+            goal_id: goal.id // добавлено
         )
         // Удаляю все transactions.append(tx), removeAll, и т.д. в transferWalletToGoal, transferWalletToExpense, transferIncomeToWallet и других местах
         return true
@@ -238,7 +241,8 @@ class GoalsViewModel: ObservableObject {
             color: "#FF0000",
             wallet_name: wallet.name,
             wallet_icon: wallet.iconName,
-            wallet_color: wallet.colorHex
+            wallet_color: wallet.colorHex,
+            goal_id: nil
         )
         // Удаляю все transactions.append(tx), removeAll, и т.д. в transferWalletToGoal, transferWalletToExpense, transferIncomeToWallet и других местах
         return true

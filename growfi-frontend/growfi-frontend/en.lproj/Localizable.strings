@@ -173,3 +173,5 @@
 "plan_count_format" = "%d %@";
 "plan_week_plural" = "weeks";
 "plan_month_plural" = "months";
+
+"Delete" = "Delete";

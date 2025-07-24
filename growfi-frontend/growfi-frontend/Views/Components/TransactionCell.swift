@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TransactionCell: View {
     let transaction: Transaction
+    var onDelete: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -33,6 +34,13 @@ struct TransactionCell: View {
             }
         }
         .padding(.vertical, 6)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                onDelete?()
+            } label: {
+                Label("Delete".localized, systemImage: "trash")
+            }
+        }
     }
 }
 
@@ -50,7 +58,8 @@ struct TransactionCell_Previews: PreviewProvider {
                 color: "#FF0000",
                 wallet_name: "Карта",
                 wallet_icon: "creditcard",
-                wallet_color: "#4F8A8B"
+                wallet_color: "#4F8A8B",
+                goal_id: nil
             ))
             TransactionCell(transaction: Transaction(
                 id: 2,
@@ -63,7 +72,8 @@ struct TransactionCell_Previews: PreviewProvider {
                 color: "#00FF00",
                 wallet_name: "Карта",
                 wallet_icon: "creditcard",
-                wallet_color: "#4F8A8B"
+                wallet_color: "#4F8A8B",
+                goal_id: nil
             ))
         }
         .padding()

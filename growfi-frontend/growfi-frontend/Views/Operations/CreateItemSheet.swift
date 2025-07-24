@@ -21,6 +21,7 @@ struct CreateItemSheet: View {
     @State private var showWeekdayPicker = false
     @State private var showMonthDayPicker = false
     @State private var showTimePicker = false
+    @State private var forceUpdate = false
     let availableIcons = [
         "creditcard.fill", "banknote", "dollarsign.circle.fill", "wallet.pass.fill", "cart.fill", "gift.fill", "airplane", "car.fill", "cross.case.fill", "tshirt.fill", "scissors", "gamecontroller.fill", "cup.and.saucer.fill", "fork.knife", "phone.fill", "house.fill", "building.2.fill", "bag.fill", "star.fill", "questionmark.circle", "lipstick", "paintbrush.fill"
     ]
@@ -90,6 +91,7 @@ struct CreateItemSheet: View {
                             .padding(.top, 16)
                     }
                 }
+                .id(forceUpdate) // Принудительное обновление
                 Spacer().frame(height: 8)
                 VStack(spacing: 8) {
                     Text("icon".localized)
@@ -268,6 +270,35 @@ struct CreateItemSheet: View {
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
         .hideKeyboardOnTap()
+        .onAppear {
+            // Принудительно инициализируем состояние при появлении
+            DispatchQueue.main.async {
+                if name.isEmpty {
+                    name = ""
+                }
+                if sum.isEmpty {
+                    sum = ""
+                }
+                if initialAmount.isEmpty {
+                    initialAmount = ""
+                }
+                
+                // Принудительно обновляем UI
+                let _ = selectedIcon
+                let _ = selectedColor
+                let _ = selectedCurrency
+                let _ = planEnabled
+                let _ = planPeriod
+                let _ = periodCount
+                let _ = reminderPeriod
+                let _ = selectedWeekday
+                let _ = selectedMonthDay
+                let _ = selectedTime
+                
+                // Принудительно обновляем UI
+                forceUpdate.toggle()
+            }
+        }
         // --- Pickers ---
         .sheet(isPresented: $showWeekdayPicker) {
             VStack {

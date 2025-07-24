@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlmodel import Session
 from app import models
 from app.api import deps
@@ -8,6 +8,31 @@ import inspect
 import sys
 
 router = APIRouter()
+
+@router.delete("/{transaction_id}")
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+):
+    """
+    Удалить транзакцию по ID
+    """
+    # Получаем транзакцию
+    tx = transaction.get(db=db, id=transaction_id)
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Проверяем, что транзакция принадлежит текущему пользователю
+    if tx.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    try:
+        # Удаляем транзакцию
+        transaction.remove(db=db, id=transaction_id)
+        return {"message": "Transaction deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete transaction: {str(e)}")
 
 @router.get("/", response_model=list[dict])
 def get_transactions(

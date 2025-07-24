@@ -253,6 +253,21 @@ struct EditItemSheet: View {
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
         .hideKeyboardOnTap()
+        .onAppear {
+            // Принудительно инициализируем состояние при появлении
+            if name.isEmpty {
+                name = ""
+            }
+            if sum.isEmpty {
+                sum = ""
+            }
+            if targetAmount.isEmpty {
+                targetAmount = ""
+            }
+            if currentAmount.isEmpty {
+                currentAmount = ""
+            }
+        }
         .sheet(isPresented: $showWeekdayPicker) {
             VStack {
                 Text("Выберите день недели").font(.headline).padding()

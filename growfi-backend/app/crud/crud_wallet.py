@@ -31,8 +31,31 @@ class CRUDWallet:
     def remove(self, db: Session, id: int) -> Optional[Wallet]:
         obj = db.get(Wallet, id)
         if obj:
-            db.delete(obj)
-            db.commit()
+            try:
+                # НЕ удаляем транзакции - они должны сохраняться как история
+                # Просто обнуляем wallet_id в транзакциях, связанных с этим кошельком
+                from sqlalchemy import text
+                
+                db.execute(text('UPDATE transaction SET from_wallet_id = NULL WHERE from_wallet_id = :wallet_id'), 
+                          {'wallet_id': id})
+                db.execute(text('UPDATE transaction SET to_wallet_id = NULL WHERE to_wallet_id = :wallet_id'), 
+                          {'wallet_id': id})
+                
+                # НЕ удаляем доходы и расходы - они могут быть связаны с другими кошельками
+                # Просто обнуляем wallet_id в доходах и расходах, связанных с этим кошельком
+                db.execute(text('UPDATE income SET wallet_id = NULL WHERE wallet_id = :wallet_id'), 
+                          {'wallet_id': id})
+                db.execute(text('UPDATE expense SET wallet_id = NULL WHERE wallet_id = :wallet_id'), 
+                          {'wallet_id': id})
+                
+                # Теперь удаляем сам кошелек
+                db.delete(obj)
+                db.commit()
+                
+            except Exception as e:
+                db.rollback()
+                print(f"Error deleting wallet {id}: {str(e)}")
+                raise e
         return obj
 
     def assign_goal(self, db: Session, *, wallet_id: int, goal_id: int, amount: float, date: str, comment: str = None):

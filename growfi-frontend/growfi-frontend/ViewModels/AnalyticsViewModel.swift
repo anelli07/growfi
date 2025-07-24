@@ -72,24 +72,31 @@ class AnalyticsViewModel: ObservableObject {
 
     func applyFilters() {
         let range = periodVM.currentRange
+        let calendar = Calendar.current
+        let startDay = calendar.startOfDay(for: range.start)
+        let endDay = calendar.startOfDay(for: range.end)
         let filtered = allTransactions.filter { tx in
-            tx.date >= range.start && tx.date <= range.end
+            let txDay = calendar.startOfDay(for: tx.date)
+            return txDay >= startDay && txDay <= endDay
         }
         transactions = filtered
         // Группировка по дням
-        let groupedDay = Dictionary(grouping: filtered) { Calendar.current.startOfDay(for: $0.date) }
+        let groupedDay = Dictionary(grouping: filtered) { calendar.startOfDay(for: $0.date) }
         let sortedDay = groupedDay.map { (date, txs) -> (Date, Double, Double) in
             let income = txs.filter { $0.type == .income }.map { $0.amount }.reduce(0, +)
             let expense = abs(txs.filter { $0.type == .expense }.map { $0.amount }.reduce(0, +))
             return (date, income, expense)
         }.sorted { $0.0 < $1.0 }
         groupedByDay = sortedDay
-        // Группировка по категориям
-        let groupedCat = Dictionary(grouping: filtered) { $0.title }
-        groupedByCategory = groupedCat.map { (cat, txs) in
+        // Группировка по категориям (по goal_id если есть, иначе по title)
+        let groupedCat = Dictionary(grouping: filtered) { tx in
+            tx.goal_id.map { "goal_\($0)" } ?? tx.title
+        }
+        groupedByCategory = groupedCat.map { (key, txs) in
             let total = txs.map { abs($0.amount) }.reduce(0, +)
-            let type = CategoryType.from(name: cat)
-            return CategoryStat(category: cat, total: total, color: type.color, categoryIcon: type.icon)
+            let first = txs.first!
+            let type = CategoryType.from(name: first.title)
+            return CategoryStat(category: first.title, total: total, color: type.color, categoryIcon: type.icon)
         }.sorted { $0.total > $1.total }
         // Итоги
         incomeTotal = filtered.filter { $0.type == .income }.map { $0.amount }.reduce(0, +)
@@ -118,6 +125,11 @@ class AnalyticsViewModel: ObservableObject {
 
     func setChartType(_ type: ChartType) {
         chartType = type
+    }
+
+    func updateFromHistory(_ transactions: [Transaction]) {
+        self.allTransactions = transactions
+        self.applyFilters()
     }
 
     struct CategoryKey: Hashable {

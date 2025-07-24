@@ -145,6 +145,8 @@ struct AppEntry: View {
                             incomesVM.analyticsVM = analyticsVM
                             walletsVM.analyticsVM = analyticsVM
                             expensesVM.analyticsVM = analyticsVM
+                            expensesVM.historyVM = historyVM
+                            historyVM.analyticsVM = analyticsVM
                             goalsViewModel.expensesVM = expensesVM
                             goalsViewModel.incomesVM = incomesVM
                             goalsViewModel.analyticsVM = analyticsVM

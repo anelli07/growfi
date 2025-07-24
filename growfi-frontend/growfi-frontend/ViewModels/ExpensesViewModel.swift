@@ -7,6 +7,7 @@ class ExpensesViewModel: ObservableObject {
     @Published var error: String? = nil
     
     weak var analyticsVM: AnalyticsViewModel? = nil // для обновления аналитики
+    weak var historyVM: HistoryViewModel? = nil // для обновления истории
 
     var token: String? {
         UserDefaults.standard.string(forKey: "access_token")
@@ -43,6 +44,8 @@ class ExpensesViewModel: ObservableObject {
                     self?.expenses.append(expense)
                     // Обновляем аналитику
                     self?.analyticsVM?.fetchTransactions()
+                    // Обновляем историю
+                    self?.historyVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -61,6 +64,7 @@ class ExpensesViewModel: ObservableObject {
                     if let idx = self?.expenses.firstIndex(where: { $0.id == id }) {
                         self?.expenses[idx] = tx
                     }
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -77,7 +81,8 @@ class ExpensesViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.expenses.removeAll { $0.id == id }
-                    // Обновляем аналитику
+                    // История и аналитика не обновляются при удалении элементов
+                    // Пользователь может удалить транзакции в истории вручную
                     self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription

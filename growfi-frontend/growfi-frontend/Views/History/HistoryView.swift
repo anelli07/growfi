@@ -101,7 +101,9 @@ struct HistoryView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     ForEach(groupedDays) { day in
-                        TransactionDaySection(day: day)
+                        TransactionDaySection(day: day) { transactionId in
+                            historyVM.deleteTransaction(id: transactionId)
+                        }
                     }
                 }
                 .padding(.horizontal)

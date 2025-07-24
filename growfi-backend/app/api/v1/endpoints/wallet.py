@@ -31,7 +31,11 @@ def delete_wallet(id: int, db: Session = Depends(deps.get_db), current_user: mod
     db_obj = db.get(Wallet, id)
     if not db_obj or db_obj.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Wallet not found")
-    return crud.crud_wallet.remove(db=db, id=id)
+    
+    try:
+        return crud.crud_wallet.remove(db=db, id=id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete wallet: {str(e)}")
 
 class WalletAssignGoalResponse(BaseModel):
     goal: Goal

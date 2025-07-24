@@ -51,13 +51,7 @@ struct EmailCodeVerifyView: View {
                 }
             }
             .padding(.horizontal, 32)
-            .padding(.bottom, 12)
-            Button("continue".localized) {
-                vm.resendCode()
-            }
-            .foregroundColor(.green)
-            .font(.subheadline)
-            .padding(.bottom, vm.resent ? 8 : 24)
+            .padding(.bottom, 24)
             if vm.resent {
                 Text("continue".localized).foregroundColor(.green).font(.caption)
             }

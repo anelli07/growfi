@@ -2,7 +2,9 @@ import SwiftUI
 
 struct TransactionDaySection: View {
     let day: TransactionDay
+    var onDeleteTransaction: ((Int) -> Void)? = nil
     @ObservedObject private var langManager = AppLanguageManager.shared
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -15,7 +17,9 @@ struct TransactionDaySection: View {
             }
             .padding(.bottom, 2)
             ForEach(day.transactions) { tx in
-                TransactionCell(transaction: tx)
+                TransactionCell(transaction: tx) {
+                    onDeleteTransaction?(tx.id)
+                }
             }
         }
         .padding(.vertical, 6)
@@ -46,7 +50,8 @@ struct TransactionDaySection_Previews: PreviewProvider {
                 color: "#FF0000",
                 wallet_name: "Карта",
                 wallet_icon: "💳",
-                wallet_color: "#0000FF"
+                wallet_color: "#0000FF",
+                goal_id: nil
             ),
             Transaction(
                 id: 2,
@@ -59,7 +64,8 @@ struct TransactionDaySection_Previews: PreviewProvider {
                 color: "#00FF00",
                 wallet_name: "Карта",
                 wallet_icon: "💳",
-                wallet_color: "#0000FF"
+                wallet_color: "#0000FF",
+                goal_id: nil
             )
         ]
         let day = TransactionDay(id: 1, date: date, transactions: txs)

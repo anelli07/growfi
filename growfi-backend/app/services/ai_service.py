@@ -7,6 +7,7 @@ from app.models.transaction import Transaction, Income, Expense
 from app.models.category import Category
 from app.models.wallet import Wallet
 from datetime import datetime
+from app.crud import crud_wallet, crud_category, crud_expense, crud_income
 
 class AIService:
     def __init__(self):

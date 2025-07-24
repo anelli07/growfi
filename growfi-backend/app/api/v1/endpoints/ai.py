@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from app import crud, models
 from app.api import deps
 from app.services.ai_service import ai_service
-
+from app.crud import crud_wallet, category, expense, income
 router = APIRouter()
 
 class AIMessageRequest(BaseModel):
@@ -29,8 +29,8 @@ def process_ai_message(
     """
     try:
         # Получаем данные пользователя
-        categories = crud.category.get_multi_by_user(db=db, user=current_user)
-        wallets = crud.wallet.get_multi_by_user(db=db, user=current_user)
+        categories = crud_category.get_multi_by_user(db=db, user=current_user)
+        wallets = crud_wallet.get_multi_by_user(db=db, user_id=current_user.id)
         
         user_data = {
             "categories": [{"id": c.id, "name": c.name, "type": c.type} for c in categories],
@@ -46,9 +46,9 @@ def process_ai_message(
             transaction_data = result["transaction"]
             
             # Находим категорию
-            category = None
+            category_obj = None
             if transaction_data.get("category"):
-                category = next((c for c in categories if c.name.lower() == transaction_data["category"].lower()), None)
+                category_obj = next((c for c in categories if c.name.lower() == transaction_data["category"].lower()), None)
             
             # Находим кошелек
             wallet = None
@@ -59,31 +59,31 @@ def process_ai_message(
             
             if transaction_data["type"] == "expense":
                 # Создаем расход
-                expense = crud.expense.create(
+                expense_obj = crud_expense.create(
                     db=db,
                     obj_in=models.ExpenseCreate(
                         name=transaction_data.get("description", "Расход"),
                         amount=transaction_data["amount"],
-                        category_id=category.id if category else None,
+                        category_id=category_obj.id if category_obj else None,
                         wallet_id=wallet.id if wallet else None,
                         user_id=current_user.id
                     )
                 )
-                result["transaction_id"] = expense.id
+                result["transaction_id"] = expense_obj.id
                 
             elif transaction_data["type"] == "income":
                 # Создаем доход
-                income = crud.income.create(
+                income_obj = crud_income.create(
                     db=db,
                     obj_in=models.IncomeCreate(
                         name=transaction_data.get("description", "Доход"),
                         amount=transaction_data["amount"],
-                        category_id=category.id if category else None,
+                        category_id=category_obj.id if category_obj else None,
                         wallet_id=wallet.id if wallet else None,
                         user_id=current_user.id
                     )
                 )
-                result["transaction_id"] = income.id
+                result["transaction_id"] = income_obj.id
         
         return AIMessageResponse(
             type=result.get("type", "error"),

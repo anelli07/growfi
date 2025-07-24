@@ -1,32 +1,36 @@
 import SwiftUI
 
-enum TransferType {
-    case incomeToWallet(Income, Wallet)
-    case walletToGoal(Wallet, Goal)
-    case walletToExpense(Wallet, Expense)
-}
-
 struct OperationsView: View {
     @EnvironmentObject var viewModel: GoalsViewModel
     @EnvironmentObject var walletsVM: WalletsViewModel
     @EnvironmentObject var expensesVM: ExpensesViewModel
     @EnvironmentObject var incomesVM: IncomesViewModel
     @EnvironmentObject var categoriesVM: CategoriesViewModel
+    @EnvironmentObject var analyticsVM: AnalyticsViewModel
+    @EnvironmentObject var historyVM: HistoryViewModel
     @State private var dragIncomeId: Int? = nil
     @State private var dragWalletId: Int? = nil
     @State private var dragAmount: Double = 0
-    @State private var showTransferSheet = false
-    @State private var transferType: TransferType? = nil
     @State private var transferAmount: Double = 0
     @State private var transferDate: Date = Date()
     @State private var transferComment: String = ""
-    @State private var showCreateSheet: Bool = false
-    @State private var createType: CreateType? = nil
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var editItem: EditableItem? = nil
+    @State private var createItem: CreateType? = nil
+    @State private var transferItem: TransferType? = nil
 
-    enum CreateType { case income, wallet, goal, expense }
+    enum CreateType: Identifiable {
+        case income, wallet, goal, expense
+        var id: String {
+            switch self {
+            case .income: return "income"
+            case .wallet: return "wallet"
+            case .goal: return "goal"
+            case .expense: return "expense"
+            }
+        }
+    }
     enum EditableItem: Identifiable {
         case wallet(Wallet)
         case income(Income)
@@ -83,82 +87,49 @@ struct OperationsView: View {
         .alert(isPresented: $showAlert) {
             Alert(title: Text("error".localized), message: Text(alertMessage), dismissButton: .default(Text("ok".localized)))
         }
-        .sheet(isPresented: $showTransferSheet) {
-            if let type = transferType {
-                TransferSheet(type: type, amount: $transferAmount, date: $transferDate, comment: $transferComment) { amount, date, comment in
-                    switch type {
-                    case .incomeToWallet(let income, let wallet):
-                
-                        guard amount > 0 else {
-                            alertMessage = "Введите сумму больше 0"
-                            showAlert = true
-                            return
-                        }
-                        incomesVM.assignIncomeToWallet(
-                            incomeId: income.id,
-                            walletId: wallet.id,
-                            amount: amount,
-                            date: date.toBackendString(),
-                            comment: comment,
-                            categoryId: income.category_id
-                        )
-                    case .walletToGoal(let wallet, let goal):
-                        walletsVM.assignWalletToGoal(
-                            walletId: wallet.id,
-                            goalId: goal.id,
-                            amount: amount,
-                            date: date.toBackendString(),
-                            comment: comment
-                        )
-                    case .walletToExpense(let wallet, let expense):
-                
-                        walletsVM.assignWalletToExpense(
-                            walletId: wallet.id,
-                            expenseId: expense.id,
-                            amount: amount,
-                            date: date.toBackendString(),
-                            comment: comment,
-                        )
-                    }
-                    showTransferSheet = false
-                }
-                .id(UUID())
+        .sheet(item: $transferItem) { type in
+            TransferSheet(
+                type: type,
+                amount: $transferAmount,
+                date: $transferDate,
+                comment: $transferComment
+            ) { amount, date, comment in
+                handleTransfer(amount: amount, date: date, comment: comment)
+                transferItem = nil
             }
+            .id(UUID())
         }
         .id(AppLanguageManager.shared.currentLanguage)
-        .sheet(isPresented: $showCreateSheet) {
-            if let type = createType {
-                CreateItemSheet(type: type) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
-                    switch type {
-                    case .income:
-                        let catId: Int? = categoriesVM.incomeCategories.first?.id
-                        incomesVM.createIncome(name: name, icon: icon ?? "dollarsign.circle.fill", color: color ?? "#00FF00", categoryId: catId)
-                    case .wallet:
-                        walletsVM.createWallet(name: name, balance: sum, currency: currency, icon: icon ?? "creditcard.fill", color: color ?? "#0000FF")
-                    case .goal:
-                        viewModel.createGoal(
-                            name: name,
-                            targetAmount: sum,
-                            currentAmount: initial,
-                            currency: currency,
-                            icon: icon ?? "leaf.circle.fill",
-                            color: color ?? "#00FF00",
-                            planPeriod: planPeriod,
-                            planAmount: planAmount,
-                            reminderPeriod: reminderPeriod,
-                            selectedWeekday: selectedWeekday,
-                            selectedMonthDay: selectedMonthDay,
-                            selectedTime: selectedTime
-                        )
-                    case .expense:
-                        let catId: Int? = categoriesVM.expenseCategories.first?.id
-                        let walletId: Int? = walletsVM.wallets.first?.id
-                        expensesVM.createExpense(name: name, icon: icon ?? "cart.fill", color: color ?? "#FF0000", categoryId: catId, walletId: walletId)
-                    }
-                    showCreateSheet = false
+        .sheet(item: $createItem) { type in
+            CreateItemSheet(type: type) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
+                switch type {
+                case .income:
+                    let catId: Int? = categoriesVM.incomeCategories.first?.id
+                    incomesVM.createIncome(name: name, icon: icon ?? "dollarsign.circle.fill", color: color ?? "#00FF00", categoryId: catId)
+                case .wallet:
+                    walletsVM.createWallet(name: name, balance: sum, currency: currency, icon: icon ?? "creditcard.fill", color: color ?? "#0000FF")
+                case .goal:
+                    viewModel.createGoal(
+                        name: name,
+                        targetAmount: sum,
+                        currentAmount: initial,
+                        currency: currency,
+                        icon: icon ?? "leaf.circle.fill",
+                        color: color ?? "#00FF00",
+                        planPeriod: planPeriod,
+                        planAmount: planAmount,
+                        reminderPeriod: reminderPeriod,
+                        selectedWeekday: selectedWeekday,
+                        selectedTime: selectedTime
+                    )
+                case .expense:
+                    let catId: Int? = categoriesVM.expenseCategories.first?.id
+                    let walletId: Int? = walletsVM.wallets.first?.id
+                    expensesVM.createExpense(name: name, icon: icon ?? "cart.fill", color: color ?? "#FF0000", categoryId: catId, walletId: walletId)
                 }
-                .id(UUID())
+                createItem = nil
             }
+            .id(UUID())
         }
         .id(AppLanguageManager.shared.currentLanguage)
         .sheet(item: $editItem) { item in
@@ -168,10 +139,86 @@ struct OperationsView: View {
             .id(item.id)
         }
         .id(AppLanguageManager.shared.currentLanguage)
+        .onAppear {
+            // Принудительно инициализируем ViewModels при появлении экрана
+            _ = viewModel
+            _ = walletsVM
+            _ = expensesVM
+            _ = incomesVM
+            _ = categoriesVM
+        }
         .onLanguageChange()
     }
 
     // --- СЕКЦИИ ---
+    
+    private func handleTransfer(amount: Double, date: Date, comment: String) {
+        guard let transferType = transferItem else { return }
+        
+        switch transferType {
+        case .incomeToWallet(let income, let wallet):
+            guard amount > 0 else {
+                alertMessage = "Введите сумму больше 0"
+                showAlert = true
+                return
+            }
+            incomesVM.assignIncomeToWallet(
+                incomeId: income.id,
+                walletId: wallet.id,
+                amount: amount,
+                date: date.toBackendString(),
+                comment: comment,
+                categoryId: income.category_id
+            )
+        case .walletToGoal(let wallet, let goal):
+            guard amount > 0 else {
+                alertMessage = "Введите сумму больше 0"
+                showAlert = true
+                return
+            }
+            guard amount <= wallet.balance else {
+                alertMessage = "Недостаточно средств"
+                showAlert = true
+                return
+            }
+            walletsVM.assignWalletToGoal(
+                walletId: wallet.id,
+                goalId: goal.id,
+                amount: amount,
+                date: date.toBackendString(),
+                comment: comment
+            )
+        case .walletToExpense(let wallet, let expense):
+            guard amount > 0 else {
+                alertMessage = "Введите сумму больше 0"
+                showAlert = true
+                return
+            }
+            guard amount <= wallet.balance else {
+                alertMessage = "Недостаточно средств"
+                showAlert = true
+                return
+            }
+            walletsVM.assignWalletToExpense(
+                walletId: wallet.id,
+                expenseId: expense.id,
+                amount: amount,
+                date: date.toBackendString(),
+                comment: comment
+            )
+        }
+    }
+
+    private func showCreateSheet(for type: CreateType) {
+        // Просто устанавливаем createItem - sheet откроется автоматически
+        createItem = type
+    }
+    
+    private func showTransferSheet(for type: TransferType) {
+        // Просто устанавливаем transferItem - sheet откроется автоматически
+        transferItem = type
+    }
+
     private var incomesSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             SectionToggleHeader(title: "incomes_section".localized, total: "\(Int(incomeTotal)) ₸", isExpanded: .constant(true))
@@ -192,8 +239,7 @@ struct OperationsView: View {
                         .onTapGesture { editItem = .income(income) }
                     }
                     Button(action: {
-                        createType = .income
-                        showCreateSheet = true
+                        showCreateSheet(for: .income)
                     }) {
                         PlusCategoryCircle()
                     }
@@ -221,11 +267,7 @@ struct OperationsView: View {
                            let incomeId = Int(idString),
                            let income = incomesVM.incomes.first(where: { $0.id == incomeId }) {
                             DispatchQueue.main.async {
-                                transferType = .incomeToWallet(income, wallet)
-                                transferAmount = 0
-                                transferDate = Date()
-                                transferComment = ""
-                                showTransferSheet = true
+                                showTransferSheet(for: .incomeToWallet(income, wallet))
                             }
                         }
                     }
@@ -250,11 +292,7 @@ struct OperationsView: View {
                            let walletId = Int(idString),
                            let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
                             DispatchQueue.main.async {
-                                transferType = .walletToExpense(wallet, expense)
-                                transferAmount = 0
-                                transferDate = Date()
-                                transferComment = ""
-                                showTransferSheet = true
+                                showTransferSheet(for: .walletToExpense(wallet, expense))
                             }
                         }
                     }
@@ -279,11 +317,7 @@ struct OperationsView: View {
                            let walletId = Int(idString),
                            let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
                             DispatchQueue.main.async {
-                                transferType = .walletToGoal(wallet, goal)
-                                transferAmount = 0
-                                transferDate = Date()
-                                transferComment = ""
-                                showTransferSheet = true
+                                showTransferSheet(for: .walletToGoal(wallet, goal))
                             }
                         }
                     }
@@ -301,8 +335,7 @@ struct OperationsView: View {
                 Group {
                     walletGrid
                     Button(action: {
-                        createType = .wallet
-                        showCreateSheet = true
+                        showCreateSheet(for: .wallet)
                     }) {
                         PlusCategoryCircle()
                     }
@@ -318,8 +351,7 @@ struct OperationsView: View {
                 Group {
                     goalGrid
                     Button(action: {
-                        createType = .goal
-                        showCreateSheet = true
+                        showCreateSheet(for: .goal)
                     }) {
                         PlusCategoryCircle()
                     }
@@ -335,8 +367,7 @@ struct OperationsView: View {
                 Group {
                     expenseGrid
                     Button(action: {
-                        createType = .expense
-                        showCreateSheet = true
+                        showCreateSheet(for: .expense)
                     }) {
                         PlusCategoryCircle()
                     }

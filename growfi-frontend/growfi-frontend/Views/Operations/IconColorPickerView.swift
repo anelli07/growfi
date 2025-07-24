@@ -70,5 +70,14 @@ struct IconColorPickerView: View {
                 }
             }
         }
+        .onAppear {
+            // Принудительно инициализируем состояние при появлении
+            if selectedIcon.isEmpty {
+                selectedIcon = "creditcard.fill"
+            }
+            if selectedColor == .clear {
+                selectedColor = .blue
+            }
+        }
     }
 } 

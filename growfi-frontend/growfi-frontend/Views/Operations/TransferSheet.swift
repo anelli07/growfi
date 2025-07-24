@@ -1,5 +1,19 @@
 import SwiftUI
 
+enum TransferType: Identifiable {
+    case incomeToWallet(Income, Wallet)
+    case walletToGoal(Wallet, Goal)
+    case walletToExpense(Wallet, Expense)
+    
+    var id: String {
+        switch self {
+        case .incomeToWallet(let income, let wallet): return "income_\(income.id)_wallet_\(wallet.id)"
+        case .walletToGoal(let wallet, let goal): return "wallet_\(wallet.id)_goal_\(goal.id)"
+        case .walletToExpense(let wallet, let expense): return "wallet_\(wallet.id)_expense_\(expense.id)"
+        }
+    }
+}
+
 struct TransferSheet: View {
     let type: TransferType
     @Binding var amount: Double
@@ -9,6 +23,7 @@ struct TransferSheet: View {
     
     @Environment(\.presentationMode) var presentationMode
     @State private var showDatePicker: Bool = false
+    @State private var forceUpdate = false
     
     init(type: TransferType, amount: Binding<Double>, date: Binding<Date>, comment: Binding<String>, onConfirm: @escaping (Double, Date, String) -> Void) {
         self.type = type
@@ -146,6 +161,7 @@ struct TransferSheet: View {
                             .padding(.top, 16)
                     }
                 }
+                .id(forceUpdate) // Принудительное обновление
                 Spacer().frame(height: 8)
                 Text("amount".localized)
                     .font(.system(size: 16, weight: .regular))
@@ -348,6 +364,50 @@ struct TransferSheet: View {
             .background(Color.white)
             .cornerRadius(24)
             .ignoresSafeArea(edges: .bottom)
+            .hideKeyboardOnTap()
+            .onAppear {
+                // Принудительно инициализируем состояние при появлении
+                DispatchQueue.main.async {
+                    let _ = amount
+                    let _ = date
+                    let _ = comment
+                    let _ = showDatePicker
+                    
+                    // Принудительно обновляем UI
+                    forceUpdate.toggle()
+                }
+            }
+            .sheet(isPresented: $showDatePicker) {
+                VStack {
+                    HStack {
+                        Text("Выберите дату".localized)
+                            .font(.headline)
+                        Spacer()
+                        Button(action: { showDatePicker = false }) {
+                            Image(systemName: "xmark")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding()
+                    DatePicker("", selection: $date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .padding()
+                        .environment(\.locale, Locale(identifier: AppLanguageManager.shared.currentLanguage.rawValue))
+                    Spacer()
+                    Button(action: { showDatePicker = false }) {
+                        Text("Сохранить".localized)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(14)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                }
+                .presentationDetents([.medium, .large])
+            }
             .hideKeyboardOnTap()
         }
     }

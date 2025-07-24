@@ -46,6 +46,8 @@ class IncomesViewModel: ObservableObject {
                     self?.incomes.append(income)
                     // Обновляем аналитику
                     self?.analyticsVM?.fetchTransactions()
+                    // Обновляем историю
+                    self?.historyVM?.fetchTransactions()
                 case .failure(let err):
                     // Handle error silently
                     self?.error = err.localizedDescription
@@ -65,6 +67,7 @@ class IncomesViewModel: ObservableObject {
                     if let idx = self?.incomes.firstIndex(where: { $0.id == id }) {
                         self?.incomes[idx] = income
                     }
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -108,7 +111,8 @@ class IncomesViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.incomes.removeAll { $0.id == id }
-                    // Обновляем аналитику
+                    // История и аналитика не обновляются при удалении элементов
+                    // Пользователь может удалить транзакции в истории вручную
                     self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription

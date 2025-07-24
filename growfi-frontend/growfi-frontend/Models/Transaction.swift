@@ -18,4 +18,5 @@ struct Transaction: Identifiable, Codable {
     let wallet_name: String
     let wallet_icon: String?
     let wallet_color: String?
+    let goal_id: Int? // добавлено для группировки по цели
 } 

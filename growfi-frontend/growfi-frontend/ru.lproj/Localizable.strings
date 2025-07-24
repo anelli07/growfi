@@ -184,3 +184,5 @@ expense = "Категория";
 "plan_count_format" = "%d %@";
 "plan_week_plural" = "недель";
 "plan_month_plural" = "месяцев";
+
+"Delete" = "Удалить";

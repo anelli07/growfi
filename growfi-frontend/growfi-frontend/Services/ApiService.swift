@@ -6,8 +6,8 @@ class ApiService {
     static let shared = ApiService()
     
     // Временно используем локальный сервер для тестирования
-    private let baseURL = "http://localhost:8000/api/v1"
-//    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
+//    private let baseURL = "http://localhost:8000/api/v1"
+    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
     private init() {}
 
     // MARK: - Авторизация
@@ -69,10 +69,11 @@ class ApiService {
 
     // MARK: - Получение транзакций
     func fetchTransactions(token: String, completion: @escaping (Result<[Transaction], Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/transactions") else { return }
+        guard let url = URL(string: "\(baseURL)/transactions/") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
                 DispatchQueue.main.async {
@@ -81,22 +82,69 @@ class ApiService {
                 completion(.failure(NSError(domain: "Unauthorized", code: 401)))
                 return
             }
-
-            if let error = error {
-                completion(.failure(error)); return
-            }
-            guard let data = data else {
-                completion(.failure(NSError(domain: "No data", code: 0)));
-                return
-            }
+            
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
             do {
                 let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                decoder.dateDecodingStrategy = .custom { decoder in
+                    let container = try decoder.singleValueContainer()
+                    let dateStr = try container.decode(String.self)
+                    if let date = formatter.date(from: dateStr) {
+                        return date
+                    }
+                    if let date = ISO8601DateFormatter().date(from: dateStr) {
+                        return date
+                    }
+                    throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateStr)")
+                }
                 let transactions = try decoder.decode([Transaction].self, from: data)
                 completion(.success(transactions))
             } catch {
                 completion(.failure(error))
             }
+        }.resume()
+    }
+    
+    func deleteTransaction(transactionId: Int, token: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/transactions/\(transactionId)") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        print("[ApiService] Deleting transaction with ID: \(transactionId)")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let httpResponse = response as? HTTPURLResponse {
+                print("[ApiService] Delete transaction response status: \(httpResponse.statusCode)")
+                if let data = data {
+                    print("[ApiService] Delete transaction response data: \(String(data: data, encoding: .utf8) ?? "nil")")
+                }
+                
+                if httpResponse.statusCode == 401 {
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: NSNotification.Name("LogoutDueTo401"), object: nil)
+                    }
+                    completion(.failure(NSError(domain: "Unauthorized", code: 401)))
+                    return
+                }
+                
+                if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+                    completion(.failure(NSError(domain: "HTTP Error", code: httpResponse.statusCode)))
+                    return
+                }
+            }
+            
+            if let error = error { 
+                print("[ApiService] Delete transaction error: \(error)")
+                completion(.failure(error)); 
+                return 
+            }
+            
+            print("[ApiService] Transaction deleted successfully")
+            completion(.success(()))
         }.resume()
     }
 
@@ -561,8 +609,37 @@ class ApiService {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        print("[ApiService] Deleting wallet with ID: \(walletId)")
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error { completion(.failure(error)); return }
+            if let httpResponse = response as? HTTPURLResponse {
+                print("[ApiService] Delete wallet response status: \(httpResponse.statusCode)")
+                if let data = data {
+                    print("[ApiService] Delete wallet response data: \(String(data: data, encoding: .utf8) ?? "nil")")
+                }
+                
+                if httpResponse.statusCode == 401 {
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: NSNotification.Name("LogoutDueTo401"), object: nil)
+                    }
+                    completion(.failure(NSError(domain: "Unauthorized", code: 401)))
+                    return
+                }
+                
+                if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+                    completion(.failure(NSError(domain: "HTTP Error", code: httpResponse.statusCode)))
+                    return
+                }
+            }
+            
+            if let error = error { 
+                print("[ApiService] Delete wallet error: \(error)")
+                completion(.failure(error)); 
+                return 
+            }
+            
+            print("[ApiService] Wallet deleted successfully")
             completion(.success(()))
         }.resume()
     }

@@ -75,6 +75,8 @@ struct GoalsCarouselView: View {
                     
                     Spacer().frame(height: 20)
                     
+                    // --- AI SearchBar временно скрыт для релиза --- 
+                    /*
                     SearchBar(
                         placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
                         text: .constant("")
@@ -91,6 +93,7 @@ struct GoalsCarouselView: View {
                     .sheet(isPresented: $showAIChat) {
                         AIChatView()
                     }
+                    */
                 }
             }
         }
@@ -174,6 +177,7 @@ struct EmptyGoalView: View {
             CreateItemSheet(type: .goal) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
                 onCreate(name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime)
             }
+            .id(UUID())
         }
         .onLanguageChange()
     }
@@ -211,10 +215,15 @@ struct SingleGoalView: View {
             }
             .sheet(isPresented: $showOperations) {
                 OperationsView()
+                    .id(UUID())
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 4)
+        .onAppear {
+            // Принудительно инициализируем состояние при появлении
+            _ = goal
+        }
         .onLanguageChange()
     }
 }

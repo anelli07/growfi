@@ -1,4 +1,6 @@
 import SwiftUI
+import UserNotifications
+import Network
 
 struct WelcomeView: View {
     @ObservedObject var langManager = AppLanguageManager.shared
@@ -9,6 +11,7 @@ struct WelcomeView: View {
         ZStack {
             LinearGradient(gradient: Gradient(colors: [Color.green.opacity(0.2), Color.white]), startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
+            
             VStack(spacing: 32) {
                 Spacer()
                 Image("plant_stage_3")
@@ -49,7 +52,7 @@ struct WelcomeView: View {
                 }
                 Button(action: {
                     langManager.currentLanguage = selectedLanguage
-                    onLanguageSelected?()
+                    requestPermissionsAndContinue()
                 }) {
                     Text("continue".localized)
                         .font(.headline)
@@ -64,6 +67,29 @@ struct WelcomeView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
+        }
+    }
+    
+    private func requestPermissionsAndContinue() {
+        // Сначала запрашиваем разрешение на уведомления
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            DispatchQueue.main.async {
+                print("[WelcomeView] Notification permission granted: \(granted)")
+                
+                // Затем проверяем сеть (в iOS это обычно всегда доступно)
+                let monitor = NWPathMonitor()
+                monitor.pathUpdateHandler = { path in
+                    DispatchQueue.main.async {
+                        print("[WelcomeView] Network status: \(path.status)")
+                        monitor.cancel()
+                        
+                        // Переходим к следующему экрану
+                        onLanguageSelected?()
+                    }
+                }
+                let queue = DispatchQueue(label: "NetworkCheck")
+                monitor.start(queue: queue)
+            }
         }
     }
 }

@@ -46,6 +46,8 @@ class WalletsViewModel: ObservableObject {
                     self?.wallets.append(wallet)
                     // Обновляем аналитику
                     self?.analyticsVM?.fetchTransactions()
+                    // Обновляем историю
+                    self?.historyVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -64,6 +66,7 @@ class WalletsViewModel: ObservableObject {
                     if let idx = self?.wallets.firstIndex(where: { $0.id == id }) {
                         self?.wallets[idx] = wallet
                     }
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -128,15 +131,20 @@ class WalletsViewModel: ObservableObject {
     func deleteWallet(id: Int) {
         guard let token = token else { return }
         isLoading = true
+        print("[WalletsViewModel] Starting wallet deletion for ID: \(id)")
+        
         ApiService.shared.deleteWallet(walletId: id, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
                 case .success:
+                    print("[WalletsViewModel] Wallet deleted successfully, removing from local array")
                     self?.wallets.removeAll { $0.id == id }
-                    // Обновляем аналитику
+                    // История и аналитика не обновляются при удалении элементов
+                    // Пользователь может удалить транзакции в истории вручную
                     self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
+                    print("[WalletsViewModel] Wallet deletion failed: \(err.localizedDescription)")
                     self?.error = err.localizedDescription
                 }
             }
