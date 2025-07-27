@@ -10,6 +10,9 @@ struct SettingsView: View {
     @State private var isDeletingAccount = false
     @State private var showAccountDeletedAlert = false
     @StateObject private var notificationManager = NotificationManager.shared
+    @EnvironmentObject var tourManager: AppTourManager
+    @EnvironmentObject var goalsViewModel: GoalsViewModel
+    @Binding var selectedTab: Int
 
     var body: some View {
         NavigationView {
@@ -145,7 +148,17 @@ struct SettingsView: View {
                     .disabled(isDeletingAccount)
                     .padding(.top, 4)
                     
-
+                    Button(action: {
+                        tourManager.restartTour()
+                        selectedTab = 2 // переключаемся на главный экран (Goals)
+                    }) {
+                        HStack {
+                            Image(systemName: "questionmark.circle")
+                            Text("Инструкция")
+                        }
+                        .foregroundColor(.blue)
+                        .padding(.vertical, 8)
+                    }
                     
                     Spacer(minLength: 24)
                 }

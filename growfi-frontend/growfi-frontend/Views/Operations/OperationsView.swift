@@ -8,6 +8,15 @@ struct OperationsView: View {
     @EnvironmentObject var categoriesVM: CategoriesViewModel
     @EnvironmentObject var analyticsVM: AnalyticsViewModel
     @EnvironmentObject var historyVM: HistoryViewModel
+    @EnvironmentObject var tourManager: AppTourManager
+    @Binding var operationsIncomeFrame: CGRect
+    @Binding var operationsWalletsFrame: CGRect
+    @Binding var operationsGoalsFrame: CGRect
+    @Binding var operationsExpensesFrame: CGRect
+    @Binding var dragWalletFrames: [CGRect]
+    @Binding var dragIncomeFrames: [CGRect]
+    @Binding var goalsFrames: [CGRect]
+    @Binding var expensesFrames: [CGRect]
     @State private var dragIncomeId: Int? = nil
     @State private var dragWalletId: Int? = nil
     @State private var dragAmount: Double = 0
@@ -70,19 +79,42 @@ struct OperationsView: View {
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
 
     var body: some View {
-
-        return ScrollView {
+        ScrollViewReader { scrollProxy in
+            ScrollView {
             VStack(spacing: 12) {
-                incomesSection
+                incomesSection.id("incomesSection")
                 walletsSection
                 goalsSection
-                expensesSection
+                    expensesSection.id("expensesSection")
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
+            }
+            .onChange(of: tourManager.currentStep) { _, newStep in
+                if newStep == AppTourStep.operationsExpenses {
+                    withAnimation {
+                        scrollProxy.scrollTo("expensesSection", anchor: .bottom)
+                    }
+                }
+                if newStep == AppTourStep.dragIncomeToWallet {
+                    withAnimation {
+                        scrollProxy.scrollTo("incomesSection", anchor: .top)
+                    }
+                }
+                // Скролл наверх при переходе назад с "Расходы" к "Цели"
+                if newStep == AppTourStep.operationsGoals {
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        scrollProxy.scrollTo("incomesSection", anchor: .top)
+                    }
+                }
+            }
         }
         .onAppear {
-    
+            _ = viewModel
+            _ = walletsVM
+            _ = expensesVM
+            _ = incomesVM
+            _ = categoriesVM
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("error".localized), message: Text(alertMessage), dismissButton: .default(Text("ok".localized)))
@@ -102,7 +134,7 @@ struct OperationsView: View {
         .id(AppLanguageManager.shared.currentLanguage)
         .sheet(item: $createItem) { type in
             CreateItemSheet(type: type) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
-                switch type {
+                    switch type {
                 case .income:
                     let catId: Int? = categoriesVM.incomeCategories.first?.id
                     incomesVM.createIncome(name: name, icon: icon ?? "dollarsign.circle.fill", color: color ?? "#00FF00", categoryId: catId)
@@ -156,39 +188,21 @@ struct OperationsView: View {
         guard let transferType = transferItem else { return }
         
         switch transferType {
-        case .incomeToWallet(let income, let wallet):
-            guard amount > 0 else {
-                alertMessage = "Введите сумму больше 0"
-                showAlert = true
-                return
-            }
-            incomesVM.assignIncomeToWallet(
-                incomeId: income.id,
-                walletId: wallet.id,
-                amount: amount,
-                date: date.toBackendString(),
-                comment: comment,
-                categoryId: income.category_id
-            )
-        case .walletToGoal(let wallet, let goal):
-            guard amount > 0 else {
-                alertMessage = "Введите сумму больше 0"
-                showAlert = true
-                return
-            }
-            guard amount <= wallet.balance else {
-                alertMessage = "Недостаточно средств"
-                showAlert = true
-                return
-            }
-            walletsVM.assignWalletToGoal(
-                walletId: wallet.id,
-                goalId: goal.id,
-                amount: amount,
-                date: date.toBackendString(),
-                comment: comment
-            )
-        case .walletToExpense(let wallet, let expense):
+                    case .incomeToWallet(let income, let wallet):
+                        guard amount > 0 else {
+                            alertMessage = "Введите сумму больше 0"
+                            showAlert = true
+                            return
+                        }
+                        incomesVM.assignIncomeToWallet(
+                            incomeId: income.id,
+                            walletId: wallet.id,
+                            amount: amount,
+                            date: date.toBackendString(),
+                            comment: comment,
+                            categoryId: income.category_id
+                        )
+                    case .walletToGoal(let wallet, let goal):
             guard amount > 0 else {
                 alertMessage = "Введите сумму больше 0"
                 showAlert = true
@@ -199,16 +213,36 @@ struct OperationsView: View {
                 showAlert = true
                 return
             }
-            walletsVM.assignWalletToExpense(
-                walletId: wallet.id,
-                expenseId: expense.id,
-                amount: amount,
-                date: date.toBackendString(),
+                        walletsVM.assignWalletToGoal(
+                            walletId: wallet.id,
+                            goalId: goal.id,
+                            amount: amount,
+                            date: date.toBackendString(),
+                            comment: comment
+                        )
+                    case .walletToExpense(let wallet, let expense):
+            guard amount > 0 else {
+                alertMessage = "Введите сумму больше 0"
+                showAlert = true
+                return
+            }
+            guard amount <= wallet.balance else {
+                alertMessage = "Недостаточно средств"
+                showAlert = true
+                return
+            }
+                        walletsVM.assignWalletToExpense(
+                            walletId: wallet.id,
+                            expenseId: expense.id,
+                            amount: amount,
+                            date: date.toBackendString(),
                 comment: comment
-            )
-        }
+                        )
+                    }
     }
 
+    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+    
     private func showCreateSheet(for type: CreateType) {
         // Просто устанавливаем createItem - sheet откроется автоматически
         createItem = type
@@ -224,7 +258,7 @@ struct OperationsView: View {
             SectionToggleHeader(title: "incomes_section".localized, total: "\(Int(incomeTotal)) ₸", isExpanded: .constant(true))
             CategoryGrid {
                 Group {
-                    ForEach(incomesVM.incomes) { income in
+                    ForEach(Array(incomesVM.incomes.enumerated()), id: \.element.id) { idx, income in
                         OperationCategoryCircle(
                             icon: income.icon,
                             color: .green,
@@ -237,6 +271,25 @@ struct OperationsView: View {
                             }
                         )
                         .onTapGesture { editItem = .income(income) }
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear
+                                    .onAppear {
+                                        if dragIncomeFrames.count <= idx {
+                                            dragIncomeFrames.append(geo.frame(in: .named("tourRoot")))
+                                        } else {
+                                            dragIncomeFrames[idx] = geo.frame(in: .named("tourRoot"))
+                                        }
+                                    }
+                                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                                        if dragIncomeFrames.count <= idx {
+                                            dragIncomeFrames.append(newValue)
+                                        } else {
+                                            dragIncomeFrames[idx] = newValue
+                                        }
+                                    }
+                            }
+                        )
                     }
                     Button(action: {
                         showCreateSheet(for: .income)
@@ -246,6 +299,17 @@ struct OperationsView: View {
                 }
             }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear {
+                        operationsIncomeFrame = geo.frame(in: .named("tourRoot"))
+                    }
+                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                        operationsIncomeFrame = newValue
+                    }
+            }
+        )
     }
 
     private var walletGrid: some View {
@@ -330,10 +394,55 @@ struct OperationsView: View {
 
     private var walletsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionHeader(title: "wallets_section".localized, total: "\(Int(walletTotal)) ₸")
+            SectionToggleHeader(title: "wallets_section".localized, total: "\(Int(walletTotal)) ₸", isExpanded: .constant(true))
             CategoryGrid {
                 Group {
-                    walletGrid
+                    ForEach(Array(walletsVM.wallets.enumerated()), id: \.element.id) { idx, wallet in
+                        OperationCategoryCircle(
+                            icon: wallet.iconName ?? "creditcard.fill",
+                            color: .blue,
+                            title: wallet.name.localizedIfDefault,
+                            amount: "\(Int(wallet.balance)) ₸",
+                            onDrag: {
+                                dragWalletId = wallet.id
+                                dragAmount = 0
+                                return NSItemProvider(object: String(wallet.id) as NSString)
+                            },
+                            onDrop: { providers in
+                                providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
+                                    if let data = data as? Data,
+                                       let idString = String(data: data, encoding: .utf8),
+                                       let incomeId = Int(idString),
+                                       let income = incomesVM.incomes.first(where: { $0.id == incomeId }) {
+                                        DispatchQueue.main.async {
+                                            showTransferSheet(for: .incomeToWallet(income, wallet))
+                                        }
+                                    }
+                                }
+                                return true
+                            }
+                        )
+                        .onTapGesture { editItem = .wallet(wallet) }
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear
+                                    .onAppear {
+                                        if dragWalletFrames.count <= idx {
+                                            dragWalletFrames.append(geo.frame(in: .named("tourRoot")))
+                                        } else {
+                                            dragWalletFrames[idx] = geo.frame(in: .named("tourRoot"))
+                                        }
+                                    }
+                                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                                        if dragWalletFrames.count <= idx {
+                                            dragWalletFrames.append(newValue)
+                                        } else {
+                                            dragWalletFrames[idx] = newValue
+                                        }
+                                    }
+                            }
+                        )
+                    }
                     Button(action: {
                         showCreateSheet(for: .wallet)
                     }) {
@@ -342,30 +451,132 @@ struct OperationsView: View {
                 }
             }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear {
+                        operationsWalletsFrame = geo.frame(in: .named("tourRoot"))
+                    }
+                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                        operationsWalletsFrame = newValue
+                    }
+            }
+        )
     }
 
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionHeader(title: "goals_section".localized, total: "")
+            SectionToggleHeader(title: "goals_section".localized, total: "", isExpanded: .constant(true))
             CategoryGrid {
                 Group {
-                    goalGrid
+                    ForEach(viewModel.goals) { goal in
+                        OperationCategoryCircle(
+                            icon: "leaf.circle.fill",
+                            color: .green,
+                            title: goal.name.localizedIfDefault,
+                            amount: "\(Int(goal.current_amount))/\(Int(goal.target_amount)) ₸",
+                            onDrop: { providers in
+                                providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
+                                    if let data = data as? Data,
+                                       let idString = String(data: data, encoding: .utf8),
+                                       let walletId = Int(idString),
+                                       let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
+                                        DispatchQueue.main.async {
+                                            showTransferSheet(for: .walletToGoal(wallet, goal))
+                                        }
+                                    }
+                                }
+                                return true
+                            }
+                        )
+                        .onTapGesture { editItem = .goal(goal) }
+                    }
                     Button(action: {
                         showCreateSheet(for: .goal)
                     }) {
                         PlusCategoryCircle()
                     }
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear
+                                .onAppear {
+                                    if goalsFrames.isEmpty {
+                                        goalsFrames.append(geo.frame(in: .named("tourRoot")))
+                                    } else {
+                                        goalsFrames[0] = geo.frame(in: .named("tourRoot"))
+                                    }
+                                }
+                                .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                                    if goalsFrames.isEmpty {
+                                        goalsFrames.append(newValue)
+                                    } else {
+                                        goalsFrames[0] = newValue
+                                    }
+                                }
+                        }
+                    )
                 }
             }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear {
+                        operationsGoalsFrame = geo.frame(in: .named("tourRoot"))
+                    }
+                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                        operationsGoalsFrame = newValue
+                    }
+            }
+        )
     }
 
     private var expensesSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionHeader(title: "expenses_section".localized, total: "\(Int(expenseTotal)) ₸")
+            SectionToggleHeader(title: "expenses_section".localized, total: "", isExpanded: .constant(true))
             CategoryGrid {
                 Group {
-                    expenseGrid
+                    ForEach(Array(expensesVM.expenses.enumerated()), id: \.element.id) { idx, expense in
+                        OperationCategoryCircle(
+                            icon: expense.icon,
+                            color: .red,
+                            title: expense.name.localizedIfDefault,
+                            amount: "\(Int(expense.amount)) ₸",
+                            onDrop: { providers in
+                                providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, error) in
+                                    if let data = data as? Data,
+                                       let idString = String(data: data, encoding: .utf8),
+                                       let walletId = Int(idString),
+                                       let wallet = walletsVM.wallets.first(where: { $0.id == walletId }) {
+                                        DispatchQueue.main.async {
+                                            showTransferSheet(for: .walletToExpense(wallet, expense))
+                                        }
+                                    }
+                                }
+                                return true
+                            }
+                        )
+                        .onTapGesture { editItem = .expense(expense) }
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear
+                                    .onAppear {
+                                        if expensesFrames.count <= idx {
+                                            expensesFrames.append(geo.frame(in: .named("tourRoot")))
+                                        } else {
+                                            expensesFrames[idx] = geo.frame(in: .named("tourRoot"))
+                                        }
+                                    }
+                                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                                        if expensesFrames.count <= idx {
+                                            expensesFrames.append(newValue)
+                                        } else {
+                                            expensesFrames[idx] = newValue
+                                        }
+                                    }
+                            }
+                        )
+                    }
                     Button(action: {
                         showCreateSheet(for: .expense)
                     }) {
@@ -374,6 +585,17 @@ struct OperationsView: View {
                 }
             }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear {
+                        operationsExpensesFrame = geo.frame(in: .named("tourRoot"))
+                    }
+                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                        operationsExpensesFrame = newValue
+                    }
+            }
+        )
     }
 
     private struct ExpensesDefaultListView: View {
@@ -507,7 +729,7 @@ import SwiftUI
 
 struct OperationsView_Previews: PreviewProvider {
     static var previews: some View {
-        OperationsView()
+        OperationsView(operationsIncomeFrame: .constant(.zero), operationsWalletsFrame: .constant(.zero), operationsGoalsFrame: .constant(.zero), operationsExpensesFrame: .constant(.zero), dragWalletFrames: .constant([]), dragIncomeFrames: .constant([]), goalsFrames: .constant([]), expensesFrames: .constant([]))
             .environmentObject(GoalsViewModel())
             .environmentObject(WalletsViewModel())
     }

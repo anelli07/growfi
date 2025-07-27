@@ -4,7 +4,8 @@ struct EmailCodeVerifyView: View {
     @ObservedObject var vm: AuthViewModel
     var onSuccess: (() -> Void)? = nil
     var body: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 0) {
             Spacer(minLength: 48)
             Image("Seedling.png")
                 .resizable()
@@ -57,6 +58,8 @@ struct EmailCodeVerifyView: View {
             }
             Spacer()
         }
+        }
         .background(Color.white.ignoresSafeArea())
+        .hideKeyboardOnTap()
     }
 } 

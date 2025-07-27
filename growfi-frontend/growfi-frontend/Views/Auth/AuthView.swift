@@ -12,7 +12,8 @@ struct AuthView: View {
         self.onLogin = onLogin
     }
     var body: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 0) {
             Spacer(minLength: 48)
             VStack(spacing: 12) {
                 Image("plant_stage_0")
@@ -164,8 +165,10 @@ struct AuthView: View {
             
             Spacer()
         }
+        }
         .background(Color.white.ignoresSafeArea())
         .preferredColorScheme(.light)
+        .hideKeyboardOnTap()
         .onAppear {
             print("[DEBUG] AuthView onAppear!")
         }

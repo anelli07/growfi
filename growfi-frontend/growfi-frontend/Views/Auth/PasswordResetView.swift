@@ -4,7 +4,8 @@ struct PasswordResetView: View {
     @ObservedObject var vm: AuthViewModel
     @Environment(\.presentationMode) var presentationMode
     var body: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 0) {
             Spacer(minLength: 48)
             Image("Seedling.png")
                 .resizable()
@@ -57,6 +58,8 @@ struct PasswordResetView: View {
             .font(.subheadline)
             Spacer()
         }
+        }
         .background(Color.white.ignoresSafeArea())
+        .hideKeyboardOnTap()
     }
 } 

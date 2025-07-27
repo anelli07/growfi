@@ -5,7 +5,8 @@ struct AnalyticsView: View {
     @State private var showPeriodPicker = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 0) {
             // Заголовок и фильтр
             HStack {
                 Text("report".localized.capitalized)
@@ -108,6 +109,7 @@ struct AnalyticsView: View {
             .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
             .padding(.horizontal)
             .padding(.top, 8)
+        }
         }
         .background(Color.white.ignoresSafeArea())
         .sheet(isPresented: $showPeriodPicker) {

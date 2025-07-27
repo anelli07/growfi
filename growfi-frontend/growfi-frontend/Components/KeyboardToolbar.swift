@@ -23,24 +23,4 @@ extension View {
     func keyboardToolbar(title: String = "Готово", action: @escaping () -> Void) -> some View {
         self.modifier(KeyboardToolbar(title: title, action: action))
     }
-    
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-}
-
-// Модификатор для автоматического скрытия клавиатуры при тапе вне поля
-struct HideKeyboardOnTap: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
-    }
-}
-
-extension View {
-    func hideKeyboardOnTap() -> some View {
-        self.modifier(HideKeyboardOnTap())
-    }
 } 

@@ -1,10 +1,713 @@
 import SwiftUI
 
+struct ArrowAnimationModifier: ViewModifier {
+    @State private var isAnimating = false
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(x: isAnimating ? 20 : -20)
+            .opacity(isAnimating ? 1 : 0.3)
+            .animation(
+                Animation.easeInOut(duration: 1.5)
+                    .repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
+    }
+}
+
+struct DiagonalArrowAnimationModifier: ViewModifier {
+    @State private var isAnimating = false
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(x: isAnimating ? 15 : -15, y: isAnimating ? 15 : -15)
+            .opacity(isAnimating ? 1 : 0.3)
+            .animation(
+                Animation.easeInOut(duration: 1.5)
+                    .repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
+    }
+}
+
+struct CardToExpenseArrowAnimationModifier: ViewModifier {
+    @State private var isAnimating = false
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(x: isAnimating ? 12 : -12, y: isAnimating ? 37 : -37)
+            .opacity(isAnimating ? 1 : 0.3)
+            .animation(
+                Animation.easeInOut(duration: 1.5)
+                    .repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
+    }
+}
+
+struct VerticalArrowAnimationModifier: ViewModifier {
+    @State private var isAnimating = false
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(y: isAnimating ? 15 : -15)
+            .opacity(isAnimating ? 1 : 0.3)
+            .animation(
+                Animation.easeInOut(duration: 1.5)
+                    .repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
+    }
+}
+
+struct HighlightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
+struct TodayExpenseFrameKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
+struct GreetingFrameKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
+struct AppTourOverlay: View {
+    let highlightFrame: CGRect
+    let secondFrame: CGRect?
+    let incomeFrames: [CGRect]
+    let walletFrames: [CGRect]
+    let dragWalletFrames: [CGRect]
+    let goalsFrames: [CGRect]
+    let expensesFrames: [CGRect]
+    let walletsRect: CGRect?
+    let incomeRect: CGRect?
+    let operationsGoalsFrame: CGRect?
+    let operationsExpensesFrame: CGRect?
+    let title: String
+    let description: String
+    let onNext: () -> Void
+    let onPrev: (() -> Void)?
+    let onSkip: () -> Void
+    var body: some View {
+        let screenHeight = UIScreen.main.bounds.height
+        let tabBarHeight: CGFloat = 60
+        let maxY = min(highlightFrame.maxY, screenHeight - tabBarHeight)
+        let safeHeight = max(0, maxY - highlightFrame.minY)
+        let safeFrame = CGRect(x: highlightFrame.minX, y: highlightFrame.minY, width: highlightFrame.width, height: safeHeight)
+        let yOffset: CGFloat = (title == "Расходы") ? 1 : 0
+        let isDragStep = title == "Перетащите доход на кошелёк"
+        let isWalletDragStep = title == "Переводите деньги с кошелька"
+        let _ = print("🔍 DEBUG: title=\(title), isDragStep=\(isDragStep), isWalletDragStep=\(isWalletDragStep)")
+        if safeFrame.width > 0 && safeFrame.height > 0 && safeFrame.origin.x.isFinite && safeFrame.origin.y.isFinite {
+            ZStack(alignment: .topLeading) {
+                // --- СЛОЙ 1: затемнение и дырки ---
+                if isDragStep, let walletsRect = walletsRect, let incomeRect = incomeRect {
+                    Color.black.opacity(0.7)
+                        .mask(
+                            Rectangle()
+                                .overlay(
+                                    Group {
+                                        // Дырка по всей секции доходов
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .frame(width: incomeRect.width, height: incomeRect.height)
+                                            .position(x: incomeRect.midX, y: incomeRect.midY)
+                                            .blendMode(.destinationOut)
+                                        // Дырка по всей секции кошельков
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .frame(width: walletsRect.width, height: walletsRect.height)
+                                            .position(x: walletsRect.midX, y: walletsRect.midY)
+                                            .blendMode(.destinationOut)
+                                    }
+                                )
+                        )
+                        .compositingGroup()
+                        .edgesIgnoringSafeArea(.all)
+
+
+                } else if isDragStep, !incomeFrames.isEmpty, !walletFrames.isEmpty {
+                    Color.black.opacity(0.7)
+                        .mask(
+                            Rectangle()
+                                .overlay(
+                                    Group {
+                                        ForEach(incomeFrames.indices, id: \ .self) { i in
+                                            let f = incomeFrames[i]
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .frame(width: f.width, height: f.height)
+                                                .position(x: f.midX, y: f.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                        ForEach(walletFrames.indices, id: \ .self) { i in
+                                            let f = walletFrames[i]
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .frame(width: f.width, height: f.height)
+                                                .position(x: f.midX, y: f.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                    }
+                                )
+                        )
+                        .compositingGroup()
+                        .edgesIgnoringSafeArea(.all)
+                } else if let second = secondFrame, title == "Перетащите доход на кошелёк" {
+                    // fallback: двойная подсветка
+                    Color.black.opacity(0.7)
+                        .mask(
+                            Rectangle()
+                                .overlay(
+                                    Group {
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .frame(width: safeFrame.width, height: safeFrame.height)
+                                            .position(x: safeFrame.midX, y: safeFrame.midY + yOffset)
+                                            .blendMode(.destinationOut)
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .frame(width: second.width, height: second.height)
+                                            .position(x: second.midX, y: second.midY)
+                                            .blendMode(.destinationOut)
+                                    }
+                                )
+                        )
+                        .compositingGroup()
+                        .edgesIgnoringSafeArea(.all)
+                } else if isWalletDragStep {
+                    // Выделение для перевода с кошелька - отдельные окошки
+                    Color.black.opacity(0.7)
+                        .mask(
+                            Rectangle()
+                                .overlay(
+                                    Group {
+                                        // Окошко для секции кошельков
+                                        if let walletsRect = walletsRect {
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .frame(width: walletsRect.width + 20, height: walletsRect.height + 20)
+                                                .position(x: walletsRect.midX, y: walletsRect.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                        
+                                        // Окошко для секции целей
+                                        if let goalsRect = operationsGoalsFrame {
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .frame(width: goalsRect.width + 20, height: goalsRect.height + 20)
+                                                .position(x: goalsRect.midX, y: goalsRect.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                        
+                                        // Окошко для секции расходов
+                                        if let expensesRect = operationsExpensesFrame {
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .frame(width: expensesRect.width + 20, height: expensesRect.height + 20)
+                                                .position(x: expensesRect.midX, y: expensesRect.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                    }
+                                )
+                        )
+                        .compositingGroup()
+                        .edgesIgnoringSafeArea(.all)
+                } else if title == "Отлично! Вы готовы" {
+                    // Для завершающего шага - только затемнение без выделения
+                    let _ = print("🎉 Отображаем завершающий шаг: \(title)")
+                    Color.black.opacity(0.7)
+                        .edgesIgnoringSafeArea(.all)
+                } else if isWalletDragStep {
+                    let _ = print("🎯 Отображаем isWalletDragStep: \(title)")
+                    // Выделение для перевода с кошелька - отдельные окошки
+                    Color.black.opacity(0.7)
+                        .mask(
+                            Rectangle()
+                                .overlay(
+                                    Group {
+                                        // Окошко для секции кошельков
+                                        if let walletsRect = walletsRect {
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .frame(width: walletsRect.width + 20, height: walletsRect.height + 20)
+                                                .position(x: walletsRect.midX, y: walletsRect.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                        
+                                        // Окошко для секции целей
+                                        if let goalsRect = operationsGoalsFrame {
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .frame(width: goalsRect.width + 20, height: goalsRect.height + 20)
+                                                .position(x: goalsRect.midX, y: goalsRect.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                        
+                                        // Окошко для секции расходов
+                                        if let expensesRect = operationsExpensesFrame {
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .frame(width: expensesRect.width + 20, height: expensesRect.height + 20)
+                                                .position(x: expensesRect.midX, y: expensesRect.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                    }
+                                )
+                        )
+                        .compositingGroup()
+                        .edgesIgnoringSafeArea(.all)
+                } else {
+                    let _ = print("🔍 Попадаем в блок else для title: \(title)")
+                    Color.black.opacity(0.7)
+                        .mask(
+                            Rectangle()
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .frame(width: safeFrame.width, height: safeFrame.height)
+                                        .position(x: safeFrame.midX, y: safeFrame.midY + yOffset)
+                                        .blendMode(.destinationOut)
+                                )
+                        )
+                        .compositingGroup()
+                        .edgesIgnoringSafeArea(.all)
+                }
+                // --- СЛОЙ 2: стрелки от зарплаты к кошелькам ---
+                if isDragStep {
+                    // Временная отладочная информация
+                    let _ = print("🔴 DRAWING ARROWS: isDragStep=\(isDragStep)")
+                    
+                    // Координаты для стрелок - точно над иконками
+                    let screenWidth = UIScreen.main.bounds.width
+                    let salaryX = screenWidth * 0.15  // Позиция зарплаты - левее
+                    let cardX = screenWidth * 0.15    // Позиция карты - прямо под зарплатой
+                    let cashX = screenWidth * 0.35    // Позиция наличных - правее
+                    let salaryY: CGFloat = 110        // Y позиция зарплаты - выше
+                    let cardY: CGFloat = 200          // Y позиция карты - ближе к зарплате
+                    let cashY: CGFloat = 200          // Y позиция наличных - ближе к зарплате
+                    
+                    // Стрелка 1: Зарплата → Карта (короткая, вертикальная)
+                    Path { path in
+                        path.move(to: CGPoint(x: salaryX, y: salaryY))
+                        path.addLine(to: CGPoint(x: cardX, y: cardY))
+                    }
+                    .stroke(Color.red, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [8, 6]))
+                    .shadow(color: .black, radius: 2)
+                    .zIndex(100)
+                    
+                    // Анимированная точка на стрелке к карте (вертикальная)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .position(x: (salaryX + cardX) * 0.5, y: (salaryY + cardY) * 0.5)
+                        .modifier(VerticalArrowAnimationModifier())
+                        .zIndex(101)
+                    
+                    // Стрелка 2: Зарплата → Наличные (короткая, по диагонали)
+                    Path { path in
+                        path.move(to: CGPoint(x: salaryX, y: salaryY))
+                        path.addLine(to: CGPoint(x: cashX, y: cashY))
+                    }
+                    .stroke(Color.red, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [8, 6]))
+                    .shadow(color: .black, radius: 2)
+                    .zIndex(100)
+                    
+                    // Анимированная точка на стрелке к наличным (диагональная)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .position(x: (salaryX + cashX) * 0.5, y: (salaryY + cashY) * 0.5)
+                        .modifier(DiagonalArrowAnimationModifier())
+                        .zIndex(101)
+                    
+
+                }
+                
+                // --- СЛОЙ 3: стрелки от кошелька к целям и расходам ---
+                if isWalletDragStep {
+                    // Координаты для стрелок от кошелька
+                    let screenWidth = UIScreen.main.bounds.width
+                    let cardX = screenWidth * 0.15    // Позиция карты
+                    let goalX = screenWidth * 0.15    // Позиция целей (под картой)
+                    let expenseX = screenWidth * 0.35  // Позиция второй иконки расходов
+                    let cardY: CGFloat = 280          // Y позиция карты
+                    let goalY: CGFloat = 350          // Y позиция целей (ниже карты)
+                    let expenseY: CGFloat = 500       // Y позиция расходов
+                    
+                    // Стрелка 1: Карта → Цели (вертикальная)
+                    Path { path in
+                        path.move(to: CGPoint(x: cardX, y: cardY))
+                        path.addLine(to: CGPoint(x: goalX, y: goalY))
+                    }
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [8, 6]))
+                    .shadow(color: .black, radius: 2)
+                    .zIndex(100)
+                    
+                    // Анимированная точка на стрелке к целям (вертикальная)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .position(x: (cardX + goalX) * 0.5, y: (cardY + goalY) * 0.5)
+                        .modifier(VerticalArrowAnimationModifier())
+                        .zIndex(101)
+                    
+                    // Стрелка 2: Карта → Расходы (горизонтальная)
+                    Path { path in
+                        path.move(to: CGPoint(x: cardX, y: cardY))
+                        path.addLine(to: CGPoint(x: expenseX, y: expenseY))
+                    }
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [8, 6]))
+                    .shadow(color: .black, radius: 2)
+                    .zIndex(100)
+                    
+                    // Анимированная точка на стрелке к расходам (горизонтальная)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .position(x: (cardX + expenseX) * 0.5, y: (cardY + expenseY) * 0.5)
+                        .modifier(CardToExpenseArrowAnimationModifier())
+                        .zIndex(101)
+                }
+                
+                // --- СЛОЙ 4: текст для перевода с кошелька ---
+                if isWalletDragStep {
+                    VStack(spacing: 8) {
+                        Text(title)
+                            .font(.headline).bold().fontWeight(.heavy)
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Text(description)
+                            .font(.subheadline).bold()
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        HStack(spacing: 16) {
+                            Button("Назад", action: { onPrev?() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.white.opacity(0.18))
+                                .cornerRadius(8)
+                            Button("Далее", action: { onNext() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.green)
+                                .cornerRadius(8)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        Button("Пропустить", action: onSkip)
+                            .font(.footnote).bold()
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(.top, 2)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .position(x: UIScreen.main.bounds.width/2, y: 70)
+                } else if title == "Отлично! Вы готовы" {
+                    let _ = print("🎉 Отображаем завершающий шаг в отдельном блоке: \(title)")
+                    VStack(spacing: 8) {
+                        Text(title)
+                            .font(.headline).bold().fontWeight(.heavy)
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Text(description)
+                            .font(.subheadline).bold()
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        HStack(spacing: 16) {
+                            Button("Завершить", action: onSkip)
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.green)
+                                .cornerRadius(8)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .position(x: UIScreen.main.bounds.width/2, y: 200)
+                } else if title == "Расходы" || title == "Кошельки" {
+                    let _ = print("🔍 Попадаем в блок Расходы/Кошельки для title: \(title)")
+                    VStack(spacing: 8) {
+                        Text(title)
+                            .font(.headline).bold().fontWeight(.heavy)
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Text(description)
+                            .font(.subheadline).bold()
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        HStack(spacing: 16) {
+                            Button("Назад", action: { onPrev?() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.white.opacity(0.18))
+                                .cornerRadius(8)
+                            Button("Далее", action: { onNext() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.green)
+                                .cornerRadius(8)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        Button("Пропустить", action: onSkip)
+                            .font(.footnote).bold()
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(.top, 2)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .position(x: UIScreen.main.bounds.width/2, y: {
+                        if title == "Кошельки" {
+                            return max(walletsRect?.maxY ?? 0 + 350, safeFrame.minY + 250)
+                        } else {
+                            return max(walletsRect?.maxY ?? 0 - 100, safeFrame.minY - 200)
+                        }
+                    }())
+                } else if title == "Отлично! Вы готовы" {
+                    let _ = print("🔍 Попадаем в блок Отлично! Вы готовы для title: \(title)")
+                    VStack(spacing: 8) {
+                        Text(title)
+                            .font(.headline).bold().fontWeight(.heavy)
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Text(description)
+                            .font(.subheadline).bold()
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 3, x: 0, y: 1)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        if isDragStep {
+                            VStack(spacing: 4) {
+                                Text("На этом экране вы можете пополнять кошельки")
+                                    .font(.caption).bold()
+                                    .foregroundColor(.yellow)
+                                    .shadow(color: .black, radius: 2, x: 0, y: 1)
+                                    .multilineTextAlignment(.center)
+                                Text("1. Нажмите и удерживайте любой доход")
+                                    .font(.caption2).bold()
+                                    .foregroundColor(.white)
+                                    .shadow(color: .black, radius: 1, x: 0, y: 1)
+                                    .multilineTextAlignment(.center)
+                                Text("2. Перетащите его на нужный кошелёк")
+                                    .font(.caption2).bold()
+                                    .foregroundColor(.white)
+                                    .shadow(color: .black, radius: 1, x: 0, y: 1)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 4)
+                        }
+                        HStack(spacing: 16) {
+                            Button("Назад", action: { onPrev?() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.white.opacity(0.18))
+                                .cornerRadius(8)
+                            Button("Далее", action: { onNext() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.green)
+                                .cornerRadius(8)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        Button("Пропустить", action: onSkip)
+                            .font(.footnote).bold()
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(.top, 2)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .position(x: UIScreen.main.bounds.width/2, y: {
+                        if title == "Кошельки" {
+                            return max(walletsRect?.maxY ?? 0 + 300, safeFrame.minY + 200)
+                        } else {
+                            return max(walletsRect?.maxY ?? 0 - 100, safeFrame.minY - 200)
+                        }
+                    }())
+                } else {
+                    let _ = print("🔍 Попадаем в текстовый блок else для title: \(title)")
+                    let _ = print("🔍 Проверяем условие title == 'Отлично! Вы готовы': \(title == "Отлично! Вы готовы")")
+                    let _ = print("🔍 Точное значение title: '\(title)'")
+                    let _ = print("🔍 Длина title: \(title.count)")
+                    if title == "Отлично! Вы готовы" {
+                        let _ = print("🎉 НАЙДЕН ЗАВЕРШАЮЩИЙ ШАГ в текстовом блоке else!")
+                    }
+                    let spacerHeight = safeFrame.maxY.isFinite && safeFrame.maxY > 0 ? safeFrame.maxY - 2 : 0
+                    VStack(spacing: 8) {
+                        if title == "Отлично! Вы готовы" {
+                            let _ = print("🎉 Отображаем завершающий шаг в текстовом блоке else: \(title)")
+                            Text(title)
+                                .font(.headline).bold().fontWeight(.heavy)
+                                .foregroundColor(.white)
+                                .shadow(color: .black, radius: 3, x: 0, y: 1)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            Text(description)
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .shadow(color: .black, radius: 3, x: 0, y: 1)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            HStack(spacing: 16) {
+                                Button("Завершить", action: onSkip)
+                                    .font(.subheadline).bold()
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 18).padding(.vertical, 8)
+                                    .background(Color.green)
+                                    .cornerRadius(8)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        } else if title == "Отлично! Вы готовы" {
+                            let _ = print("🎉 Отображаем завершающий шаг в текстовом блоке else: \(title)")
+                            Text(title)
+                                .font(.headline).bold().fontWeight(.heavy)
+                                .foregroundColor(.white)
+                                .shadow(color: .black, radius: 3, x: 0, y: 1)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            Text(description)
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .shadow(color: .black, radius: 3, x: 0, y: 1)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            HStack(spacing: 16) {
+                                Button("Завершить", action: onSkip)
+                                    .font(.subheadline).bold()
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 18).padding(.vertical, 8)
+                                    .background(Color.green)
+                                    .cornerRadius(8)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        } else if !isDragStep {
+                            if title != "Доходы" && title != "Кошельки" {
+                                Spacer().frame(height: spacerHeight)
+                            }
+                            Text(title)
+                                .font(.headline).bold().fontWeight(.heavy)
+                                .foregroundColor(.white)
+                                .shadow(color: .black, radius: 3, x: 0, y: 1)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            Text(description)
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .shadow(color: .black, radius: 3, x: 0, y: 1)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        if isDragStep {
+                            VStack(spacing: 8) {
+                                Text("На этом экране вы можете пополнять кошельки")
+                                    .font(.headline).bold().fontWeight(.heavy)
+                                    .foregroundColor(.yellow)
+                                    .shadow(color: .black, radius: 3, x: 0, y: 1)
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("1. Нажмите и удерживайте любой доход")
+                                        .font(.subheadline).bold()
+                                        .foregroundColor(.white)
+                                        .shadow(color: .black, radius: 2, x: 0, y: 1)
+                                        .multilineTextAlignment(.center)
+                                    Text("2. Перетащите его на нужный кошелёк")
+                                        .font(.subheadline).bold()
+                                        .foregroundColor(.white)
+                                        .shadow(color: .black, radius: 2, x: 0, y: 1)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        HStack(spacing: 16) {
+                            Button("Назад", action: { onPrev?() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.white.opacity(0.18))
+                                .cornerRadius(8)
+                            Button("Далее", action: { onNext() })
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 8)
+                                .background(Color.green)
+                                .cornerRadius(8)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        Button("Пропустить", action: onSkip)
+                            .font(.footnote).bold()
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(.top, 2)
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity)
+                    .position(x: UIScreen.main.bounds.width/2, y: {
+                        if isDragStep {
+                            return max(walletsRect?.maxY ?? 0 + 450, safeFrame.minY + 350)
+                        } else if title == "Последние транзакции" {
+                            return max(walletsRect?.maxY ?? 0 - 50, safeFrame.minY - 150)
+                        } else if title == "Доходы" {
+                            return max(walletsRect?.maxY ?? 0 - 150, safeFrame.minY - 250)
+                        } else if title == "Кошельки" {
+                            return max(walletsRect?.maxY ?? 0 + 50, safeFrame.minY - 50)
+                        } else if title == "Цели" {
+                            return max(walletsRect?.maxY ?? 0 + 100, safeFrame.minY - 80)
+                        } else {
+                            return max(walletsRect?.maxY ?? 0 + 100, safeFrame.minY + 100)
+                        }
+                    }())
+                }
+            }
+        } else {
+            EmptyView()
+        }
+    }
+}
+
 struct GoalsCarouselView: View {
     @EnvironmentObject var viewModel: GoalsViewModel
     @EnvironmentObject var walletsVM: WalletsViewModel
     @EnvironmentObject var historyVM: HistoryViewModel
+    @EnvironmentObject var tourManager: AppTourManager
     @Binding var selectedTab: Int
+    @Binding var todayExpenseFrame: CGRect
+    @Binding var createGoalFrame: CGRect
+    @Binding var lastTransactionsFrame: CGRect
+    @Binding var dragIncomeFrames: [CGRect]
+    @Binding var goalsFrames: [CGRect]
+    @Binding var expensesFrames: [CGRect]
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
     @State private var showAIChat = false
@@ -12,23 +715,38 @@ struct GoalsCarouselView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
+            ScrollViewReader { scrollProxy in
+                ScrollView {
                 VStack(spacing: 4) {
                     GreetingView(userName: viewModel.userName)
-                                .padding(.top, 12) // чёткий отступ сверху
-                                .padding(.bottom, 10) // ≈ 0.5 см
-                    TodayExpenseView(todayExpense: viewModel.todayExpense)
-                        .padding(.top, 6) // немного воздуха между заголовками
-                    
+                        .padding(.top, 12)
+                        .padding(.bottom, 10)
+                        .id("topOfScreen")
+                    ZStack {
+                            TodayExpenseView(todayExpense: viewModel.todayExpense, frame: $todayExpenseFrame)
+                                .padding(.top, 6)
+                        }
+                    .padding(.horizontal)
+                    Spacer()
                     if viewModel.goals.isEmpty {
-                        EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
-                            viewModel.createGoal(name: name, targetAmount: sum, currentAmount: initial, currency: currency.isEmpty ? "₸" : currency, icon: icon?.isEmpty == false ? icon! : "leaf.circle.fill", color: color?.isEmpty == false ? color! : "#00FF00", planPeriod: planPeriod, planAmount: planAmount, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
-                            showCreateGoalSheet = false
+                        ZStack {
+                            EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
+                                viewModel.createGoal(name: name, targetAmount: sum, currentAmount: initial, currency: currency.isEmpty ? "₸" : currency, icon: icon?.isEmpty == false ? icon! : "leaf.circle.fill", color: color?.isEmpty == false ? color! : "#00FF00", planPeriod: planPeriod, planAmount: planAmount, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
+                                showCreateGoalSheet = false
+                            }
+                            GeometryReader { geo in
+                                Color.clear
+                                    .onAppear {
+                                        createGoalFrame = geo.frame(in: .named("tourRoot"))
+                                    }
+                                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                                        createGoalFrame = newValue
+                                    }
+                            }
                         }
                     } else if viewModel.goals.count == 1, let goal = viewModel.goals.first {
                         SingleGoalView(goal: goal)
                     } else {
-
                         CarouselView(items: viewModel.goals, selectedIndex: $viewModel.selectedGoalIndex) { goal, isActive in
                             VStack(spacing: 2) {
                                 Image("plant_stage_\(goal.growthStage)")
@@ -52,31 +770,44 @@ struct GoalsCarouselView: View {
                         }
                         .frame(height: 260)
                         .padding(.top, 12)
-
                     }
-                    
                     Spacer(minLength: 4)
-                    
                     if viewModel.goals.count > 1,
                        let goal = viewModel.goals[safe: viewModel.selectedGoalIndex] {
                         GoalDetailsView(goal: goal)
                     }
-                    
-                    LastTransactionsView(
-                        onShowHistory: { selectedTab = 0 },
-                        todayTransactions: viewModel.todayTransactions
-                    )
-                    .id(AppLanguageManager.shared.currentLanguage)
+                    ZStack {
+                        LastTransactionsView(
+                            onShowHistory: { selectedTab = 0 },
+                            todayTransactions: viewModel.todayTransactions
+                        )
+                        .id(AppLanguageManager.shared.currentLanguage)
+                        GeometryReader { geo in
+                            Color.clear
+                                .onAppear {
+                                    lastTransactionsFrame = geo.frame(in: .named("tourRoot"))
+                                }
+                                .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                                    lastTransactionsFrame = newValue
+                                }
+                        }
+                    }
                     .padding(.horizontal)
                     .padding(.top, 24)
                     .padding(.bottom, 16)
                     .background(Color(.systemGray6))
                     .cornerRadius(14)
-                    
-                    Spacer().frame(height: 20)
-                    
-                    // --- AI SearchBar временно скрыт для релиза --- 
-                    /*
+                }
+                .onChange(of: tourManager.currentStep) { _, newStep in
+                    // Скролл наверх при переходе к шагам главного экрана
+                    if newStep == .todayExpense || newStep == .createGoal || newStep == .lastTransactions {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            scrollProxy.scrollTo("topOfScreen", anchor: .top)
+                        }
+                    }
+                }
+                Spacer().frame(height: 20)
+                    // --- AI SearchBar ---
                     SearchBar(
                         placeholder: "Добавить расходы? Как быстрее накопить? Анализ расходов?",
                         text: .constant("")
@@ -93,9 +824,9 @@ struct GoalsCarouselView: View {
                     .sheet(isPresented: $showAIChat) {
                         AIChatView()
                     }
-                    */
                 }
             }
+            // overlay теперь только в ContentView
         }
         .onAppear {
             viewModel.historyVM = historyVM
@@ -123,6 +854,7 @@ struct GreetingView: View {
 
 struct TodayExpenseView: View {
     let todayExpense: Double
+    @Binding var frame: CGRect
     var body: some View {
         HStack {
             Image(systemName: "calendar")
@@ -137,7 +869,17 @@ struct TodayExpenseView: View {
         .padding(8)
         .background(Color(.systemGray6))
         .cornerRadius(14)
-        .padding(.horizontal)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear {
+                        frame = geo.frame(in: .named("tourRoot"))
+                    }
+                    .onChange(of: geo.frame(in: .named("tourRoot"))) { _, newValue in
+                        frame = newValue
+                    }
+            }
+        )
         .onLanguageChange()
     }
 }
@@ -214,7 +956,7 @@ struct SingleGoalView: View {
                     .cornerRadius(10)
             }
             .sheet(isPresented: $showOperations) {
-                OperationsView()
+                OperationsView(operationsIncomeFrame: .constant(.zero), operationsWalletsFrame: .constant(.zero), operationsGoalsFrame: .constant(.zero), operationsExpensesFrame: .constant(.zero), dragWalletFrames: .constant([]), dragIncomeFrames: .constant([]), goalsFrames: .constant([]), expensesFrames: .constant([]))
                     .id(UUID())
             }
         }
@@ -430,7 +1172,11 @@ struct CarouselView<Content: View, T: Identifiable>: View {
                     }
             )
         }
+        
+        
     }
+    
+    
 
     private func circularDelta(_ idx: Int, _ selected: Int, _ count: Int) -> Int {
         let direct = idx - selected
@@ -443,3 +1189,4 @@ struct CarouselView<Content: View, T: Identifiable>: View {
         }
     }
 }
+

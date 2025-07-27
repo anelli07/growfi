@@ -6,8 +6,8 @@ class ApiService {
     static let shared = ApiService()
     
     // Временно используем локальный сервер для тестирования
-//    private let baseURL = "http://localhost:8000/api/v1"
-    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
+    private let baseURL = "http://localhost:8000/api/v1"
+//    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
     private init() {}
 
     // MARK: - Авторизация
@@ -138,7 +138,7 @@ class ApiService {
             }
             
             if let error = error { 
-                print("[ApiService] Delete transaction error: \(error)")
+                print("[ApiService] Delete transaction error: \(String(describing: error))")
                 completion(.failure(error)); 
                 return 
             }
@@ -274,7 +274,7 @@ class ApiService {
         print("[ApiService] loginWithApple body: \(body)")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error { print("[ApiService] loginWithApple error: \(error)"); completion(.failure(error)); return }
+            if let error = error { print("[ApiService] loginWithApple error: \(String(describing: error))"); completion(.failure(error)); return }
             guard let data = data else { print("[ApiService] loginWithApple no data"); completion(.failure(NSError(domain: "No data", code: 0))); return }
             print("[ApiService] got data, response: \(String(data: data, encoding: .utf8) ?? "nil")")
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -634,7 +634,7 @@ class ApiService {
             }
             
             if let error = error { 
-                print("[ApiService] Delete wallet error: \(error)")
+                print("[ApiService] Delete wallet error: \(String(describing: error))")
                 completion(.failure(error)); 
                 return 
             }
@@ -1036,7 +1036,7 @@ class ApiService {
             }
             
             if let error = error { 
-                print("[ApiService] deleteAccount - error: \(error)")
+                print("[ApiService] deleteAccount - error: \(String(describing: error))")
                 completion(.failure(error)); 
                 return 
             }

@@ -43,6 +43,7 @@ struct AppEntry: View {
     @StateObject private var historyVM = HistoryViewModel()
     @StateObject private var analyticsVM = AnalyticsViewModel()
     @StateObject private var notificationManager = NotificationManager.shared
+    @StateObject private var tourManager = AppTourManager()
 
     private func resetAllViewModels() {
         goalsViewModel.user = nil
@@ -135,6 +136,7 @@ struct AppEntry: View {
                         .environmentObject(categoriesVM)
                         .environmentObject(historyVM)
                         .environmentObject(analyticsVM)
+                        .environmentObject(tourManager)
                         .onAppear {
                             print("[AppEntry] ContentView onAppear!")
                             incomesVM.walletsVM = walletsVM

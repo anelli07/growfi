@@ -1,6 +1,13 @@
 import SwiftUI
 import Combine
 
+// Функция для скрытия клавиатуры
+#if canImport(UIKit)
+func hideKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+#endif
+
 extension View {
     func keyboardAdaptive() -> some View {
         self.modifier(KeyboardAdaptiveModifier())
@@ -47,5 +54,20 @@ struct ScrollViewReaderModifier: ViewModifier {
 extension View {
     func scrollToBottomOnKeyboard() -> some View {
         self.modifier(ScrollViewReaderModifier())
+    }
+} 
+
+struct HideKeyboardOnTap: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .onTapGesture {
+                hideKeyboard()
+            }
+    }
+}
+
+extension View {
+    func hideKeyboardOnTap() -> some View {
+        self.modifier(HideKeyboardOnTap())
     }
 } 

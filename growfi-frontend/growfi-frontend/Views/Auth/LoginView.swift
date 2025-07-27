@@ -188,6 +188,7 @@ struct LoginView: View {
             }
         }
         .background(Color(.systemBackground).ignoresSafeArea())
+        .hideKeyboardOnTap()
         .alert(isPresented: $showRegisterAlert) {
             Alert(title: Text("register".localized), message: Text("login".localized), dismissButton: .default(Text("ok".localized)))
         }
