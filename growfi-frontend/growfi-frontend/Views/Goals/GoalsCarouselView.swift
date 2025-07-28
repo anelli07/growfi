@@ -116,9 +116,9 @@ struct AppTourOverlay: View {
         let maxY = min(highlightFrame.maxY, screenHeight - tabBarHeight)
         let safeHeight = max(0, maxY - highlightFrame.minY)
         let safeFrame = CGRect(x: highlightFrame.minX, y: highlightFrame.minY, width: highlightFrame.width, height: safeHeight)
-        let yOffset: CGFloat = (title == "Расходы") ? 1 : 0
-        let isDragStep = title == "Перетащите доход на кошелёк"
-        let isWalletDragStep = title == "Переводите деньги с кошелька"
+        let yOffset: CGFloat = (title == "operations_expenses_title".localized) ? 1 : 0
+        let isDragStep = title == "drag_income_to_wallet_title".localized
+        let isWalletDragStep = title == "drag_wallet_to_goals_expenses_title".localized
         let _ = print("🔍 DEBUG: title=\(title), isDragStep=\(isDragStep), isWalletDragStep=\(isWalletDragStep)")
         if safeFrame.width > 0 && safeFrame.height > 0 && safeFrame.origin.x.isFinite && safeFrame.origin.y.isFinite {
             ZStack(alignment: .topLeading) {
@@ -171,7 +171,7 @@ struct AppTourOverlay: View {
                         )
                         .compositingGroup()
                         .edgesIgnoringSafeArea(.all)
-                } else if let second = secondFrame, title == "Перетащите доход на кошелёк" {
+                } else if let second = secondFrame, title == "drag_income_to_wallet_title".localized {
                     // fallback: двойная подсветка
                     Color.black.opacity(0.7)
                         .mask(
@@ -226,7 +226,7 @@ struct AppTourOverlay: View {
                         )
                         .compositingGroup()
                         .edgesIgnoringSafeArea(.all)
-                } else if title == "Отлично! Вы готовы" {
+                } else if title == "tour_complete_title".localized {
                     // Для завершающего шага - только затемнение без выделения
                     let _ = print("🎉 Отображаем завершающий шаг: \(title)")
                     Color.black.opacity(0.7)
@@ -395,13 +395,13 @@ struct AppTourOverlay: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity, alignment: .center)
                         HStack(spacing: 16) {
-                            Button("Назад", action: { onPrev?() })
+                            Button("back".localized, action: { onPrev?() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
                                 .background(Color.white.opacity(0.18))
                                 .cornerRadius(8)
-                            Button("Далее", action: { onNext() })
+                            Button("next".localized, action: { onNext() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
@@ -409,14 +409,14 @@ struct AppTourOverlay: View {
                                 .cornerRadius(8)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-                        Button("Пропустить", action: onSkip)
+                        Button("skip".localized, action: onSkip)
                             .font(.footnote).bold()
                             .foregroundColor(.white.opacity(0.7))
                             .padding(.top, 2)
                     }
                     .frame(maxWidth: .infinity)
                     .position(x: UIScreen.main.bounds.width/2, y: 70)
-                } else if title == "Отлично! Вы готовы" {
+                } else if title == "tour_complete_title".localized {
                     let _ = print("🎉 Отображаем завершающий шаг в отдельном блоке: \(title)")
                     VStack(spacing: 8) {
                         Text(title)
@@ -432,7 +432,7 @@ struct AppTourOverlay: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity, alignment: .center)
                         HStack(spacing: 16) {
-                            Button("Завершить", action: onSkip)
+                            Button("finish".localized, action: onSkip)
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
@@ -443,7 +443,7 @@ struct AppTourOverlay: View {
                     }
                     .frame(maxWidth: .infinity)
                     .position(x: UIScreen.main.bounds.width/2, y: 200)
-                } else if title == "Расходы" || title == "Кошельки" {
+                } else if title == "operations_expenses_title".localized || title == "operations_wallets_title".localized {
                     let _ = print("🔍 Попадаем в блок Расходы/Кошельки для title: \(title)")
                     VStack(spacing: 8) {
                         Text(title)
@@ -459,13 +459,13 @@ struct AppTourOverlay: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity, alignment: .center)
                         HStack(spacing: 16) {
-                            Button("Назад", action: { onPrev?() })
+                            Button("back".localized, action: { onPrev?() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
                                 .background(Color.white.opacity(0.18))
                                 .cornerRadius(8)
-                            Button("Далее", action: { onNext() })
+                            Button("next".localized, action: { onNext() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
@@ -473,20 +473,20 @@ struct AppTourOverlay: View {
                                 .cornerRadius(8)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-                        Button("Пропустить", action: onSkip)
+                        Button("skip".localized, action: onSkip)
                             .font(.footnote).bold()
                             .foregroundColor(.white.opacity(0.7))
                             .padding(.top, 2)
                     }
                     .frame(maxWidth: .infinity)
                     .position(x: UIScreen.main.bounds.width/2, y: {
-                        if title == "Кошельки" {
+                        if title == "operations_wallets_title".localized {
                             return max(walletsRect?.maxY ?? 0 + 350, safeFrame.minY + 250)
                         } else {
                             return max(walletsRect?.maxY ?? 0 - 100, safeFrame.minY - 200)
                         }
                     }())
-                } else if title == "Отлично! Вы готовы" {
+                } else if title == "tour_complete_title".localized {
                     let _ = print("🔍 Попадаем в блок Отлично! Вы готовы для title: \(title)")
                     VStack(spacing: 8) {
                         Text(title)
@@ -503,17 +503,17 @@ struct AppTourOverlay: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                         if isDragStep {
                             VStack(spacing: 4) {
-                                Text("На этом экране вы можете пополнять кошельки")
+                                Text("wallet_replenish_instruction".localized)
                                     .font(.caption).bold()
                                     .foregroundColor(.yellow)
                                     .shadow(color: .black, radius: 2, x: 0, y: 1)
                                     .multilineTextAlignment(.center)
-                                Text("1. Нажмите и удерживайте любой доход")
+                                Text("drag_income_step1".localized)
                                     .font(.caption2).bold()
                                     .foregroundColor(.white)
                                     .shadow(color: .black, radius: 1, x: 0, y: 1)
                                     .multilineTextAlignment(.center)
-                                Text("2. Перетащите его на нужный кошелёк")
+                                Text("drag_income_step2".localized)
                                     .font(.caption2).bold()
                                     .foregroundColor(.white)
                                     .shadow(color: .black, radius: 1, x: 0, y: 1)
@@ -523,13 +523,13 @@ struct AppTourOverlay: View {
                             .padding(.top, 4)
                         }
                         HStack(spacing: 16) {
-                            Button("Назад", action: { onPrev?() })
+                            Button("back".localized, action: { onPrev?() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
                                 .background(Color.white.opacity(0.18))
                                 .cornerRadius(8)
-                            Button("Далее", action: { onNext() })
+                            Button("next".localized, action: { onNext() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
@@ -537,14 +537,14 @@ struct AppTourOverlay: View {
                                 .cornerRadius(8)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-                        Button("Пропустить", action: onSkip)
+                        Button("skip".localized, action: onSkip)
                             .font(.footnote).bold()
                             .foregroundColor(.white.opacity(0.7))
                             .padding(.top, 2)
                     }
                     .frame(maxWidth: .infinity)
                     .position(x: UIScreen.main.bounds.width/2, y: {
-                        if title == "Кошельки" {
+                        if title == "operations_wallets_title".localized {
                             return max(walletsRect?.maxY ?? 0 + 300, safeFrame.minY + 200)
                         } else {
                             return max(walletsRect?.maxY ?? 0 - 100, safeFrame.minY - 200)
@@ -552,15 +552,15 @@ struct AppTourOverlay: View {
                     }())
                 } else {
                     let _ = print("🔍 Попадаем в текстовый блок else для title: \(title)")
-                    let _ = print("🔍 Проверяем условие title == 'Отлично! Вы готовы': \(title == "Отлично! Вы готовы")")
+                    let _ = print("🔍 Проверяем условие title == 'Отлично! Вы готовы': \(title == "tour_complete_title".localized)")
                     let _ = print("🔍 Точное значение title: '\(title)'")
                     let _ = print("🔍 Длина title: \(title.count)")
-                    if title == "Отлично! Вы готовы" {
+                    if title == "tour_complete_title".localized {
                         let _ = print("🎉 НАЙДЕН ЗАВЕРШАЮЩИЙ ШАГ в текстовом блоке else!")
                     }
                     let spacerHeight = safeFrame.maxY.isFinite && safeFrame.maxY > 0 ? safeFrame.maxY - 2 : 0
                     VStack(spacing: 8) {
-                        if title == "Отлично! Вы готовы" {
+                        if title == "tour_complete_title".localized {
                             let _ = print("🎉 Отображаем завершающий шаг в текстовом блоке else: \(title)")
                             Text(title)
                                 .font(.headline).bold().fontWeight(.heavy)
@@ -575,7 +575,7 @@ struct AppTourOverlay: View {
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity, alignment: .center)
                             HStack(spacing: 16) {
-                                Button("Завершить", action: onSkip)
+                                Button("finish".localized, action: onSkip)
                                     .font(.subheadline).bold()
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 18).padding(.vertical, 8)
@@ -583,7 +583,7 @@ struct AppTourOverlay: View {
                                     .cornerRadius(8)
                             }
                             .frame(maxWidth: .infinity, alignment: .center)
-                        } else if title == "Отлично! Вы готовы" {
+                        } else if title == "tour_complete_title".localized {
                             let _ = print("🎉 Отображаем завершающий шаг в текстовом блоке else: \(title)")
                             Text(title)
                                 .font(.headline).bold().fontWeight(.heavy)
@@ -598,7 +598,7 @@ struct AppTourOverlay: View {
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity, alignment: .center)
                             HStack(spacing: 16) {
-                                Button("Завершить", action: onSkip)
+                                Button("finish".localized, action: onSkip)
                                     .font(.subheadline).bold()
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 18).padding(.vertical, 8)
@@ -625,19 +625,19 @@ struct AppTourOverlay: View {
                         }
                         if isDragStep {
                             VStack(spacing: 8) {
-                                Text("На этом экране вы можете пополнять кошельки")
+                                Text("wallet_replenish_instruction".localized)
                                     .font(.headline).bold().fontWeight(.heavy)
                                     .foregroundColor(.yellow)
                                     .shadow(color: .black, radius: 3, x: 0, y: 1)
                                     .multilineTextAlignment(.center)
                                     .frame(maxWidth: .infinity, alignment: .center)
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("1. Нажмите и удерживайте любой доход")
+                                    Text("drag_income_step1".localized)
                                         .font(.subheadline).bold()
                                         .foregroundColor(.white)
                                         .shadow(color: .black, radius: 2, x: 0, y: 1)
                                         .multilineTextAlignment(.center)
-                                    Text("2. Перетащите его на нужный кошелёк")
+                                    Text("drag_income_step2".localized)
                                         .font(.subheadline).bold()
                                         .foregroundColor(.white)
                                         .shadow(color: .black, radius: 2, x: 0, y: 1)
@@ -652,13 +652,13 @@ struct AppTourOverlay: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                         }
                         HStack(spacing: 16) {
-                            Button("Назад", action: { onPrev?() })
+                            Button("back".localized, action: { onPrev?() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
                                 .background(Color.white.opacity(0.18))
                                 .cornerRadius(8)
-                            Button("Далее", action: { onNext() })
+                            Button("next".localized, action: { onNext() })
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 8)
@@ -666,7 +666,7 @@ struct AppTourOverlay: View {
                                 .cornerRadius(8)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-                        Button("Пропустить", action: onSkip)
+                        Button("skip".localized, action: onSkip)
                             .font(.footnote).bold()
                             .foregroundColor(.white.opacity(0.7))
                             .padding(.top, 2)
@@ -676,13 +676,13 @@ struct AppTourOverlay: View {
                     .position(x: UIScreen.main.bounds.width/2, y: {
                         if isDragStep {
                             return max(walletsRect?.maxY ?? 0 + 450, safeFrame.minY + 350)
-                        } else if title == "Последние транзакции" {
+                        } else if title == "last_transactions_title".localized {
                             return max(walletsRect?.maxY ?? 0 - 50, safeFrame.minY - 150)
-                        } else if title == "Доходы" {
+                        } else if title == "operations_income_title".localized {
                             return max(walletsRect?.maxY ?? 0 - 150, safeFrame.minY - 250)
-                        } else if title == "Кошельки" {
+                        } else if title == "operations_wallets_title".localized {
                             return max(walletsRect?.maxY ?? 0 + 50, safeFrame.minY - 50)
-                        } else if title == "Цели" {
+                        } else if title == "operations_goals_title".localized {
                             return max(walletsRect?.maxY ?? 0 + 100, safeFrame.minY - 80)
                         } else {
                             return max(walletsRect?.maxY ?? 0 + 100, safeFrame.minY + 100)
@@ -731,6 +731,7 @@ struct GoalsCarouselView: View {
                     if viewModel.goals.isEmpty {
                         ZStack {
                             EmptyGoalView(showCreateGoalSheet: $showCreateGoalSheet) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
+                                print("DEBUG: GoalsCarouselView - received selectedMonthDay: \(selectedMonthDay ?? -1)")
                                 viewModel.createGoal(name: name, targetAmount: sum, currentAmount: initial, currency: currency.isEmpty ? "₸" : currency, icon: icon?.isEmpty == false ? icon! : "leaf.circle.fill", color: color?.isEmpty == false ? color! : "#00FF00", planPeriod: planPeriod, planAmount: planAmount, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
                                 showCreateGoalSheet = false
                             }
@@ -917,6 +918,9 @@ struct EmptyGoalView: View {
         .padding(.top, 8)
         .sheet(isPresented: $showCreateGoalSheet) {
             CreateItemSheet(type: .goal) { name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime in
+                print("DEBUG: EmptyGoalView - received selectedMonthDay: \(selectedMonthDay ?? -1)")
+                print("DEBUG: EmptyGoalView - received selectedWeekday: \(selectedWeekday ?? -1)")
+                print("DEBUG: EmptyGoalView - received reminderPeriod: \(reminderPeriod?.rawValue ?? "nil")")
                 onCreate(name, sum, icon, color, currency, initial, planPeriod, planAmount, reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime)
             }
             .id(UUID())
@@ -1047,6 +1051,8 @@ struct GoalsCarousel: View {
 
 struct GoalDetailsView: View {
     let goal: Goal
+    @State private var showOperations = false
+    
     var body: some View {
         VStack(spacing: 10) {
 //            Text("\(Int(goal.current_amount)) / \(Int(goal.target_amount))")
@@ -1057,7 +1063,7 @@ struct GoalDetailsView: View {
 //                .frame(height: 4)
 //                        .padding(.horizontal, 24)
             Button(action: {
-                
+                showOperations = true
             }) {
                 Text("ReplenishGoal".localized)
                     .font(.headline)
@@ -1068,6 +1074,10 @@ struct GoalDetailsView: View {
                     .cornerRadius(10)
             }
             .frame(height: 44)
+        }
+        .sheet(isPresented: $showOperations) {
+            OperationsView(operationsIncomeFrame: .constant(.zero), operationsWalletsFrame: .constant(.zero), operationsGoalsFrame: .constant(.zero), operationsExpensesFrame: .constant(.zero), dragWalletFrames: .constant([]), dragIncomeFrames: .constant([]), goalsFrames: .constant([]), expensesFrames: .constant([]))
+                .id(UUID())
         }
         .onLanguageChange()
     }
@@ -1098,16 +1108,23 @@ struct LastTransactionsView: View {
             }
             .padding(.bottom, 2)
             ScrollView(.vertical, showsIndicators: true) {
-                VStack(spacing: 6) {
-                    ForEach(todayTransactions) { tx in
-                        TransactionCell(transaction: tx)
+                VStack(spacing: 0) {
+                    ForEach(Array(todayTransactions.enumerated()), id: \.element.id) { index, tx in
+                        VStack(spacing: 0) {
+                            TransactionCell(transaction: tx)
+                            if index < todayTransactions.count - 1 {
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
+                                    .padding(.horizontal, 16)
+                            }
+                        }
                     }
                 }
             }
             .frame(height: todayTransactions.isEmpty ? 44 : 3 * 56)
         }
         .padding(8)
-        .background(Color(.systemGray5))
+        .background(Color(.systemGray6))
         .onLanguageChange()
     }
 }

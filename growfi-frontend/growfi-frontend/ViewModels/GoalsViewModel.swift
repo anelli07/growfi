@@ -64,6 +64,8 @@ class GoalsViewModel: ObservableObject {
                 switch result {
                 case .success(let goals):
                     self?.goals = goals.sorted { $0.id < $1.id }
+                    // Проверяем завершение целей после загрузки
+                    NotificationManager.shared.checkGoalCompletion(goals: self?.goals ?? [])
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -73,10 +75,11 @@ class GoalsViewModel: ObservableObject {
 
     func createGoal(name: String, targetAmount: Double, currentAmount: Double, currency: String = "₸", icon: String = "leaf.circle.fill", color: String = "#00FF00", planPeriod: PlanPeriod? = nil, planAmount: Double? = nil, reminderPeriod: PlanPeriod? = nil, selectedWeekday: Int? = nil, selectedMonthDay: Int? = nil, selectedTime: Date? = nil) {
         print("createGoal debug:", reminderPeriod?.rawValue as Any, selectedWeekday as Any, selectedMonthDay as Any, selectedTime as Any)
+        print("DEBUG: GoalsViewModel - selectedMonthDay received: \(selectedMonthDay ?? -1)")
         guard let token = token else { return }
         isLoading = true
         // Создаём Goal локально с планом и настройками уведомлений
-        ApiService.shared.createGoal(name: name, targetAmount: targetAmount, currentAmount: currentAmount, currency: currency, icon: icon, color: color, reminderPeriod: reminderPeriod?.rawValue, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime != nil ? timeString(selectedTime!) : nil, token: token) { [weak self] result in
+        ApiService.shared.createGoal(name: name, targetAmount: targetAmount, currentAmount: currentAmount, currency: currency, icon: icon, color: color, planPeriod: planPeriod?.rawValue, planAmount: planAmount, reminderPeriod: reminderPeriod?.rawValue, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime != nil ? timeString(selectedTime!) : nil, token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
@@ -89,6 +92,8 @@ class GoalsViewModel: ObservableObject {
                     goal.selectedTime = selectedTime != nil ? self?.timeString(selectedTime!) : nil
                     self?.goals.append(goal)
                     NotificationManager.shared.schedulePersonalGoalReminder(goal: goal)
+                    // Проверяем завершение целей после создания
+                    NotificationManager.shared.checkGoalCompletion(goals: self?.goals ?? [])
                     self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
                     self?.error = err.localizedDescription
@@ -116,6 +121,8 @@ class GoalsViewModel: ObservableObject {
                         self?.goals[idx] = updatedGoal
                     }
                     NotificationManager.shared.schedulePersonalGoalReminder(goal: updatedGoal)
+                    // Проверяем завершение целей после обновления
+                    NotificationManager.shared.checkGoalCompletion(goals: self?.goals ?? [])
                 case .failure(let err):
                     self?.error = err.localizedDescription
                 }
@@ -132,9 +139,12 @@ class GoalsViewModel: ObservableObject {
                 switch result {
                 case .success:
                     self?.goals.removeAll { $0.id == goalId }
-                    // История и аналитика не обновляются при удалении элементов
-                    // Пользователь может удалить транзакции в истории вручную
+                    // Сбрасываем флаг завершения при удалении цели
+                    NotificationManager.shared.resetGoalCompletionFlag(goalId: goalId)
+                    // Обновляем аналитику после удаления цели
+                    self?.analyticsVM?.fetchTransactions()
                 case .failure(let err):
+                    print("Error deleting goal: \(err.localizedDescription)")
                     self?.error = err.localizedDescription
                 }
             }
@@ -198,11 +208,26 @@ class GoalsViewModel: ObservableObject {
     func transferWalletToGoal(walletId: Int, goalId: Int, amount: Double, wallets: inout [Wallet]) -> Bool {
         guard let walletIdx = wallets.firstIndex(where: { $0.id == walletId }),
               let goalIdx = goals.firstIndex(where: { $0.id == goalId }) else { return false }
-        guard amount > 0, wallets[walletIdx].balance >= amount else { return false }
+        
+        let goal = goals[goalIdx]
+        let wallet = wallets[walletIdx]
+        
+        // Проверяем базовые условия
+        guard amount > 0 else { return false }
+        guard wallet.balance >= amount else { return false }
+        
+        // Проверяем, не достигнута ли уже цель
+        guard goal.current_amount < goal.target_amount else { return false }
+        
+        // Проверяем, не превысит ли сумма целевую
+        let remainingAmount = goal.target_amount - goal.current_amount
+        guard amount <= remainingAmount else { return false }
+        
         wallets[walletIdx].balance -= amount
         goals[goalIdx].current_amount += amount
-        let wallet = wallets[walletIdx]
-        let goal = goals[goalIdx]
+        
+        // Отмечаем, что цель была пополнена
+        NotificationManager.shared.markGoalAsFunded(goal: goal, amount: amount)
         _ = Transaction(
             id: Int(Date().timeIntervalSince1970 * 1000),
             date: Date(),

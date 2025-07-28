@@ -18,25 +18,25 @@ enum AppTourStep: Int, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .todayExpense:
-            return "Расходы за сегодня"
+            return "today_expense_title".localized
         case .createGoal:
-            return "Создать цель"
+            return "create_goal_title".localized
         case .lastTransactions:
-            return "Последние транзакции"
+            return "last_transactions_title".localized
         case .operationsIncome:
-            return "Доходы"
+            return "operations_income_title".localized
         case .operationsWallets:
-            return "Кошельки"
+            return "operations_wallets_title".localized
         case .operationsGoals:
-            return "Цели"
+            return "operations_goals_title".localized
         case .operationsExpenses:
-            return "Расходы"
+            return "operations_expenses_title".localized
         case .dragIncomeToWallet:
-            return "Перетащите доход на кошелёк"
+            return "drag_income_to_wallet_title".localized
         case .dragWalletToGoalsExpenses:
-            return "Переводите деньги с кошелька"
+            return "drag_wallet_to_goals_expenses_title".localized
         case .tourComplete:
-            let title = "Отлично! Вы готовы"
+            let title = "tour_complete_title".localized
             print("🎯 AppTourManager возвращает title: '\(title)'")
             return title
         }
@@ -45,25 +45,25 @@ enum AppTourStep: Int, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .todayExpense:
-            return "Здесь отображаются все ваши траты за текущий день — удобно для ежедневного контроля бюджета."
+            return "today_expense_description".localized
         case .createGoal:
-            return "Создайте цель, чтобы начать копить деньги на важные покупки или мечты."
+            return "create_goal_description".localized
         case .lastTransactions:
-            return "Здесь будут показаны ваши последние действия — доходы, расходы и переводы."
+            return "last_transactions_description".localized
         case .operationsIncome:
-            return "Здесь создаются источники доходов — зарплата, стипендия и т.д. Они нужны, чтобы указывать, откуда поступили деньги."
+            return "operations_income_description".localized
         case .operationsWallets:
-            return "Добавляйте свои карты и наличные. Кошельки создаются вручную для учёта, где хранятся деньги."
+            return "operations_wallets_description".localized
         case .operationsGoals:
-            return "Создавайте финансовые цели и переводите на них деньги с кошельков. Удобно для накоплений."
+            return "operations_goals_description".localized
         case .operationsExpenses:
-            return "Создайте категории трат. Перетаскивайте на них деньги из кошельков для учёта расходов."
+            return "operations_expenses_description".localized
         case .dragIncomeToWallet:
-            return "Чтобы пополнить кошелёк, перетащите доход на нужный кошелёк."
+            return "drag_income_to_wallet_description".localized
         case .dragWalletToGoalsExpenses:
-            return "Переводите деньги с кошелька на цели для накоплений или на расходы для учёта трат."
+            return "drag_wallet_to_goals_expenses_description".localized
         case .tourComplete:
-            return "Теперь вы знаете все основные функции приложения. Начните управлять своими финансами!"
+            return "tour_complete_description".localized
         }
     }
 }

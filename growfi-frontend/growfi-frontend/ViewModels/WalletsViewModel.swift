@@ -90,6 +90,8 @@ class WalletsViewModel: ObservableObject {
                     if let goalIdx = self?.goalsVM?.goals.firstIndex(where: { $0.id == resp.goal.id }) {
                         self?.goalsVM?.goals[goalIdx] = resp.goal
                     }
+                    // Проверяем завершение целей после перевода
+                    NotificationManager.shared.checkGoalCompletion(goals: self?.goalsVM?.goals ?? [])
                     // Обновляем историю
                     self?.historyVM?.fetchTransactions()
                     // Обновляем аналитику

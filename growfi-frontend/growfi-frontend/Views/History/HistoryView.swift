@@ -17,9 +17,13 @@ struct HistoryView: View {
         }
         let sorted = periodFiltered.sorted { $0.date > $1.date }
         if searchText.isEmpty { return sorted }
-        return sorted.filter {
-            ($0.title.lowercased().contains(searchText.lowercased())) ||
-            ($0.note ?? "").lowercased().contains(searchText.lowercased())
+        return sorted.filter { transaction in
+            let searchLower = searchText.lowercased()
+            return transaction.title.lowercased().contains(searchLower) ||
+                   (transaction.note ?? "").lowercased().contains(searchLower) ||
+                   String(format: "%.0f", transaction.amount).contains(searchLower) ||
+                   transaction.wallet_name.lowercased().contains(searchLower) ||
+                   transaction.icon.lowercased().contains(searchLower)
         }
     }
 
@@ -36,6 +40,10 @@ struct HistoryView: View {
     }
 
     @ObservedObject private var langManager = AppLanguageManager.shared
+    
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
 
     private func formattedPeriod(_ period: String) -> String {
         // Ожидается формат типа "Июль 2025" или "July 2025"
@@ -46,6 +54,15 @@ struct HistoryView: View {
         // Пробуем локализовать месяц
         let localizedMonth = NSLocalizedString(month, comment: "")
         return "\(localizedMonth) \(year)"
+    }
+    
+    private func formattedDate(_ date: Date) -> String {
+        let lang = AppLanguageManager.shared.currentLanguage.rawValue
+        let locale = Locale(identifier: lang)
+        let df = DateFormatter()
+        df.locale = locale
+        df.setLocalizedDateFormatFromTemplate("d MMMM yyyy, EEEE")
+        return df.string(from: date)
     }
 
     var body: some View {
@@ -64,6 +81,9 @@ struct HistoryView: View {
             SearchBar(placeholder: "search_notes".localized, text: $searchText)
                 .padding(.horizontal)
                 .padding(.top, 8)
+                .keyboardToolbar {
+                    hideKeyboard()
+                }
 
             // Новый выбор периода
             Button(action: { showPeriodPicker = true }) {
@@ -78,40 +98,72 @@ struct HistoryView: View {
             }
             .padding(.top, 8)
 
-            // Блок баланса
-            BalanceCard(
-                balance: filteredTransactions.map { $0.amount }.reduce(0, +),
-                income: filteredTransactions.filter { $0.type == .income }.map { $0.amount }.reduce(0, +),
-                expense: abs(filteredTransactions.filter { $0.type == .expense }.map { $0.amount }.reduce(0, +)),
-                currency: "₸"
-            )
-            .padding(.horizontal)
-            .padding(.top, 12)
+            // Список транзакций
+            List {
+                // Блок баланса
+                Section {
+                    BalanceCard(
+                        balance: filteredTransactions.reduce(0) { sum, transaction in
+                            switch transaction.type {
+                            case .income:
+                                return sum + transaction.amount
+                            case .expense, .goal_transfer:
+                                return sum - abs(transaction.amount)
+                            case .wallet_transfer, .goal:
+                                return sum
+                            }
+                        },
+                        income: filteredTransactions.filter { $0.type == .income }.map { $0.amount }.reduce(0, +),
+                        expense: filteredTransactions.filter { $0.type == .expense || $0.type == .goal_transfer }.map { abs($0.amount) }.reduce(0, +),
+                        currency: "₸"
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 12)
+                }
 
-            // Заголовок списка операций
-            HStack {
-                Text("OperationsList".localized)
-                    .font(.headline)
-                Spacer()
-            }
-            .padding(.horizontal)
-            .padding(.top, 16)
+                // Заголовок списка операций
+                Section {
+                    HStack {
+                        Text("OperationsList".localized)
+                            .font(.headline)
+                        Spacer()
+                        if !searchText.isEmpty {
+                            Text("\(filteredTransactions.count) \(filteredTransactions.count == 1 ? "result".localized : "results".localized)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+                }
 
-            // Транзакции
-            ScrollView {
-                VStack(spacing: 16) {
-                    ForEach(groupedDays) { day in
-                        TransactionDaySection(day: day) { transactionId in
-                            historyVM.deleteTransaction(id: transactionId)
+                // Список транзакций
+                ForEach(groupedDays) { day in
+                    Section(header: 
+                        HStack {
+                            Text(formattedDate(day.date))
+                                .font(.subheadline).bold()
+                            Spacer()
+                            Text("\(day.total >= 0 ? "+" : "-")\(Int(abs(day.total)))")
+                                .font(.subheadline)
+                                .foregroundColor(day.total >= 0 ? .green : .red)
+                        }
+                        .padding(.bottom, 2)
+                    ) {
+                        ForEach(day.transactions) { tx in
+                            TransactionCell(transaction: tx) {
+                                print("HistoryView: Delete callback for transaction ID: \(tx.id)")
+                                historyVM.deleteTransaction(id: tx.id)
+                            }
                         }
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top, 16)
-                .padding(.bottom, 24)
             }
+            .listStyle(PlainListStyle())
+            .frame(maxHeight: .infinity)
         }
         .background(Color.white.ignoresSafeArea())
+        .hideKeyboardOnTap()
         .sheet(isPresented: $showPeriodPicker) {
             PeriodPicker(selected: $historyVM.periodVM.selectedPeriod, customRange: $historyVM.periodVM.customRange)
         }

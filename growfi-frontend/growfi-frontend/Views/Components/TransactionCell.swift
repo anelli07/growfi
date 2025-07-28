@@ -33,9 +33,11 @@ struct TransactionCell: View {
                 }
             }
         }
-        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
+                print("TransactionCell swipe: Delete for transaction: \(transaction.id)")
                 onDelete?()
             } label: {
                 Label("Delete".localized, systemImage: "trash")

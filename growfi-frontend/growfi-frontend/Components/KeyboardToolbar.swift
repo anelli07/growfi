@@ -2,7 +2,6 @@ import SwiftUI
 import UIKit
 
 struct KeyboardToolbar: ViewModifier {
-    let title: String
     let action: () -> Void
     
     func body(content: Content) -> some View {
@@ -10,17 +9,18 @@ struct KeyboardToolbar: ViewModifier {
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button(title) {
-                        action()
+                    Button(action: action) {
+                        Image(systemName: "checkmark")
+                            .foregroundColor(.blue)
+                            .font(.system(size: 18, weight: .semibold))
                     }
-                    .foregroundColor(.blue)
                 }
             }
     }
 }
 
 extension View {
-    func keyboardToolbar(title: String = "Готово", action: @escaping () -> Void) -> some View {
-        self.modifier(KeyboardToolbar(title: title, action: action))
+    func keyboardToolbar(action: @escaping () -> Void) -> some View {
+        self.modifier(KeyboardToolbar(action: action))
     }
 } 

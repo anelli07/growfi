@@ -15,7 +15,7 @@ struct AnalyticsView: View {
                 // Кнопка фильтра удалена
             }
             .padding(.horizontal)
-            .padding(.top, 0)
+            .padding(.top, 16)
 
             // Новый выбор периода
             Button(action: { showPeriodPicker = true }) {
@@ -108,7 +108,7 @@ struct AnalyticsView: View {
             .cornerRadius(18)
             .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
             .padding(.horizontal)
-            .padding(.top, 8)
+            .padding(.top, 32)
         }
         }
         .background(Color.white.ignoresSafeArea())

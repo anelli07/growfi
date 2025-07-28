@@ -84,7 +84,7 @@ class AnalyticsViewModel: ObservableObject {
         let groupedDay = Dictionary(grouping: filtered) { calendar.startOfDay(for: $0.date) }
         let sortedDay = groupedDay.map { (date, txs) -> (Date, Double, Double) in
             let income = txs.filter { $0.type == .income }.map { $0.amount }.reduce(0, +)
-            let expense = abs(txs.filter { $0.type == .expense }.map { $0.amount }.reduce(0, +))
+            let expense = txs.filter { $0.type == .expense }.map { abs($0.amount) }.reduce(0, +)
             return (date, income, expense)
         }.sorted { $0.0 < $1.0 }
         groupedByDay = sortedDay
@@ -100,7 +100,7 @@ class AnalyticsViewModel: ObservableObject {
         }.sorted { $0.total > $1.total }
         // Итоги
         incomeTotal = filtered.filter { $0.type == .income }.map { $0.amount }.reduce(0, +)
-        expenseTotal = abs(filtered.filter { $0.type == .expense }.map { $0.amount }.reduce(0, +))
+        expenseTotal = filtered.filter { $0.type == .expense }.map { abs($0.amount) }.reduce(0, +)
         balance = incomeTotal - expenseTotal
     }
 

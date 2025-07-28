@@ -9,7 +9,7 @@ class ApiService {
     private let baseURL = "http://localhost:8000/api/v1"
 //    private let baseURL = "https://growfi-backend.azurewebsites.net/api/v1"
     private init() {}
-
+ 
     // MARK: - Авторизация
     func login(email: String, password: String, completion: @escaping (Result<String, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/auth/login") else { return }
@@ -19,16 +19,63 @@ class ApiService {
         let body = "username=\(email)&password=\(password)"
         request.httpBody = body.data(using: .utf8)
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let access = json["access_token"] as? String,
-               let refresh = json["refresh_token"] as? String {
-                // Сохраняем refresh_token
-                UserDefaults.standard.set(refresh, forKey: "refresh_token")
-                completion(.success(access))
+            if let error = error { 
+                completion(.failure(NSError(domain: "Ошибка сети", code: 0, userInfo: [NSLocalizedDescriptionKey: "network_error".localized]))); 
+                return 
+            }
+            
+            guard let data = data else { 
+                completion(.failure(NSError(domain: "Нет данных", code: 0, userInfo: [NSLocalizedDescriptionKey: "server_error".localized]))); 
+                return 
+            }
+            
+            // Проверяем HTTP статус код
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 200:
+                    // Успешный ответ
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let access = json["access_token"] as? String,
+                       let refresh = json["refresh_token"] as? String {
+                        // Сохраняем refresh_token
+                        UserDefaults.standard.set(refresh, forKey: "refresh_token")
+                        completion(.success(access))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка данных", code: 0, userInfo: [NSLocalizedDescriptionKey: "invalid_response_format".localized])))
+                    }
+                    
+                case 401:
+                    // Неверные учетные данные
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка авторизации", code: 401, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка авторизации", code: 401, userInfo: [NSLocalizedDescriptionKey: "invalid_credentials".localized])))
+                    }
+                    
+                case 422:
+                    // Ошибка валидации
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 422, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 422, userInfo: [NSLocalizedDescriptionKey: "validation_error".localized])))
+                    }
+                    
+                case 500:
+                    completion(.failure(NSError(domain: "Ошибка сервера", code: 500, userInfo: [NSLocalizedDescriptionKey: "server_internal_error".localized])))
+                    
+                default:
+                    // Другие ошибки
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Произошла ошибка. Код: \(httpResponse.statusCode)"])))
+                    }
+                }
             } else {
-                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                completion(.failure(NSError(domain: "Ошибка сети", code: 0, userInfo: [NSLocalizedDescriptionKey: "connection_error".localized])))
             }
         }.resume()
     }
@@ -159,20 +206,58 @@ class ApiService {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                completion(.failure(NSError(domain: "Проблемы с сетью", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]))); return
-            }
-            guard let data = data else {
-                completion(.failure(NSError(domain: "Нет данных от сервера", code: 0)));
+                completion(.failure(NSError(domain: "Ошибка сети", code: 0, userInfo: [NSLocalizedDescriptionKey: "network_error".localized]))); 
                 return
             }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let detail = json["detail"] as? String {
-                completion(.failure(NSError(domain: "Ошибка", code: 0, userInfo: [NSLocalizedDescriptionKey: detail])))
-            } else if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
-                completion(.failure(NSError(domain: "Ошибка", code: 0, userInfo: [NSLocalizedDescriptionKey: message])))
-            } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
-                completion(.failure(NSError(domain: "Ошибка регистрации", code: httpResponse.statusCode)))
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "Нет данных", code: 0, userInfo: [NSLocalizedDescriptionKey: "server_error".localized])));
+                return
+            }
+            
+            // Проверяем HTTP статус код
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 200, 201:
+                    // Успешная регистрация
+                    completion(.success(()))
+                    
+                case 400:
+                    // Ошибка валидации
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 400, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 400, userInfo: [NSLocalizedDescriptionKey: "validation_error".localized])))
+                    }
+                    
+                case 409:
+                    // Пользователь уже существует
+                    completion(.failure(NSError(domain: "Пользователь существует", code: 409, userInfo: [NSLocalizedDescriptionKey: "user_already_exists".localized])))
+                    
+                case 422:
+                    // Ошибка валидации данных
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 422, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 422, userInfo: [NSLocalizedDescriptionKey: "validation_error".localized])))
+                    }
+                    
+                case 500:
+                    completion(.failure(NSError(domain: "Ошибка сервера", code: 500, userInfo: [NSLocalizedDescriptionKey: "server_internal_error".localized])))
+                    
+                default:
+                    // Другие ошибки
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Произошла ошибка. Код: \(httpResponse.statusCode)"])))
+                    }
+                }
             } else {
-                completion(.success(()))
+                completion(.failure(NSError(domain: "Ошибка сети", code: 0, userInfo: [NSLocalizedDescriptionKey: "connection_error".localized])))
             }
         }.resume()
     }
@@ -187,18 +272,58 @@ class ApiService {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                completion(.failure(NSError(domain: "Проблемы с сетью", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]))); return
-            }
-            guard let data = data else {
-                completion(.failure(NSError(domain: "Нет данных от сервера", code: 0)));
+                completion(.failure(NSError(domain: "Ошибка сети", code: 0, userInfo: [NSLocalizedDescriptionKey: "network_error".localized]))); 
                 return
             }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let detail = json["detail"] as? String {
-                completion(.failure(NSError(domain: "Ошибка", code: 0, userInfo: [NSLocalizedDescriptionKey: detail])))
-            } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
-                completion(.failure(NSError(domain: "Ошибка восстановления пароля", code: httpResponse.statusCode)))
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "Нет данных", code: 0, userInfo: [NSLocalizedDescriptionKey: "server_error".localized])));
+                return
+            }
+            
+            // Проверяем HTTP статус код
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 200, 202:
+                    // Успешный запрос на сброс пароля
+                    completion(.success(()))
+                    
+                case 400:
+                    // Ошибка валидации
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 400, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 400, userInfo: [NSLocalizedDescriptionKey: "validation_error".localized])))
+                    }
+                    
+                case 404:
+                    // Пользователь не найден
+                    completion(.failure(NSError(domain: "Пользователь не найден", code: 404, userInfo: [NSLocalizedDescriptionKey: "user_not_found".localized])))
+                    
+                case 422:
+                    // Ошибка валидации данных
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 422, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка валидации", code: 422, userInfo: [NSLocalizedDescriptionKey: "validation_error".localized])))
+                    }
+                    
+                case 500:
+                    completion(.failure(NSError(domain: "Ошибка сервера", code: 500, userInfo: [NSLocalizedDescriptionKey: "server_internal_error".localized])))
+                    
+                default:
+                    // Другие ошибки
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        completion(.failure(NSError(domain: "Ошибка", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    } else {
+                        completion(.failure(NSError(domain: "Ошибка", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Произошла ошибка. Код: \(httpResponse.statusCode)"])))
+                    }
+                }
             } else {
-                completion(.success(()))
+                completion(.failure(NSError(domain: "Ошибка сети", code: 0, userInfo: [NSLocalizedDescriptionKey: "connection_error".localized])))
             }
         }.resume()
     }
@@ -417,16 +542,27 @@ class ApiService {
 
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
+            
+            // Отладочная информация
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("fetchGoals response JSON:", jsonString)
+            }
+            
             do {
                 let goals = try JSONDecoder().decode([Goal].self, from: data)
+                print("fetchGoals decoded goals count:", goals.count)
+                for (index, goal) in goals.enumerated() {
+                    print("Goal \(index): id=\(goal.id), name=\(goal.name), planPeriod=\(goal.planPeriod?.rawValue ?? "nil"), planAmount=\(goal.planAmount ?? -1), createdAt=\(goal.createdAt?.description ?? "nil")")
+                }
                 completion(.success(goals))
             } catch {
+                print("fetchGoals decode error:", error)
                 completion(.failure(error))
             }
         }.resume()
     }
 
-    func createGoal(name: String, targetAmount: Double, currentAmount: Double, currency: String, icon: String, color: String, reminderPeriod: String? = nil, selectedWeekday: Int? = nil, selectedMonthDay: Int? = nil, selectedTime: String? = nil, token: String, completion: @escaping (Result<Goal, Error>) -> Void) {
+    func createGoal(name: String, targetAmount: Double, currentAmount: Double, currency: String, icon: String, color: String, planPeriod: String? = nil, planAmount: Double? = nil, reminderPeriod: String? = nil, selectedWeekday: Int? = nil, selectedMonthDay: Int? = nil, selectedTime: String? = nil, token: String, completion: @escaping (Result<Goal, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/goals/") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -439,6 +575,8 @@ class ApiService {
             "currency": currency,
             "icon": icon,
             "color": color,
+            "plan_period": planPeriod,
+            "plan_amount": planAmount,
             "reminder_period": reminderPeriod,
             "selected_weekday": selectedWeekday,
             "selected_month_day": selectedMonthDay,
@@ -449,10 +587,18 @@ class ApiService {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(NSError(domain: "No data", code: 0))); return }
+            
+            // Отладочная информация
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("createGoal response JSON:", jsonString)
+            }
+            
             do {
                 let goal = try JSONDecoder().decode(Goal.self, from: data)
+                print("createGoal decoded goal:", goal)
                 completion(.success(goal))
             } catch {
+                print("createGoal decode error:", error)
                 completion(.failure(error))
             }
         }.resume()
@@ -470,6 +616,8 @@ class ApiService {
             "icon": icon,
             "color": color,
             "current_amount": goal.current_amount,
+            "plan_period": goal.planPeriod?.rawValue,
+            "plan_amount": goal.planAmount,
             "reminder_period": goal.reminderPeriod,
             "selected_weekday": goal.selectedWeekday,
             "selected_month_day": goal.selectedMonthDay,
@@ -503,6 +651,22 @@ class ApiService {
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         URLSession.shared.dataTask(with: request) { data, response, error in
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 401 {
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: NSNotification.Name("LogoutDueTo401"), object: nil)
+                    }
+                    completion(.failure(NSError(domain: "Unauthorized", code: 401)))
+                    return
+                } else if httpResponse.statusCode == 404 {
+                    completion(.failure(NSError(domain: "Goal not found", code: 404)))
+                    return
+                } else if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+                    completion(.failure(NSError(domain: "Server error", code: httpResponse.statusCode)))
+                    return
+                }
+            }
+            
             if let error = error { completion(.failure(error)); return }
             completion(.success(()))
         }.resume()

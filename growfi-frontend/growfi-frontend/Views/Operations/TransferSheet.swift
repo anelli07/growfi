@@ -24,6 +24,8 @@ struct TransferSheet: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var showDatePicker: Bool = false
     @State private var forceUpdate = false
+    @FocusState private var isAmountFieldFocused: Bool
+    @State private var amountText: String = ""
     
     init(type: TransferType, amount: Binding<Double>, date: Binding<Date>, comment: Binding<String>, onConfirm: @escaping (Double, Date, String) -> Void) {
         self.type = type
@@ -36,7 +38,7 @@ struct TransferSheet: View {
     // Универсальные вычисления для левой и правой части
     var leftTitle: String {
         switch type {
-        case .incomeToWallet(_, _): return "Income".localized
+        case .incomeToWallet(let income, _): return income.name.localizedIfDefault
         case .walletToGoal(let wallet, _): return wallet.name.localizedIfDefault
         case .walletToExpense(let wallet, _): return wallet.name.localizedIfDefault
         }
@@ -102,6 +104,77 @@ struct TransferSheet: View {
         case .walletToExpense: return .red
         }
     }
+    
+    // Функция для расчета максимально доступной суммы для пополнения цели
+    var maxAvailableAmount: Double {
+        switch type {
+        case .walletToGoal(let wallet, let goal):
+            let walletLimit = wallet.balance
+            let goalLimit = goal.target_amount - goal.current_amount
+            return min(walletLimit, goalLimit)
+        case .walletToExpense(let wallet, _):
+            return wallet.balance
+        case .incomeToWallet(_, _):
+            return Double.infinity
+        }
+    }
+    
+    // Функция для расчета периодов накопления
+    func calculateAccumulationPeriods() -> [AccumulationPeriod] {
+        guard case .walletToGoal(_, let goal) = type else {
+            print("DEBUG: Не walletToGoal тип")
+            return []
+        }
+        
+        print("DEBUG: Цель - \(goal.name)")
+        print("DEBUG: planPeriod = \(goal.planPeriod?.rawValue ?? "nil")")
+        print("DEBUG: planAmount = \(goal.planAmount ?? -1)")
+        print("DEBUG: createdAt = \(goal.createdAt?.description ?? "nil")")
+        
+        // Проверяем, есть ли у цели план накопления
+        guard let planPeriod = goal.planPeriod,
+              let planAmount = goal.planAmount,
+              let createdAt = goal.createdAt else {
+            print("DEBUG: Нет плана накопления - возвращаем пустой массив")
+            return []
+        }
+        
+        let calendar = Calendar.current
+        let totalAmount = goal.target_amount
+        let totalPeriods = Int(ceil(totalAmount / planAmount))
+        var periods: [AccumulationPeriod] = []
+        
+        // Рассчитываем все периоды до достижения цели
+        for i in 0..<totalPeriods {
+            let periodDate: Date
+            if planPeriod == .week {
+                periodDate = calendar.date(byAdding: .weekOfYear, value: i, to: createdAt) ?? createdAt
+            } else {
+                periodDate = calendar.date(byAdding: .month, value: i, to: createdAt) ?? createdAt
+            }
+            
+            let periodAmount = min(planAmount, totalAmount - Double(i) * planAmount)
+            
+            // Рассчитываем прогресс для этого периода
+            let periodStartAmount = Double(i) * planAmount
+            let periodEndAmount = Double(i + 1) * planAmount
+            let currentAmountInPeriod = min(goal.current_amount - periodStartAmount, planAmount)
+            let progressAmount = max(0, currentAmountInPeriod)
+            
+            let isCompleted = goal.current_amount >= periodEndAmount
+            
+            periods.append(AccumulationPeriod(
+                date: periodDate,
+                targetAmount: periodAmount,
+                progressAmount: progressAmount,
+                isCompleted: isCompleted,
+                periodNumber: i + 1
+            ))
+        }
+        
+        return periods
+    }
+    
     var title: String {
         switch type {
         case .incomeToWallet: return "TopUp".localized
@@ -137,14 +210,31 @@ struct TransferSheet: View {
     }
     
     var isInsufficientFunds: Bool {
+        let currentAmount = Double(amountText) ?? 0
         switch type {
         case .walletToGoal(let wallet, _):
-            return amount > wallet.balance
+            return currentAmount > wallet.balance
         case .walletToExpense(let wallet, _):
-            return amount > wallet.balance
+            return currentAmount > wallet.balance
         case .incomeToWallet:
             return false
         }
+    }
+    
+    var isGoalAmountExceeded: Bool {
+        let currentAmount = Double(amountText) ?? 0
+        switch type {
+        case .walletToGoal(_, let goal):
+            let remaining = goal.target_amount - goal.current_amount
+            return currentAmount > remaining
+        case .walletToExpense, .incomeToWallet:
+            return false
+        }
+    }
+    
+    var isButtonDisabled: Bool {
+        let currentAmount = Double(amountText) ?? 0
+        return amountText.isEmpty || currentAmount <= 0 || isInsufficientFunds || isGoalAmountExceeded
     }
     var body: some View {
         ScrollView {
@@ -167,32 +257,65 @@ struct TransferSheet: View {
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(.gray)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    TextField("0", value: $amount, formatter: NumberFormatter())
+                    TextField("", text: $amountText)
                         .font(.system(size: 40, weight: .bold, design: .rounded))
                         .multilineTextAlignment(.center)
                         .keyboardType(.decimalPad)
                         .frame(maxWidth: .infinity)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .keyboardToolbar(title: "Готово") {
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                        .focused($isAmountFieldFocused)
+                        .keyboardToolbar {
                             hideKeyboard()
+                        }
+                        .onChange(of: amountText) { newValue in
+                            // Обновляем amount только если введено валидное число
+                            if let doubleValue = Double(newValue) {
+                                amount = doubleValue
+                            }
                         }
                     Text("₸")
                         .font(.system(size: 32, weight: .bold))
                 }
                 .padding(.bottom, 8)
                 
-                // Показываем предупреждение о недостаточности средств
-                if case .walletToGoal(_, _) = type, isInsufficientFunds {
-                    Text("insufficient_funds".localized)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.bottom, 8)
+                // Показываем предупреждения
+                if case .walletToGoal(_, let goal) = type {
+                    if isInsufficientFunds {
+                        Text("insufficient_funds".localized)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.bottom, 8)
+                    } else if isGoalAmountExceeded {
+                        let remaining = goal.target_amount - goal.current_amount
+                        Text(String(format: "max_amount_to_add".localized, "\(Int(remaining))"))
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.bottom, 8)
+                    }
                 } else if case .walletToExpense(_, _) = type, isInsufficientFunds {
                     Text("insufficient_funds".localized)
                         .font(.caption)
                         .foregroundColor(.red)
                         .padding(.bottom, 8)
+                }
+                
+                // Показываем максимально доступную сумму для целей
+                if case .walletToGoal(_, let goal) = type {
+                    let remaining = goal.target_amount - goal.current_amount
+                    if remaining > 0 {
+                        Text(String(format: "max_available_amount".localized, "\(Int(remaining))"))
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .padding(.bottom, 8)
+                    } else {
+                        Text("goal_already_completed".localized)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .padding(.bottom, 8)
+                    }
                 }
                 // Универсальный блок: слева и справа
                 HStack(spacing: 32) {
@@ -241,6 +364,18 @@ struct TransferSheet: View {
                     }
                 }
                 .padding(.vertical, 16)
+                
+                // Компонент прогресса накопления для целей
+                if case .walletToGoal(_, let goal) = type {
+                    let periods = calculateAccumulationPeriods()
+                    
+                    AccumulationProgressView(
+                        periods: periods,
+                        planPeriod: goal.planPeriod ?? .week
+                    )
+                    .padding(.vertical, 8)
+                }
+                
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Дата".localized)
                         .font(.system(size: 16))
@@ -327,36 +462,27 @@ struct TransferSheet: View {
                         .foregroundColor(.gray)
                     TextField("Комментарий".localized, text: $comment)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardToolbar(title: "Готово") {
-                            hideKeyboard()
-                        }
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
                 }
                 .padding(.vertical, 8)
                 
-                // Кнопка сохранения всегда видна
+                // Кнопка сохранения
                 Button(action: {
-                    // Проверяем достаточность средств для кошелька
-                    if case .walletToGoal(let wallet, _) = type, amount > wallet.balance {
-                        // Показываем ошибку - недостаточно средств
-                        return
-                    }
-                    if case .walletToExpense(let wallet, _) = type, amount > wallet.balance {
-                        // Показываем ошибку - недостаточно средств
-                        return
-                    }
-                    onConfirm(amount, date, comment)
+                    let finalAmount = Double(amountText) ?? 0
+                    onConfirm(finalAmount, date, comment)
                 }) {
                     Text("Сохранить".localized)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(isButtonDisabled ? Color.gray : Color.blue)
                         .foregroundColor(.white)
                         .cornerRadius(14)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 20)
                 .padding(.bottom, 24)
-                .disabled(amount <= 0 || isInsufficientFunds)
+                .disabled(isButtonDisabled)
                 
                 // Дополнительный отступ для клавиатуры
                 Spacer(minLength: 100)
@@ -368,13 +494,18 @@ struct TransferSheet: View {
             .onAppear {
                 // Принудительно инициализируем состояние при появлении
                 DispatchQueue.main.async {
-                    let _ = amount
+                    // Очищаем текстовое поле суммы
+                    amountText = ""
+                    amount = 0
                     let _ = date
                     let _ = comment
                     let _ = showDatePicker
                     
                     // Принудительно обновляем UI
                     forceUpdate.toggle()
+                    
+                    // Автоматически устанавливаем фокус на поле суммы
+                    isAmountFieldFocused = true
                 }
             }
             .sheet(isPresented: $showDatePicker) {
@@ -419,5 +550,98 @@ extension Date {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: self)
+    }
+}
+
+// MARK: - Accumulation Period Models
+struct AccumulationPeriod: Identifiable {
+    let id = UUID()
+    let date: Date
+    let targetAmount: Double
+    let progressAmount: Double
+    let isCompleted: Bool
+    let periodNumber: Int
+}
+
+// MARK: - Accumulation Progress View
+struct AccumulationProgressView: View {
+    let periods: [AccumulationPeriod]
+    let planPeriod: PlanPeriod?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("plan_progress".localized)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .padding(.horizontal, 16)
+            
+            if periods.isEmpty {
+                Text("Нет данных для отображения")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 16)
+            } else {
+                // Горизонтальный скролл с пагинацией по 12 кругов
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 12) {
+                        ForEach(periods) { period in
+                            VStack(spacing: 6) {
+                                ZStack {
+                                    // Фон круга
+                                    Circle()
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                                        .frame(width: 50, height: 50)
+                                    
+                                    // Прогресс заполнения
+                                    if period.progressAmount > 0 {
+                                        Circle()
+                                            .trim(from: 0, to: min(period.progressAmount / period.targetAmount, 1.0))
+                                            .stroke(Color.green, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                                            .frame(width: 50, height: 50)
+                                            .rotationEffect(.degrees(-90))
+                                    }
+                                    
+                                    // Текст с прогрессом
+                                    VStack(spacing: 2) {
+                                        Text("\(Int(period.progressAmount))")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.green)
+                                        Text("/")
+                                            .font(.system(size: 8))
+                                            .foregroundColor(.gray)
+                                        Text("\(Int(period.targetAmount))")
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                
+                                // Дата периода
+                                Text(formatPeriodDate(period.date, planPeriod: planPeriod))
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .frame(width: 60)
+                            }
+                            .frame(width: 60)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+        }
+    }
+    
+    private func formatPeriodDate(_ date: Date, planPeriod: PlanPeriod?) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ru_RU")
+        
+        if planPeriod == .week {
+            formatter.dateFormat = "dd MMM"
+        } else {
+            formatter.dateFormat = "MMM yyyy"
+        }
+        
+        return formatter.string(from: date).uppercased()
     }
 }

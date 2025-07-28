@@ -22,6 +22,7 @@ struct CreateItemSheet: View {
     @State private var showMonthDayPicker = false
     @State private var showTimePicker = false
     @State private var forceUpdate = false
+    @FocusState private var isNameFieldFocused: Bool
     let availableIcons = [
         "creditcard.fill", "banknote", "dollarsign.circle.fill", "wallet.pass.fill", "cart.fill", "gift.fill", "airplane", "car.fill", "cross.case.fill", "tshirt.fill", "scissors", "gamecontroller.fill", "cup.and.saucer.fill", "fork.knife", "phone.fill", "house.fill", "building.2.fill", "bag.fill", "star.fill", "questionmark.circle", "lipstick", "paintbrush.fill"
     ]
@@ -113,7 +114,9 @@ struct CreateItemSheet: View {
                             .foregroundColor(.gray)
                         TextField("enter_name".localized, text: $name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardToolbar(title: "Готово") {
+                            .id("nameField")
+                            .focused($isNameFieldFocused)
+                            .keyboardToolbar {
                                 hideKeyboard()
                             }
                     }
@@ -125,18 +128,12 @@ struct CreateItemSheet: View {
                             TextField("0", text: $sum)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardToolbar(title: "Готово") {
-                                    hideKeyboard()
-                                }
                             Text("Уже накоплено")
                                 .font(.system(size: 16))
                                 .foregroundColor(.gray)
                             TextField("0", text: $initialAmount)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardToolbar(title: "Готово") {
-                                    hideKeyboard()
-                                }
                             // Новый блок: планирование накоплений
                             Text("plan_title".localized)
                                 .font(.system(size: 16, weight: .medium))
@@ -215,9 +212,6 @@ struct CreateItemSheet: View {
                             TextField("0", text: $sum)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardToolbar(title: "Готово") {
-                                    hideKeyboard()
-                                }
                         }
                     }
                     if type == .goal || type == .wallet {
@@ -244,7 +238,47 @@ struct CreateItemSheet: View {
                     if type == .goal {
                         let initial = Double(initialAmount) ?? 0
                         let planAmount = calculatedPayment
-                        onCreate(finalName, amount, selectedIcon, selectedColor.toHex, selectedCurrency, initial, planPeriod, Double(planAmount), reminderPeriod, selectedWeekday, selectedMonthDay, selectedTime)
+                        
+                        // Устанавливаем дефолтные значения для напоминаний
+                        var finalSelectedWeekday: Int? = selectedWeekday
+                        var finalSelectedMonthDay: Int? = selectedMonthDay
+                        var finalSelectedTime: Date? = selectedTime
+                        
+                        if let reminderPeriod = reminderPeriod {
+                            // Если не выбрано время, устанавливаем 9:00
+                            if finalSelectedTime == nil {
+                                let calendar = Calendar.current
+                                var components = DateComponents()
+                                components.hour = 9
+                                components.minute = 0
+                                finalSelectedTime = calendar.date(from: components) ?? Date()
+                            }
+                            
+                            if reminderPeriod == .week {
+                                // Для еженедельных напоминаний НЕ устанавливаем день месяца
+                                finalSelectedMonthDay = nil
+                                // Если не выбран день недели, устанавливаем понедельник (1)
+                                if finalSelectedWeekday == nil {
+                                    finalSelectedWeekday = 1
+                                }
+                            } else if reminderPeriod == .month {
+                                // Для ежемесячных напоминаний НЕ устанавливаем день недели
+                                finalSelectedWeekday = nil
+                                // Если не выбрано число месяца, устанавливаем 1
+                                if finalSelectedMonthDay == nil {
+                                    finalSelectedMonthDay = 1
+                                }
+                            }
+                        }
+                        
+                        print("DEBUG: CreateItemSheet - selectedMonthDay before save: \(selectedMonthDay)")
+                        print("DEBUG: CreateItemSheet - finalSelectedMonthDay: \(finalSelectedMonthDay ?? -1)")
+                        print("DEBUG: CreateItemSheet - reminderPeriod: \(reminderPeriod?.rawValue ?? "nil")")
+                        print("DEBUG: CreateItemSheet - selectedWeekday: \(selectedWeekday)")
+                        print("DEBUG: CreateItemSheet - finalSelectedWeekday: \(finalSelectedWeekday ?? -1)")
+                        print("DEBUG: CreateItemSheet - calling onCreate with finalSelectedMonthDay: \(finalSelectedMonthDay ?? -1)")
+                        print("DEBUG: CreateItemSheet - calling onCreate with finalSelectedWeekday: \(finalSelectedWeekday ?? -1)")
+                        onCreate(finalName, amount, selectedIcon, selectedColor.toHex, selectedCurrency, initial, planPeriod, Double(planAmount), reminderPeriod, finalSelectedWeekday, finalSelectedMonthDay, finalSelectedTime)
                     } else {
                         onCreate(finalName, amount, selectedIcon, selectedColor.toHex, selectedCurrency, 0, nil, nil, nil, nil, nil, nil)
                     }
@@ -262,10 +296,21 @@ struct CreateItemSheet: View {
                 .padding(.bottom, 24)
                 .disabled(name.isEmpty)
                 
+                // Дополнительное пространство для прокрутки
+                VStack(spacing: 20) {
+                    Text("")
+                        .frame(height: 50)
+                    Text("")
+                        .frame(height: 50)
+                    Text("")
+                        .frame(height: 50)
+                }
+                
                 // Дополнительный отступ для клавиатуры
-                Spacer(minLength: 100)
+                Spacer(minLength: 300)
             }
         }
+
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
@@ -297,6 +342,9 @@ struct CreateItemSheet: View {
                 
                 // Принудительно обновляем UI
                 forceUpdate.toggle()
+                
+                // Автоматически устанавливаем фокус на поле имени
+                isNameFieldFocused = true
             }
         }
         // --- Pickers ---

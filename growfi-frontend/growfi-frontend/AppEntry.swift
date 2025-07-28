@@ -34,6 +34,7 @@ enum AppRootScreen {
 
 struct AppEntry: View {
     @State private var rootScreen: AppRootScreen = .splash
+    @State private var completedGoal: Goal? = nil
     @StateObject private var langManager = AppLanguageManager.shared
     @StateObject private var goalsViewModel = GoalsViewModel()
     @StateObject private var walletsVM = WalletsViewModel()
@@ -44,6 +45,7 @@ struct AppEntry: View {
     @StateObject private var analyticsVM = AnalyticsViewModel()
     @StateObject private var notificationManager = NotificationManager.shared
     @StateObject private var tourManager = AppTourManager()
+    @StateObject private var ratingManager = AppRatingManager.shared
 
     private func resetAllViewModels() {
         goalsViewModel.user = nil
@@ -60,6 +62,9 @@ struct AppEntry: View {
         let hasLaunched = UserDefaults.standard.bool(forKey: "has_launched_before")
         let accessToken = UserDefaults.standard.string(forKey: "access_token")
         
+        // Увеличиваем счетчик открытий приложения
+        ratingManager.incrementAppOpenCount()
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { // splash задержка
             if !hasLaunched {
                 // Первый запуск: Loading → Welcome → Auth → ContentView
@@ -71,6 +76,13 @@ struct AppEntry: View {
             } else {
                 // Есть токен: Loading → ContentView
                 rootScreen = .main
+                
+                // Проверяем, нужно ли показать запрос на оценку
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    if self.ratingManager.shouldShowRatingRequest() {
+                        self.ratingManager.requestAppRating()
+                    }
+                }
             }
         }
     }
@@ -79,6 +91,17 @@ struct AppEntry: View {
         // Запрашиваем разрешение на уведомления при первом входе
         if UserDefaults.standard.bool(forKey: "has_launched_before") {
             notificationManager.requestAuthorization()
+        }
+        
+        // Настраиваем обработку уведомлений
+        UNUserNotificationCenter.current().delegate = NotificationHandler.shared
+        NotificationHandler.shared.onGoalCompleted = { goal in
+            DispatchQueue.main.async {
+                // Показываем уведомление только если мы на главном экране
+                if self.rootScreen == .main {
+                    self.completedGoal = goal
+                }
+            }
         }
     }
 
@@ -126,17 +149,35 @@ struct AppEntry: View {
                         print("[AppEntry] AuthView onAppear!")
                     }
                 case .main:
-                    ContentView(onLogout: { 
-                        withAnimation { handleLogout() } 
-                    })
-                        .environmentObject(goalsViewModel)
-                        .environmentObject(walletsVM)
-                        .environmentObject(expensesVM)
-                        .environmentObject(incomesVM)
-                        .environmentObject(categoriesVM)
-                        .environmentObject(historyVM)
-                        .environmentObject(analyticsVM)
-                        .environmentObject(tourManager)
+                    ZStack {
+                        ContentView(onLogout: { 
+                            withAnimation { handleLogout() } 
+                        })
+                            .environmentObject(goalsViewModel)
+                            .environmentObject(walletsVM)
+                            .environmentObject(expensesVM)
+                            .environmentObject(incomesVM)
+                            .environmentObject(categoriesVM)
+                            .environmentObject(historyVM)
+                            .environmentObject(analyticsVM)
+                            .environmentObject(tourManager)
+                        
+                        // Экран поздравления о завершении цели
+                        if let completedGoal = completedGoal {
+                            GoalCompletionView(
+                                goal: completedGoal, 
+                                goalsVM: goalsViewModel,
+                                onDismiss: {
+                                    self.completedGoal = nil
+                                }
+                            )
+                        }
+                        
+                        // Окно оценки приложения
+                        if ratingManager.showRatingView {
+                            AppRatingView(isPresented: $ratingManager.showRatingView)
+                        }
+                    }
                         .onAppear {
                             print("[AppEntry] ContentView onAppear!")
                             incomesVM.walletsVM = walletsVM

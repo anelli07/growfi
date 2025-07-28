@@ -113,6 +113,7 @@ def get_transactions(
                 "wallet_name": tx.wallet_name if tx.wallet_name else (wallet.name if wallet else "Удалено"),
                 "wallet_icon": wallet.icon_name if wallet else "creditcard",
                 "wallet_color": wallet.color_hex if wallet else "#CCCCCC",
+                "goal_id": tx.to_goal_id,
             })
         # Остальные типы (wallet_transfer и т.д.) можно добавить по аналогии
     return result

@@ -61,12 +61,27 @@ class CRUDWallet:
     def assign_goal(self, db: Session, *, wallet_id: int, goal_id: int, amount: float, date: str, comment: str = None):
         wallet = db.get(Wallet, wallet_id)
         goal = db.get(Goal, goal_id)
+        
         if not wallet:
             raise ValueError("Wallet not found")
         if not goal:
             raise ValueError("Goal not found")
+        
+        # Проверяем базовые условия
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
         if wallet.balance < amount:
             raise ValueError("Not enough funds in wallet")
+        
+        # Проверяем, не достигнута ли уже цель
+        if goal.current_amount >= goal.target_amount:
+            raise ValueError("Goal is already completed")
+        
+        # Проверяем, не превысит ли сумма целевую
+        remaining_amount = goal.target_amount - goal.current_amount
+        if amount > remaining_amount:
+            raise ValueError(f"Amount exceeds remaining goal amount. Max available: {remaining_amount}")
+        
         wallet.balance -= amount
         goal.current_amount += amount
         db.add(wallet)

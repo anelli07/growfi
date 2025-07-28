@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var isDeletingAccount = false
     @State private var showAccountDeletedAlert = false
     @StateObject private var notificationManager = NotificationManager.shared
+    @StateObject private var ratingManager = AppRatingManager.shared
     @EnvironmentObject var tourManager: AppTourManager
     @EnvironmentObject var goalsViewModel: GoalsViewModel
     @Binding var selectedTab: Int
@@ -127,6 +128,24 @@ struct SettingsView: View {
                     }
                     .padding(.top, 8)
                     
+                    // Rate App
+                    Button(action: {
+                        ratingManager.requestAppRating()
+                    }) {
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundColor(.yellow)
+                            Text("rate_app".localized)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                                .font(.caption)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(16)
+                    }
+                    
                     // Delete Account
                     Button(action: { showDeleteAccountAlert = true }) {
                         HStack {
@@ -154,7 +173,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             Image(systemName: "questionmark.circle")
-                            Text("Инструкция")
+                            Text("instruction".localized)
                         }
                         .foregroundColor(.blue)
                         .padding(.vertical, 8)
@@ -195,6 +214,9 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("account_deleted_message".localized)
+            }
+            .sheet(isPresented: $ratingManager.showRatingView) {
+                AppRatingView(isPresented: $ratingManager.showRatingView)
             }
             .onLanguageChange()
         }

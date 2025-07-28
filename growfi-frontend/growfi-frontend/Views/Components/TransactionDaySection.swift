@@ -18,6 +18,7 @@ struct TransactionDaySection: View {
             .padding(.bottom, 2)
             ForEach(day.transactions) { tx in
                 TransactionCell(transaction: tx) {
+                    print("TransactionDaySection: Delete callback for transaction: \(tx.id)")
                     onDeleteTransaction?(tx.id)
                 }
             }

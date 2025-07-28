@@ -141,6 +141,8 @@ struct OperationsView: View {
                 case .wallet:
                     walletsVM.createWallet(name: name, balance: sum, currency: currency, icon: icon ?? "creditcard.fill", color: color ?? "#0000FF")
                 case .goal:
+                    print("DEBUG: OperationsView - calling createGoal with selectedMonthDay: \(selectedMonthDay ?? -1)")
+                    print("DEBUG: OperationsView - calling createGoal with selectedWeekday: \(selectedWeekday ?? -1)")
                     viewModel.createGoal(
                         name: name,
                         targetAmount: sum,
@@ -152,6 +154,7 @@ struct OperationsView: View {
                         planAmount: planAmount,
                         reminderPeriod: reminderPeriod,
                         selectedWeekday: selectedWeekday,
+                        selectedMonthDay: selectedMonthDay,
                         selectedTime: selectedTime
                     )
                 case .expense:
@@ -208,8 +211,24 @@ struct OperationsView: View {
                 showAlert = true
                 return
             }
+            
+            // Проверяем, не достигнута ли уже цель
+            guard goal.current_amount < goal.target_amount else {
+                alertMessage = "goal_already_completed".localized
+                showAlert = true
+                return
+            }
+            
             guard amount <= wallet.balance else {
                 alertMessage = "Недостаточно средств"
+                showAlert = true
+                return
+            }
+            
+            // Проверяем, не превысит ли сумма целевую
+            let remainingAmount = goal.target_amount - goal.current_amount
+            guard amount <= remainingAmount else {
+                alertMessage = String(format: "max_amount_to_add".localized, "\(Int(remainingAmount))")
                 showAlert = true
                 return
             }

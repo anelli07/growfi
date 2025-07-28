@@ -23,6 +23,7 @@ struct EditItemSheet: View {
     @State private var showTimePicker = false
     @State private var targetAmount: String = ""
     @State private var currentAmount: String = ""
+    @FocusState private var isNameFieldFocused: Bool
     let availableIcons = [
         "creditcard.fill", "banknote", "dollarsign.circle.fill", "wallet.pass.fill", "cart.fill", "gift.fill", "airplane", "car.fill", "cross.case.fill", "tshirt.fill", "scissors", "gamecontroller.fill", "cup.and.saucer.fill", "fork.knife", "phone.fill", "house.fill", "building.2.fill", "bag.fill", "star.fill", "questionmark.circle", "lipstick", "paintbrush.fill"
     ]
@@ -85,131 +86,147 @@ struct EditItemSheet: View {
             return (e.name.localizedIfDefault, "", "cart.fill", .red)
         }
     }
+    
+    // MARK: - View Components
+    private var headerView: some View {
+        HStack {
+            Button(action: { showDeleteAlert = true }) {
+                Image(systemName: "trash")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 28))
+            }
+            Spacer()
+            Text(title)
+                .font(.system(size: 22, weight: .semibold))
+            Spacer()
+            Button(action: { onClose(); presentationMode.wrappedValue.dismiss() }) {
+                Image(systemName: "xmark")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 28))
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+    }
+    
+    private var iconSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("icon".localized)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.gray)
+            IconColorPickerView(
+                selectedIcon: $selectedIcon,
+                selectedColor: $selectedColor,
+                name: name,
+                availableIcons: availableIcons,
+                availableColors: availableColors
+            )
+            .padding(.bottom, 8)
+        }
+    }
+    
+    private var nameSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("name".localized)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.gray)
+            TextField("", text: $name)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .id("nameField")
+                .focused($isNameFieldFocused)
+                .keyboardToolbar {
+                    hideKeyboard()
+                }
+        }
+    }
+    
+    @ViewBuilder
+    private var goalSpecificSection: some View {
+        if case .goal = item {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Amount".localized) // Target amount
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                TextField("0", text: $targetAmount)
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                Text("already_saved_amount".localized)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                TextField("already_saved_amount_placeholder".localized, text: $currentAmount)
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onLanguageChange()
+                // Новый блок: выбор напоминания
+                Text("Напоминать о взносе")
+                    .font(.system(size: 14, weight: .medium))
+                    .padding(.top, 8)
+                Picker("Периодичность напоминания", selection: $reminderPeriod) {
+                    Text("Не напоминать").tag(Optional<PlanPeriod>.none)
+                    Text("Еженедельно").tag(Optional(PlanPeriod.week))
+                    Text("Ежемесячно").tag(Optional(PlanPeriod.month))
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .onChange(of: reminderPeriod) {
+                    if reminderPeriod == nil {
+                        selectedWeekday = 2
+                        selectedMonthDay = 1
+                        selectedTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+                    }
+                }
+                if reminderPeriod == .week {
+                    HStack(spacing: 12) {
+                        Button(action: { showWeekdayPicker = true }) {
+                            Text("reminder_day".localized + ": " + weekdayName(selectedWeekday))
+                                .padding(8)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                        }
+                        Button(action: { showTimePicker = true }) {
+                            Text("reminder_time".localized + ": " + timeString(selectedTime))
+                                .padding(8)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                        }
+                    }
+                    .onLanguageChange()
+                } else if reminderPeriod == .month {
+                    HStack(spacing: 12) {
+                        Button(action: { showMonthDayPicker = true }) {
+                            Text("reminder_month_day".localized + ": " + String(selectedMonthDay))
+                                .padding(8)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                        }
+                        Button(action: { showTimePicker = true }) {
+                            Text("reminder_time".localized + ": " + timeString(selectedTime))
+                                .padding(8)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                        }
+                    }
+                    .onLanguageChange()
+                }
+            }
+            HStack {
+                Text("Currency".localized)
+                    .font(.system(size: 14, weight: .medium))
+                Spacer()
+                Text("₸")
+                    .font(.system(size: 22, weight: .bold))
+            }
+            .padding(.top, 4)
+        }
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                HStack {
-                    Button(action: { showDeleteAlert = true }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.blue)
-                            .font(.system(size: 28))
-                    }
-                    Spacer()
-                    Text(title)
-                        .font(.system(size: 22, weight: .semibold))
-                    Spacer()
-                    Button(action: { onClose(); presentationMode.wrappedValue.dismiss() }) {
-                        Image(systemName: "xmark")
-                            .foregroundColor(.blue)
-                            .font(.system(size: 28))
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
+                headerView
                 VStack(spacing: 16) {
-                    Text("icon".localized)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
-                    IconColorPickerView(
-                        selectedIcon: $selectedIcon,
-                        selectedColor: $selectedColor,
-                        name: name,
-                        availableIcons: availableIcons,
-                        availableColors: availableColors
-                    )
-                    .padding(.bottom, 8)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("name".localized)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.gray)
-                        TextField("", text: $name)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardToolbar(title: "Готово") {
-                                hideKeyboard()
-                            }
-                    }
-                    if case .goal = item {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Amount".localized) // Target amount
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                            TextField("0", text: $targetAmount)
-                                .keyboardType(.decimalPad)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardToolbar(title: "Готово") {
-                                    hideKeyboard()
-                                }
-                            Text("already_saved_amount".localized)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                            TextField("already_saved_amount_placeholder".localized, text: $currentAmount)
-                                .keyboardType(.decimalPad)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardToolbar(title: "Готово") {
-                                    hideKeyboard()
-                                }
-                                .onLanguageChange()
-                            // Новый блок: выбор напоминания
-                            Text("Напоминать о взносе")
-                                .font(.system(size: 14, weight: .medium))
-                                .padding(.top, 8)
-                            Picker("Периодичность напоминания", selection: $reminderPeriod) {
-                                Text("Не напоминать").tag(Optional<PlanPeriod>.none)
-                                Text("Еженедельно").tag(Optional(PlanPeriod.week))
-                                Text("Ежемесячно").tag(Optional(PlanPeriod.month))
-                            }
-                            .pickerStyle(SegmentedPickerStyle())
-                            .onChange(of: reminderPeriod) {
-                                if reminderPeriod == nil {
-                                    selectedWeekday = 2
-                                    selectedMonthDay = 1
-                                    selectedTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-                                }
-                            }
-                            if reminderPeriod == .week {
-                                HStack(spacing: 12) {
-                                    Button(action: { showWeekdayPicker = true }) {
-                                        Text("reminder_day".localized + ": " + weekdayName(selectedWeekday))
-                                            .padding(8)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(8)
-                                    }
-                                    Button(action: { showTimePicker = true }) {
-                                        Text("reminder_time".localized + ": " + timeString(selectedTime))
-                                            .padding(8)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(8)
-                                    }
-                                }
-                                .onLanguageChange()
-                            } else if reminderPeriod == .month {
-                                HStack(spacing: 12) {
-                                    Button(action: { showMonthDayPicker = true }) {
-                                        Text("reminder_month_day".localized + ": " + String(selectedMonthDay))
-                                            .padding(8)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(8)
-                                    }
-                                    Button(action: { showTimePicker = true }) {
-                                        Text("reminder_time".localized + ": " + timeString(selectedTime))
-                                            .padding(8)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(8)
-                                    }
-                                }
-                                .onLanguageChange()
-                            }
-                        }
-                    }
-                    HStack {
-                        Text("Currency".localized)
-                            .font(.system(size: 14, weight: .medium))
-                        Spacer()
-                        Text("₸")
-                            .font(.system(size: 22, weight: .bold))
-                    }
-                    .padding(.top, 4)
+                                         iconSection
+                     nameSection
+                     goalSpecificSection
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 8)
@@ -226,7 +243,39 @@ struct EditItemSheet: View {
                         updatedGoal.current_amount = cAmount
                         updatedGoal.icon = selectedIcon
                         updatedGoal.color = selectedColor.toHex ?? g.color
-                        viewModel.updateGoal(goal: updatedGoal, icon: updatedGoal.icon, color: updatedGoal.color, planPeriod: reminderPeriod, planAmount: nil, reminderPeriod: reminderPeriod, selectedWeekday: selectedWeekday, selectedMonthDay: selectedMonthDay, selectedTime: selectedTime)
+                        // Устанавливаем дефолтные значения для напоминаний
+                        var finalSelectedWeekday: Int? = selectedWeekday
+                        var finalSelectedMonthDay: Int? = selectedMonthDay
+                        var finalSelectedTime: Date? = selectedTime
+                        
+                        if let reminderPeriod = reminderPeriod {
+                            // Если не выбрано время, устанавливаем 9:00
+                            if finalSelectedTime == nil {
+                                let calendar = Calendar.current
+                                var components = DateComponents()
+                                components.hour = 9
+                                components.minute = 0
+                                finalSelectedTime = calendar.date(from: components) ?? Date()
+                            }
+                            
+                            if reminderPeriod == .week {
+                                // Для еженедельных напоминаний НЕ устанавливаем день месяца
+                                finalSelectedMonthDay = nil
+                                // Если не выбран день недели, устанавливаем понедельник (1)
+                                if finalSelectedWeekday == nil {
+                                    finalSelectedWeekday = 1
+                                }
+                            } else if reminderPeriod == .month {
+                                // Для ежемесячных напоминаний НЕ устанавливаем день недели
+                                finalSelectedWeekday = nil
+                                // Если не выбрано число месяца, устанавливаем 1
+                                if finalSelectedMonthDay == nil {
+                                    finalSelectedMonthDay = 1
+                                }
+                            }
+                        }
+                        
+                        viewModel.updateGoal(goal: updatedGoal, icon: updatedGoal.icon, color: updatedGoal.color, planPeriod: reminderPeriod, planAmount: nil, reminderPeriod: reminderPeriod, selectedWeekday: finalSelectedWeekday, selectedMonthDay: finalSelectedMonthDay, selectedTime: finalSelectedTime ?? Date())
                     } else {
                         saveChanges()
                     }
@@ -245,10 +294,21 @@ struct EditItemSheet: View {
                 .padding(.bottom, 24)
                 .disabled(name.isEmpty)
                 
+                // Дополнительное пространство для прокрутки
+                VStack(spacing: 20) {
+                    Text("")
+                        .frame(height: 50)
+                    Text("")
+                        .frame(height: 50)
+                    Text("")
+                        .frame(height: 50)
+                }
+                
                 // Дополнительный отступ для клавиатуры
-                Spacer(minLength: 100)
+                Spacer(minLength: 300)
             }
         }
+
         .background(Color.white)
         .cornerRadius(24)
         .ignoresSafeArea(edges: .bottom)
@@ -266,6 +326,11 @@ struct EditItemSheet: View {
             }
             if currentAmount.isEmpty {
                 currentAmount = ""
+            }
+            
+            // Автоматически устанавливаем фокус на поле имени
+            DispatchQueue.main.async {
+                isNameFieldFocused = true
             }
         }
         .sheet(isPresented: $showWeekdayPicker) {

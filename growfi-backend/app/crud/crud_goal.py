@@ -12,6 +12,8 @@ class CRUDGoal(CRUDBase[Goal, GoalCreate, GoalUpdate]):
             color=obj_in.color,
             currency=obj_in.currency,
             user_id=user.id,
+            plan_period=getattr(obj_in, 'plan_period', None),
+            plan_amount=getattr(obj_in, 'plan_amount', None),
             reminder_period=getattr(obj_in, 'reminder_period', None),
             selected_weekday=getattr(obj_in, 'selected_weekday', None),
             selected_month_day=getattr(obj_in, 'selected_month_day', None),

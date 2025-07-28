@@ -17,6 +17,9 @@ class Goal(SQLModel, table=True):
     user: "User" = Relationship(back_populates="goals")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # --- Новые поля для планирования накопления ---
+    plan_period: Optional[str] = Field(default=None, nullable=True)  # 'week', 'month', None
+    plan_amount: Optional[float] = Field(default=None, nullable=True)  # сумма для накопления за период
     # --- Новые поля для уведомлений ---
     reminder_period: Optional[str] = Field(default=None, nullable=True)  # 'week', 'month', None
     selected_weekday: Optional[int] = Field(default=None, nullable=True) # 1-7

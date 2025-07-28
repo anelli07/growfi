@@ -34,23 +34,42 @@ struct AnalyticsPieChartView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Chart(data) { stat in
-                    SectorMark(
-                        angle: .value("Сумма", stat.total),
-                        innerRadius: .ratio(0.6),
-                        angularInset: 2
+                if data.isEmpty {
+                    // Пустое состояние
+                    VStack(spacing: 16) {
+                        Circle()
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                            .frame(width: 120, height: 120)
+                            .overlay(
+                                Image(systemName: "chart.pie")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray.opacity(0.5))
+                            )
+                        Text("no_data_available".localized)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    Chart(data) { stat in
+                        SectorMark(
+                            angle: .value("Сумма", stat.total),
+                            innerRadius: .ratio(0.6),
+                            angularInset: 2
+                        )
+                        .foregroundStyle(stat.color)
+                    }
+                    .chartLegend(.hidden)
+                    PieChartLabelsOverlay(
+                        labels: makeLabels(
+                            data: data,
+                            angles: angles,
+                            geometry: geometry,
+                            total: total
+                        )
                     )
-                    .foregroundStyle(stat.color)
                 }
-                .chartLegend(.hidden)
-                PieChartLabelsOverlay(
-                    labels: makeLabels(
-                        data: data,
-                        angles: angles,
-                        geometry: geometry,
-                        total: total
-                    )
-                )
             }
         }
     }

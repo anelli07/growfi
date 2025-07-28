@@ -25,7 +25,19 @@ struct SearchBar: View {
                 .font(.subheadline)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .disabled(true) // теперь поле только для отображения, нельзя печатать
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+            
+            if !text.isEmpty {
+                Button(action: {
+                    text = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 16))
+                }
+            }
+            
             Spacer()
             if iconOnRight {
                 if let iconName = iconName {

@@ -20,7 +20,7 @@ struct AIChatView: View {
         VStack(spacing: 0) {
             // Заголовок
             HStack {
-                Text("AI Помощник")
+                Text("ai_assistant".localized)
                     .font(.title2)
                     .bold()
                 Spacer()
@@ -41,7 +41,7 @@ struct AIChatView: View {
                         HStack {
                             ProgressView()
                                 .scaleEffect(0.8)
-                            Text("AI думает...")
+                            Text("ai_thinking".localized)
                                 .foregroundColor(.gray)
                         }
                         .padding()
@@ -138,7 +138,7 @@ struct MessageBubble: View {
                         .cornerRadius(16)
 
                     if message.transactionCreated {
-                        Text("✅ Транзакция создана")
+                        Text("transaction_created".localized)
                             .font(.caption)
                             .foregroundColor(.green)
                     }
